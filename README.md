@@ -4,17 +4,19 @@ A workflow toolkit for building features with Claude — from idea validation th
 
 ## The workflow
 
-These four skills chain together into a complete feature development pipeline:
+These five skills chain together into a complete feature development pipeline:
 
 ```
-worth-it → nah-fam → lets-cook → show-me (at any visual decision point)
+worth-it → nah-fam → game-plan → lets-cook → show-me (at any visual decision point)
 ```
 
 **worth-it** — Challenges whether a feature is worth building. Questions who wants it, the real pain, what you're giving up, and whether the problem is already solved. Researches competitors and market demand before grilling you.
 
 **nah-fam** — Challenges the technical design. Tears apart architecture, data model, edge cases, and anything that could break in production. Files the result as a GitHub issue when you're ready.
 
-**lets-cook** — Turns a GitHub issue into a phased plan and executes it. Builds the thinnest end-to-end path first (tracer bullet), then hardens with error handling and edge cases. Uses TDD throughout.
+**game-plan** — Turns a GitHub issue or feature description into a phased implementation plan. Designs vertical slices starting with a tracer bullet, saves the plan to `.plans/` for review.
+
+**lets-cook** — Picks up a plan and executes it phase by phase using TDD. Tracer bullet first, then hardening.
 
 **show-me** — Renders UI decisions in the browser instead of describing them in text. Used by nah-fam during frontend discussions, or standalone when you want to compare layouts.
 
@@ -25,6 +27,7 @@ Install individual skills:
 ```bash
 npx skills@latest add hivinaynair/agentic-skills/worth-it
 npx skills@latest add hivinaynair/agentic-skills/nah-fam
+npx skills@latest add hivinaynair/agentic-skills/game-plan
 npx skills@latest add hivinaynair/agentic-skills/lets-cook
 npx skills@latest add hivinaynair/agentic-skills/show-me
 ```
@@ -46,7 +49,7 @@ npx skills@latest add hivinaynair/agentic-skills/brainstorming
 ### Install all at once
 
 ```bash
-npx skills@latest add hivinaynair/agentic-skills/worth-it hivinaynair/agentic-skills/nah-fam hivinaynair/agentic-skills/lets-cook hivinaynair/agentic-skills/show-me hivinaynair/agentic-skills/tdd hivinaynair/agentic-skills/brainstorming
+npx skills@latest add hivinaynair/agentic-skills/worth-it hivinaynair/agentic-skills/nah-fam hivinaynair/agentic-skills/game-plan hivinaynair/agentic-skills/lets-cook hivinaynair/agentic-skills/show-me hivinaynair/agentic-skills/tdd hivinaynair/agentic-skills/brainstorming
 ```
 
 ## Usage
@@ -55,10 +58,11 @@ Just describe what you want to build and Claude will pick the right skill:
 
 - *"I want to add dark mode"* → triggers **worth-it** (is it worth building?)
 - *"Should we go with SSR or client-side rendering for the dashboard?"* → triggers **nah-fam** (technical challenge)
-- *"Cook issue #42"* → triggers **lets-cook** (plan and build)
+- *"Plan out the auth system"* → triggers **game-plan** (implementation plan)
+- *"Lets cook"* → triggers **lets-cook** (execute the plan)
 - *"I don't like how the sidebar looks"* → triggers **show-me** (visual mockups)
 
-Or invoke them directly: `/worth-it`, `/nah-fam`, `/lets-cook`, `/show-me`
+Or invoke them directly: `/worth-it`, `/nah-fam`, `/game-plan`, `/lets-cook`, `/show-me`
 
 ## Credits
 

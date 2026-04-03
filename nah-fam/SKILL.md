@@ -9,4 +9,4 @@ Use the AskUserQuestion tool for each question, with your recommendation as the 
 
 When challenging UI or frontend decisions, use the show-me skill to show mockups in the browser instead of describing layouts in text.
 
-When done, summarize the final technical approach and flag anything to watch out for during implementation. Then ask if I want to file it as a GitHub issue. If yes, use gh issue create with: the problem from the user's perspective, user stories, key implementation decisions, and what's explicitly out of scope.
+When done, summarize the final technical approach and flag anything to watch out for during implementation. Then ask if I want to file it as a GitHub issue. If yes, use gh issue create with: the problem from the user's perspective, user stories, key implementation decisions, and what's explicitly out of scope. Then ask if I want to move on to game-plan to plan the implementation.

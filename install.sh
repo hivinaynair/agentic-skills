@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 mkdir -p "$SKILLS_DIR"
 
-SKILL_NAMES=("worth-it" "nah-fam" "lets-cook" "show-me" "tdd" "brainstorming")
+SKILL_NAMES=("worth-it" "nah-fam" "game-plan" "lets-cook" "show-me" "tdd" "brainstorming")
 
 for skill_name in "${SKILL_NAMES[@]}"; do
   skill_dir="$SCRIPT_DIR/$skill_name"
@@ -25,4 +25,4 @@ for skill_name in "${SKILL_NAMES[@]}"; do
 done
 
 echo ""
-echo "Done. 6 skills installed to $SKILLS_DIR"
+echo "Done. 7 skills installed to $SKILLS_DIR"

@@ -1,12 +1,10 @@
 ---
 name: lets-cook
-description: Turns a GitHub issue into a phased plan and executes it. Reads the issue, studies the codebase, plans vertical slices, then builds phase by phase with TDD.
+description: Executes an implementation plan phase by phase using TDD. Use when there's already a plan in .plans/ or a GitHub issue and you're ready to build. Triggers on "lets cook", "start building", "execute the plan", or "build it".
 dependencies:
   - plugin: tdd
 ---
 
-Read the GitHub issue(or if no issue is provided, work from the verbal description). Study the codebase — existing patterns, conventions, and how similar features were built. Build the tracer bullet first — the thinnest possible end-to-end path that proves the architecture works.
+Pick up the plan from .plans/<feature-name>.md (or if no plan exists, read the GitHub issue or verbal description and build one first). Execute phase by phase using the tdd skill — tracer bullet first, then hardening.
 
-Happy path only, no edge cases. Then harden it — error handling, validation, empty states, and anything that breaks in real usage.Save the plan to .plans/<feature-name>.md.
-
-Save the plan to .plans/<feature-name>.md. Then execute using the tdd skill. After all phases pass, confirm with me that the feature is complete.
+After all phases pass, confirm with me that the feature is complete.
