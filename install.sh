@@ -6,8 +6,10 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 mkdir -p "$SKILLS_DIR"
 
-for skill_dir in "$SCRIPT_DIR"/skills/*/; do
-  skill_name="$(basename "$skill_dir")"
+SKILL_NAMES=("be-fr" "nah-fam" "lets-cook" "show-me" "tdd" "brainstorming")
+
+for skill_name in "${SKILL_NAMES[@]}"; do
+  skill_dir="$SCRIPT_DIR/$skill_name"
   target="$SKILLS_DIR/$skill_name"
 
   if [ -L "$target" ]; then

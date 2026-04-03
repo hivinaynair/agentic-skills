@@ -23,10 +23,10 @@ be-fr → nah-fam → lets-cook → show-me (at any visual decision point)
 Install individual skills:
 
 ```bash
-npx skills@latest add vinaynair/skills/be-fr
-npx skills@latest add vinaynair/skills/nah-fam
-npx skills@latest add vinaynair/skills/lets-cook
-npx skills@latest add vinaynair/skills/show-me
+npx skills@latest add hivinaynair/agentic-skills/be-fr
+npx skills@latest add hivinaynair/agentic-skills/nah-fam
+npx skills@latest add hivinaynair/agentic-skills/lets-cook
+npx skills@latest add hivinaynair/agentic-skills/show-me
 ```
 
 ### Dependencies
@@ -34,8 +34,8 @@ npx skills@latest add vinaynair/skills/show-me
 `lets-cook` and `show-me` depend on skills from other authors, bundled here for convenience:
 
 ```bash
-npx skills@latest add vinaynair/skills/tdd
-npx skills@latest add vinaynair/skills/brainstorming
+npx skills@latest add hivinaynair/agentic-skills/tdd
+npx skills@latest add hivinaynair/agentic-skills/brainstorming
 ```
 
 | Skill | Source | Author |
@@ -46,7 +46,7 @@ npx skills@latest add vinaynair/skills/brainstorming
 ### Install all at once
 
 ```bash
-npx skills@latest add vinaynair/skills/be-fr vinaynair/skills/nah-fam vinaynair/skills/lets-cook vinaynair/skills/show-me vinaynair/skills/tdd vinaynair/skills/brainstorming
+npx skills@latest add hivinaynair/agentic-skills/be-fr hivinaynair/agentic-skills/nah-fam hivinaynair/agentic-skills/lets-cook hivinaynair/agentic-skills/show-me hivinaynair/agentic-skills/tdd hivinaynair/agentic-skills/brainstorming
 ```
 
 ## Usage
