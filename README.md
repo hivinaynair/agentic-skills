@@ -7,10 +7,10 @@ A workflow toolkit for building features with Claude — from idea validation th
 These four skills chain together into a complete feature development pipeline:
 
 ```
-be-fr → nah-fam → lets-cook → show-me (at any visual decision point)
+worth-it → nah-fam → lets-cook → show-me (at any visual decision point)
 ```
 
-**be-fr** — Challenges whether a feature is worth building. Questions who wants it, the real pain, what you're giving up, and whether the problem is already solved. Researches competitors and market demand before grilling you.
+**worth-it** — Challenges whether a feature is worth building. Questions who wants it, the real pain, what you're giving up, and whether the problem is already solved. Researches competitors and market demand before grilling you.
 
 **nah-fam** — Challenges the technical design. Tears apart architecture, data model, edge cases, and anything that could break in production. Files the result as a GitHub issue when you're ready.
 
@@ -23,7 +23,7 @@ be-fr → nah-fam → lets-cook → show-me (at any visual decision point)
 Install individual skills:
 
 ```bash
-npx skills@latest add hivinaynair/agentic-skills/be-fr
+npx skills@latest add hivinaynair/agentic-skills/worth-it
 npx skills@latest add hivinaynair/agentic-skills/nah-fam
 npx skills@latest add hivinaynair/agentic-skills/lets-cook
 npx skills@latest add hivinaynair/agentic-skills/show-me
@@ -46,19 +46,19 @@ npx skills@latest add hivinaynair/agentic-skills/brainstorming
 ### Install all at once
 
 ```bash
-npx skills@latest add hivinaynair/agentic-skills/be-fr hivinaynair/agentic-skills/nah-fam hivinaynair/agentic-skills/lets-cook hivinaynair/agentic-skills/show-me hivinaynair/agentic-skills/tdd hivinaynair/agentic-skills/brainstorming
+npx skills@latest add hivinaynair/agentic-skills/worth-it hivinaynair/agentic-skills/nah-fam hivinaynair/agentic-skills/lets-cook hivinaynair/agentic-skills/show-me hivinaynair/agentic-skills/tdd hivinaynair/agentic-skills/brainstorming
 ```
 
 ## Usage
 
 Just describe what you want to build and Claude will pick the right skill:
 
-- *"I want to add dark mode"* → triggers **be-fr** (is it worth building?)
+- *"I want to add dark mode"* → triggers **worth-it** (is it worth building?)
 - *"Should we go with SSR or client-side rendering for the dashboard?"* → triggers **nah-fam** (technical challenge)
 - *"Cook issue #42"* → triggers **lets-cook** (plan and build)
 - *"I don't like how the sidebar looks"* → triggers **show-me** (visual mockups)
 
-Or invoke them directly: `/be-fr`, `/nah-fam`, `/lets-cook`, `/show-me`
+Or invoke them directly: `/worth-it`, `/nah-fam`, `/lets-cook`, `/show-me`
 
 ## Credits
 

@@ -1,5 +1,5 @@
 ---
-name: be-fr
+name: worth-it
 description: Use when proposing a new feature. Challenges whether it's worth building by questioning who wants it, the real pain, and what you're giving up.
 ---
 

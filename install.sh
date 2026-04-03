@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 mkdir -p "$SKILLS_DIR"
 
-SKILL_NAMES=("be-fr" "nah-fam" "lets-cook" "show-me" "tdd" "brainstorming")
+SKILL_NAMES=("worth-it" "nah-fam" "lets-cook" "show-me" "tdd" "brainstorming")
 
 for skill_name in "${SKILL_NAMES[@]}"; do
   skill_dir="$SCRIPT_DIR/$skill_name"
