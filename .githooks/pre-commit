@@ -1,0 +1,11 @@
+#!/bin/sh
+set -eu
+root=$(git rev-parse --show-toplevel)
+cd "$root"
+staged_dir=$(mktemp -d "${TMPDIR:-/tmp}/agentic-skills.XXXXXX")
+trap 'rm -rf "$staged_dir"' EXIT HUP INT TERM
+git checkout-index --all --prefix="$staged_dir/"
+cd "$staged_dir"
+bun run check
+bun test
+bun skills/journeys/scripts/journeys.ts check evaluation/team-invitations/journeys/invitations.yaml
