@@ -1,7 +1,13 @@
 # Agentic Skills
 
-Two skills for turning product intent into decisions and testable journeys.
-Experimental v0.1. Start with one feature, then expand when useful.
+Give your coding agent a clear agreement about what to build, how it should behave,
+and what still needs an answer.
+
+**decide** captures the choices. **journeys** follows them through the happy path,
+failures, retries and recovery. An optional validator checks that the references
+and recorded coverage hold together.
+
+Experimental v0.1. Start with one feature.
 
 | Skill | When to use it | Output |
 |---|---|---|
@@ -36,32 +42,149 @@ is no agent-specific plugin manifest.
 The previous seven skills and their installer have been retired from this repository.
 Existing installed copies are not removed automatically. Git history retains the old files.
 
-## Use
+## How it works
 
-> Use decide to plan team invitations. Read our docs and code, preserve settled
-> requirements, and ask about the most important missing policy.
+```mermaid
+flowchart LR
+    A[Your request + existing docs and code] --> B[decide: choices and open questions]
+    B --> C[journeys: goals, paths and acceptance criteria]
+    C --> D[Validate and review]
+    D --> E[Tasks and tests that cite the criteria]
+```
 
-> Use journeys on the agreed invitation feature. List actor goals and recovery
-> paths first, then map steps, failures and acceptance criteria. Keep unknowns visible.
+| Stage | Input | What you get |
+|---|---|---|
+| Decide | Your intent, constraints and existing requirements | Decisions, exclusions and questions in `docs/decisions.md` |
+| Inventory | Actor goals, entry points and recovery needs | A list of goals marked mapped, excluded or unresolved |
+| Journeys | Agreed decisions and source-backed observations | `docs/journeys/<feature>.yaml` with steps, branches, exits and acceptance criteria |
+| Render and check | The decision record and journey file | A readable Markdown view with diagrams, plus errors or warnings |
+| Implementation handoff | Reviewed criteria with stable IDs | A basis for tasks and tests; implementation is separate work |
 
-The workflow is:
+You remain the owner of product choices. The agent preserves settled answers and
+asks about missing policy instead of silently choosing it. Use either skill on its
+own: an existing agreed specification can be the input to journeys.
 
-1. Separate accepted decisions from observations, recommendations and questions.
-2. Inventory actor goals and recovery paths before drawing the journeys.
-3. Map each goal to journeys, an explicit exclusion, or an unresolved gap.
-4. Describe each journey's steps, branches, outcomes and forbidden effects.
-5. Validate references and review whether the behavior is actually sufficient.
-6. Hand the resulting IDs to implementation tasks and tests.
+Existing project conventions take precedence. The optional checker expects the
+[decision table](skills/decide/references/record-format.md) and
+[journey schema](skills/journeys/references/schema.md). Other formats may need an
+explicit adapter or migration; the skills can still guide manual review.
 
-Default artifacts are `docs/decisions.md` and `docs/journeys/<feature>.yaml`, plus
-its generated Markdown view. Existing project conventions take precedence. The
-optional checker expects the [decision table](skills/decide/references/record-format.md)
-and [journey schema](skills/journeys/references/schema.md); existing formats may
-need an explicit adapter or migration. The skills can still guide manual review.
+## Example 1: Plan team invitations
 
-Observed code behavior gets an observation ID with source, revision and locator.
-It does not become approved policy just because it exists. Accepted decisions,
-journey steps and criteria keep stable IDs so downstream work can cite them.
+Start with what you already know:
+
+> Use decide to plan team invitations. Only workspace admins can invite people.
+> Invitations expire after 48 hours and can be revoked. We want shareable links,
+> not email delivery. Read our existing membership model before asking questions.
+
+The agent records those choices and exclusions. If the recipient's membership role
+is unspecified, it asks about that rather than inventing an admin/member default.
+A shortened, illustrative result might look like this:
+
+| ID | Status | Meaning |
+|---|---|---|
+| D1 | Accepted | Only workspace admins can create invitations |
+| D2 | Accepted | Invitations expire after 48 hours |
+| X1 | Accepted exclusion | No email delivery in this feature |
+| Q1 | Open | Which role does a new member receive? |
+
+This is an explanatory summary, not the full machine-readable decision table.
+
+Then ask:
+
+> Use journeys to map the invitation feature from those decisions. Include
+> creating, revoking and accepting invitations, expired links, repeat acceptance,
+> and losing the response after acceptance. Keep the unanswered role question open.
+
+The output gives each behavior an ID. For example:
+
+```text
+J3.S4.c1: WHEN an existing member accepts the invitation
+          THE SYSTEM SHALL return already-member without another membership
+
+J3.S4.c2: IF the invitation has been revoked
+          THE SYSTEM SHALL NOT grant membership
+```
+
+These are illustrative criteria, not excerpts with matching IDs from the included
+fixture. Tasks and tests can cite the actual generated IDs. A task that grants a new
+membership remains blocked on Q1; unrelated paths can still be specified.
+
+Explore the complete synthetic trial: [brief](evaluation/brief.md),
+[decisions](evaluation/team-invitations/decisions.md), and
+[rendered journeys](evaluation/team-invitations/journeys/invitations.md).
+
+## Example 2: Review an existing retry flow
+
+> Use journeys to review our file-import retry flow. Inspect the retry endpoint,
+> queue submission, worker completion, cancellation and scheduled recovery.
+> Record current behavior with source references. Do not treat existing code as
+> approved policy or change the implementation.
+
+Suppose the handler resets a failed import before submitting it to the queue.
+The agent records that as an observation. This illustrative YAML fragment shows
+its source reference; use the real path, revision and locator from your project:
+
+```yaml
+observations:
+  - id: O1
+    statement: The handler resets the import before submitting work to the queue
+    sources:
+      - ref: src/imports/retry.ts
+        revision: abc1234
+        locator: retryImport
+```
+
+That observation raises a review question: what resumes the import if the process
+stops between the reset and queue submission? The agent looks for an existing
+recovery path. If none is established, it records the gap rather than claiming
+the system already handles it or inventing a retry policy.
+
+```yaml
+coverage:
+  - id: C1
+    actor: user
+    goal: Retry a failed import
+    status: mapped
+    journeys: [J1]
+  - id: C2
+    actor: worker
+    goal: Recover an import interrupted before queue submission
+    status: unresolved
+    reason: No recovery path or approved exclusion has been established
+```
+
+These are fragments, not a standalone valid spine. The complete file also defines
+actors, journeys and the other required fields. `--coverage` fails while C2 is
+unresolved. Even a complete observation-only map cannot pass `--ready`: descriptions
+of current behavior do not approve future requirements.
+
+## Example 3: Catch a journey removed during an edit
+
+Suppose the inventory maps “Retry a failed import” to J1. Someone removes J1 but
+leaves C1 pointing to it. The validator reports:
+
+```text
+C1: missing mapped journey J1
+```
+
+The pre-commit helper can catch that in the staged files before the commit succeeds.
+It also checks step targets and decision references, so a renamed or retired ID
+cannot silently leave a broken link behind.
+
+If someone removes **both** C1 and J1, the checker cannot infer the missing goal.
+That is why the inventory is written from user goals and source entry points first,
+and reviewed against those sources after changes.
+
+## When to use these skills
+
+Use them before a feature with unclear requirements, when handing work to another
+agent, when reviewing existing behavior, or when a policy change affects several
+paths. They are especially useful when retries, permissions and partial failures
+matter as much as the happy path.
+
+Skip the full workflow for a small styling fix or an already precise implementation
+task. These skills do not replace source review, design judgment or behavior tests.
 
 ## Validate a feature
 
