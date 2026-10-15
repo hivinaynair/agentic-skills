@@ -1,0 +1,146 @@
+version: 1
+feature: team-invitations
+decisions: ../decisions.md
+retired: []
+actors:
+  - id: requester
+    name: Person requesting invitation creation or revocation
+  - id: recipient
+    name: Person accepting an invitation
+invariants:
+  - id: I1
+    rule: THE SYSTEM SHALL NOT create or revoke a workspace invitation for a requester who is not currently an admin of that workspace
+    decisions: [D1, D2, D9]
+  - id: I2
+    rule: THE SYSTEM SHALL NOT grant invitation membership without a matching authenticated verified email
+    decisions: [D3]
+  - id: I3
+    rule: THE SYSTEM SHALL NOT grant membership using an invitation that is revoked or at least 48 hours old
+    decisions: [D4, D5]
+  - id: I4
+    rule: THE SYSTEM SHALL NOT create more than one membership per workspace and account through acceptance
+    decisions: [D6, D8]
+journeys:
+  - id: J1
+    title: Create a shareable invitation
+    actor: requester
+    entry: J1.S1
+    exits: [created, denied]
+    review:
+      input: {status: open, reason: Q2 leaves malformed invitation addresses and deleted-workspace outcomes unresolved.}
+      permissions: {status: covered, reason: Current workspace admin permission is required at creation time., refs: [J1.S1.c2]}
+      interruption: {status: open, reason: Q4 leaves interruption and unknown completion of creation unresolved.}
+      dependencies: {status: open, reason: Email delivery is excluded by X1 but local persistence can fail; Q4 leaves the requester outcome unresolved.}
+      duplicates: {status: open, reason: Q3 leaves repeat creation and multiple active links unresolved.}
+      concurrency: {status: open, reason: J1.S1.c2 covers current admin permission but Q3 leaves concurrent creation outcomes unresolved.}
+      recovery: {status: open, reason: Q3 and Q4 leave lost-link response recovery and creation retry behavior unresolved.}
+    steps:
+      - id: J1.S1
+        title: Authorize and create an invitation
+        kind: system
+        decisions: [D1, D4, D9]
+        invariants: [I1]
+        criteria:
+          c1: WHEN a current workspace admin creates an invitation THE SYSTEM SHALL set its expiration to 48 hours after creation
+          c2: IF the requester is not an admin of the invited workspace at creation time THE SYSTEM SHALL NOT create the invitation
+        next:
+          - {to: J1.S2, when: invitation created with current admin permission}
+          - {exit: denied, when: requester lacks current admin permission for this workspace}
+      - id: J1.S2
+        title: Return the shareable link
+        kind: system
+        decisions: [D7, X1]
+        invariants: []
+        criteria:
+          c1: WHEN the invitation is created THE SYSTEM SHALL return a shareable acceptance link
+        exit: created
+  - id: J2
+    title: Revoke an invitation
+    actor: requester
+    entry: J2.S1
+    exits: [revoked, denied]
+    review:
+      input: {status: open, reason: Q2 leaves revocation of a missing invitation or invitation in a deleted workspace unresolved.}
+      permissions: {status: covered, reason: Revocation checks current admin permission for the invitation workspace., refs: [J2.S1.c2]}
+      interruption: {status: open, reason: Q4 leaves interrupted revocation and its unknown-completion outcome unresolved.}
+      dependencies: {status: open, reason: Local persistence failure can prevent revocation; Q4 leaves the requester outcome unresolved.}
+      duplicates: {status: open, reason: J2.S1.c1 preserves revoked state but Q4 leaves the visible repeat-revocation outcome unresolved.}
+      concurrency: {status: covered, reason: Revocation and a competing membership grant must respect revoked state at grant time., refs: [J2.S1.c1]}
+      recovery: {status: open, reason: Q4 leaves retry or state retrieval after an unconfirmed revocation unresolved.}
+    steps:
+      - id: J2.S1
+        title: Authorize and revoke the invitation
+        kind: system
+        decisions: [D2, D5, D9]
+        invariants: [I1]
+        criteria:
+          c1: WHEN a current admin revokes an invitation for that workspace THE SYSTEM SHALL mark that invitation revoked
+          c2: IF the requester is not an admin of the invitation's workspace at revocation time THE SYSTEM SHALL NOT revoke it
+        next:
+          - {exit: revoked, when: authorized revocation completes}
+          - {exit: denied, when: requester lacks current admin permission for this workspace}
+  - id: J3
+    title: Accept an invitation
+    actor: recipient
+    entry: J3.S1
+    exits: [identity-not-eligible, already-member, cannot-grant, membership-created]
+    review:
+      input: {status: open, reason: J3.S1.c1 covers recipient identity but Q2 leaves unknown invitation and deleted-workspace outcomes unresolved.}
+      permissions: {status: open, reason: Q1 leaves the newly granted membership role unresolved; identity and invitation validity checks are otherwise specified.}
+      interruption: {status: open, reason: J3.S2.c1 covers repeated completed acceptance but Q4 leaves incomplete or unconfirmed acceptance interaction unresolved.}
+      dependencies: {status: open, reason: Local membership persistence can fail; Q4 leaves the recipient failure or unknown-completion outcome unresolved.}
+      duplicates: {status: covered, reason: Repeat acceptance and existing membership cannot duplicate a workspace membership., refs: [J3.S2.c1, J3.S2.c2]}
+      concurrency: {status: covered, reason: Atomic grant prevents duplicate membership and rechecks late revocation and identity changes., refs: [J3.S4.c2, J3.S4.c3, J3.S4.c4]}
+      recovery: {status: open, reason: D8 preserves membership atomicity and D6 covers completed repeats; Q4 leaves recovery interaction for failed or unconfirmed acceptance unresolved.}
+    steps:
+      - id: J3.S1
+        title: Establish recipient identity
+        kind: system
+        decisions: [D3]
+        invariants: [I2]
+        criteria:
+          c1: IF the accepting account lacks an authenticated verified email matching the invitation THE SYSTEM SHALL NOT grant membership
+        next:
+          - {exit: identity-not-eligible, when: unauthenticated or unverified or email does not match}
+          - {to: J3.S2, when: authenticated verified email matches the invitation}
+      - id: J3.S2
+        title: Recognize repeat acceptance
+        kind: system
+        decisions: [D6, D8]
+        invariants: [I4]
+        criteria:
+          c1: WHEN the same recipient repeats a completed acceptance THE SYSTEM SHALL return already-member
+          c2: IF the recipient already has a membership THE SYSTEM SHALL NOT create a duplicate membership
+        next:
+          - {exit: already-member, when: this recipient previously completed acceptance}
+          - {to: J3.S3, when: this recipient has not previously completed acceptance}
+      - id: J3.S3
+        title: Check whether the invitation can grant membership
+        kind: system
+        decisions: [D4, D5, D6, D9]
+        invariants: [I3, I4]
+        criteria:
+          c1: IF the invitation is revoked or the current time is at least 48 hours after its creation THE SYSTEM SHALL NOT grant membership
+          c2: WHEN an existing member accepts a valid invitation THE SYSTEM SHALL return already-member
+          c3: IF an accepting account already belongs to the workspace THE SYSTEM SHALL NOT create a duplicate membership
+          c4: WHEN the invitation creator is later demoted THE SYSTEM SHALL retain the invitation's existing expiration and revocation state
+        next:
+          - {exit: cannot-grant, when: invitation revoked or expired}
+          - {exit: already-member, when: invitation valid and account already belongs to workspace}
+          - {to: J3.S4, when: invitation valid and account does not belong to workspace}
+      - id: J3.S4
+        title: Atomically establish the membership
+        kind: system
+        decisions: [D3, D4, D5, D6, D8, Q1]
+        invariants: [I2, I3, I4]
+        criteria:
+          c1: WHEN an eligible recipient accepts a valid invitation THE SYSTEM SHALL atomically create the workspace membership with the role awaiting resolution in Q1
+          c2: IF acceptance requests for the same workspace and account run concurrently THE SYSTEM SHALL NOT create more than one membership
+          c3: IF the invitation is revoked or expired when membership would be granted THE SYSTEM SHALL NOT grant membership
+          c4: IF the accepting identity no longer has the matching authenticated verified email when membership would be granted THE SYSTEM SHALL NOT grant membership
+          c5: WHEN a concurrent acceptance has already created this workspace membership THE SYSTEM SHALL return already-member
+        next:
+          - {exit: membership-created, when: atomic membership creation succeeds}
+          - {exit: already-member, when: another acceptance has already established the membership}
+          - {exit: cannot-grant, when: invitation revoked or expired before membership grant}
+          - {exit: identity-not-eligible, when: recipient identity is no longer eligible before membership grant}
