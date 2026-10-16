@@ -15,7 +15,7 @@ import {join} from 'node:path';
 if (process.argv.includes('--version')) { console.log('codex-cli test-stub'); process.exit(0); }
 const project = process.argv[process.argv.indexOf('-C') + 1];
 let skill;
-if (project.endsWith('implicit-decide')) {
+if (project.endsWith('implicit-decide') || project.endsWith('vague-company-ticket')) {
   skill = 'decide';
   await Bun.write(join(project, 'docs/decisions.md'), '# Model output\\n');
 } else if (project.endsWith('implicit-journeys')) {

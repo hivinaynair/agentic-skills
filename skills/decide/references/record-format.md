@@ -1,6 +1,10 @@
 # Decision record
 
 Default: `docs/decisions.md`. One authoritative record; other docs link its IDs.
+For a vague ticket, add only the context needed to interpret the rows: who has the
+problem, the intended outcome and established constraints. Cite the ticket and
+project sources. Unknown outcomes or contradictory requirements become Q rows;
+tentative solutions stay proposals. Do not duplicate a full ticket or design doc.
 Use the columns below if you want the optional automated checker. Do not put literal
 pipes inside table cells. Empty cells are allowed except ID, Status and Decision.
 
@@ -21,6 +25,12 @@ Use the actual conversation date, not the date from this example.
 Keep Q1 when answered: set its status to `resolved` and link the new D ID in its
 Decision cell. Update dependent journeys to cite the accepted D ID. Questions are
 not themselves policy, even after resolution. Do not reuse Q1.
+
+For a company ticket, the Why cell identifies whose answer is needed, what work is
+blocked, and the recommendation. For example: "PM answers; blocks which records
+CSV export includes; recommend matching the current filters." Do not label the
+implementer's preferred behavior accepted without an established authority source.
+If the answer owner is unknown, say so rather than inventing a name or approval.
 
 When D1 changes, mark D1 `superseded`, add accepted D2 with `Supersedes` = `D1`,
 and review all references to D1. Rejected draft IDs use status `retired`, not deletion.

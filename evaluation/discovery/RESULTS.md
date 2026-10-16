@@ -84,3 +84,7 @@ as another automatic-discovery trial.
 The test exercises Codex CLI project installation. It does not verify Codex desktop
 skill selectors, personal-directory installs, Claude Code, Cursor, other operating
 systems or every prompt wording. No hook or automatic chaining was enabled.
+
+A later [vague-company-ticket case](../ticket-clarification/RESULTS.md) exercises
+the ticket-clarification addition to decide. The default runner now includes that
+fourth case; the three-case discovery results above remain the original trial.
