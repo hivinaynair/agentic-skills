@@ -1,22 +1,175 @@
 # Agentic Skills
 
-Give your coding agent a clear agreement about what to build, how it should behave,
-and what still needs an answer.
+Two skills that help a coding agent agree on what to build, describe how it should
+behave, and carry that agreement into implementation.
 
-**decide** captures the choices. **journeys** follows them through the happy path,
-failures, retries and recovery. An optional validator checks that the references
-and recorded coverage hold together.
+**decide** records your choices and unanswered questions. **journeys** turns those
+choices into steps, branches and testable behavior. An optional validator checks
+the resulting documents for broken references and incomplete recorded coverage.
+
+These are Markdown instructions an agent follows when invoked. They do not run in
+the background. The skills work without a particular language or framework; the
+optional validator requires Bun 1.4+ and has no third-party dependencies.
 
 Experimental v0.1. Start with one feature.
 
-| Skill | When to use it | Output |
-|---|---|---|
-| [decide](skills/decide/SKILL.md) | Requirements are uncertain or decisions need to survive a handoff | Accepted decisions, exclusions and open questions |
-| [journeys](skills/journeys/SKILL.md) | Agreed behavior needs detailed paths, or existing behavior needs review | Coverage inventory, steps, branches, invariants and acceptance criteria |
+```mermaid
+flowchart LR
+    A[Your request + project context] --> B[decide: what we agreed]
+    B --> C[journeys: how it behaves]
+    C --> D[Validate and review]
+    D --> E[Implementation tasks and tests]
+```
 
-The skills are ordinary Markdown instructions. They require no particular language,
-framework, account or service. The optional validator uses Bun 1.4+ with no third-party
-dependencies. These skills plan and review; they do not generate application code by default.
+## decide: What are we actually building?
+
+**Input:** your request, existing decisions, and relevant project code or docs.
+**Output:** a decision record, normally `docs/decisions.md`.
+
+Suppose you say:
+
+> Use decide to plan team invitations. Only admins can invite people. Links expire
+> after 48 hours and can be revoked. We want shareable links without email delivery.
+> Read our membership model before asking questions.
+
+The agent preserves those answers and separates four things:
+
+| Kind | Example |
+|---|---|
+| Accepted decision | Only admins can create invitations |
+| Explicit exclusion | Email delivery is outside this feature |
+| Observation | The current endpoint lets every member invite |
+| Open question | Which role should the recipient receive? |
+
+It records the choices with stable IDs, their sources, rationale and relevant
+alternatives. If the role is unspecified, it asks about that with a recommendation
+instead of choosing a product rule silently. It asks one important question at a
+time and continues work that does not depend on the answer.
+
+A later agent can read the same record without asking you to repeat settled answers.
+If an accepted choice changes, its replacement names the decision it supersedes,
+so affected references can be reviewed.
+
+You own the product choices. Existing code, an agent's recommendation and an
+unanswered suggestion do not become accepted policy automatically.
+
+## journeys: What happens in each case?
+
+**Input:** the decision record or another agreed specification, plus relevant code
+when reviewing an existing feature. **Output:** `docs/journeys/<feature>.yaml`
+and a generated Markdown view with diagrams and acceptance criteria.
+
+For the invitation feature, ask:
+
+> Use journeys to map creating, revoking and accepting invitations. Include expired
+> links, repeat acceptance, permission changes and losing the acceptance response.
+> Keep unanswered product questions visible.
+
+The agent first lists actor goals and recovery entry points: an admin creates or
+revokes an invitation; a recipient accepts it or resumes after a lost response.
+This is the **coverage inventory**. Each goal is mapped to journeys, explicitly
+excluded by an accepted scope decision, or marked unresolved.
+
+It writes this inventory before detailing the graph, so reviewing coverage is more
+than checking the journeys it already happened to draw.
+
+Then it expands each journey into steps and branches. At relevant steps it asks:
+
+- What if input or permission is invalid?
+- What if a dependency times out or returns a partial result?
+- What if two requests race, an event arrives twice, or the process crashes?
+- What survives, what can retry, and what outcome does the person see?
+
+It identifies **invariants**, rules that must hold across paths, such as never
+granting membership in the wrong workspace. Each step cites the decisions it relies
+on and the invariants it could break. Missing policy stays an open question.
+
+## How journeys uses EARS
+
+EARS means **Easy Approach to Requirements Syntax**. Alistair Mavin and colleagues
+at Rolls-Royce published it in 2009 to structure natural-language requirements.
+See the [original paper](https://doi.org/10.1109/RE.2009.9).
+
+Journeys uses EARS-style sentences for acceptance criteria. Each sentence names
+one observable behavior and the condition under which it is required.
+
+Compare “handle invalid invitations properly” with:
+
+```text
+IF an invitation has been revoked
+THE SYSTEM SHALL NOT grant membership.
+```
+
+The second gives the builder and reviewer a specific condition and forbidden effect.
+The skill commonly uses these forms:
+
+| Form | Purpose | Invitation example |
+|---|---|---|
+| `WHEN … THE SYSTEM SHALL …` | Response to an event | WHEN an existing member accepts an invitation THE SYSTEM SHALL return already-member without creating another membership |
+| `WHILE … THE SYSTEM SHALL …` | Behavior during a state | WHILE acceptance is pending THE SYSTEM SHALL show that the request is pending |
+| `IF … THE SYSTEM SHALL NOT …` | A forbidden effect under an unwanted condition | IF the invitation is expired THE SYSTEM SHALL NOT grant membership |
+| `THE SYSTEM SHALL NOT …` | A rule that always holds | THE SYSTEM SHALL NOT grant membership in a different workspace |
+
+These are illustrative requirements; a real project must establish their policy.
+The skill uses an adaptation of EARS, including direct negative `IF` criteria.
+The original unwanted-behavior template uses `IF … THEN … SHALL …`; this toolkit
+is not a full EARS grammar checker.
+
+EARS helps make a requirement precise enough to discuss and test. It does not
+choose the right product rule or prove that implementation satisfies it.
+
+## Observations: What does the existing project actually do?
+
+When reviewing code, the agent might find that a retry handler resets an import
+before submitting it to a queue. It records that as an observation with the source
+file, revision and location, then checks the handoff: what resumes the import if the
+process stops between those actions?
+
+If a recovery path is missing or unclear, that remains visible in the inventory.
+The agent does not invent recovery policy or treat current behavior as approval.
+An observation-only map can describe the system without being ready to implement
+as an agreed specification.
+
+## Validator: Do the recorded pieces hold together?
+
+The agent reasons about goals and behavior. The validator performs mechanical
+checks on documents written in the supported format.
+
+It catches missing decision, step or journey references; unreachable steps; paths
+without exits; reused retired IDs; missing forbidden-effect criteria on steps that
+reference invariants; and stale generated Markdown. Coverage and readiness gates
+also reject their respective unresolved entries.
+
+For example, if the inventory maps “Retry an import” to J1 and someone deletes J1,
+the checker reports:
+
+```text
+C1: missing mapped journey J1
+```
+
+If both the inventory goal and J1 disappear, the checker cannot infer their absence.
+A person or agent still needs to compare the inventory with user goals and source
+entry points, and judge whether a mapping really covers its goal.
+
+## From the spec to implementation
+
+Steps and acceptance criteria have stable IDs such as `J3.S4` and `J3.S4.c1`.
+An implementation task can cite the step it serves; a test can cite the criterion
+it proves. This gives the next builder and reviewer a shared target.
+
+The skills prepare that handoff. Writing application code, running behavior tests
+and approving a release are separate work. A linked test is not proof that it runs
+or asserts the stated behavior.
+
+Use either skill independently. An existing agreed spec can go straight to journeys.
+Use the full workflow for uncertain features, agent handoffs, requirement changes,
+or flows with retries and partial failures. Skip it for a small styling fix or an
+already precise task.
+
+Existing documentation conventions take precedence. The optional checker expects
+its [decision table](skills/decide/references/record-format.md) and
+[journey schema](skills/journeys/references/schema.md). Other formats may need an
+explicit adapter or migration; the skills can still guide manual review.
 
 ## Install
 
@@ -41,150 +194,6 @@ is no agent-specific plugin manifest.
 
 The previous seven skills and their installer have been retired from this repository.
 Existing installed copies are not removed automatically. Git history retains the old files.
-
-## How it works
-
-```mermaid
-flowchart LR
-    A[Your request + existing docs and code] --> B[decide: choices and open questions]
-    B --> C[journeys: goals, paths and acceptance criteria]
-    C --> D[Validate and review]
-    D --> E[Tasks and tests that cite the criteria]
-```
-
-| Stage | Input | What you get |
-|---|---|---|
-| Decide | Your intent, constraints and existing requirements | Decisions, exclusions and questions in `docs/decisions.md` |
-| Inventory | Actor goals, entry points and recovery needs | A list of goals marked mapped, excluded or unresolved |
-| Journeys | Agreed decisions and source-backed observations | `docs/journeys/<feature>.yaml` with steps, branches, exits and acceptance criteria |
-| Render and check | The decision record and journey file | A readable Markdown view with diagrams, plus errors or warnings |
-| Implementation handoff | Reviewed criteria with stable IDs | A basis for tasks and tests; implementation is separate work |
-
-You remain the owner of product choices. The agent preserves settled answers and
-asks about missing policy instead of silently choosing it. Use either skill on its
-own: an existing agreed specification can be the input to journeys.
-
-Existing project conventions take precedence. The optional checker expects the
-[decision table](skills/decide/references/record-format.md) and
-[journey schema](skills/journeys/references/schema.md). Other formats may need an
-explicit adapter or migration; the skills can still guide manual review.
-
-## Example 1: Plan team invitations
-
-Start with what you already know:
-
-> Use decide to plan team invitations. Only workspace admins can invite people.
-> Invitations expire after 48 hours and can be revoked. We want shareable links,
-> not email delivery. Read our existing membership model before asking questions.
-
-The agent records those choices and exclusions. If the recipient's membership role
-is unspecified, it asks about that rather than inventing an admin/member default.
-A shortened, illustrative result might look like this:
-
-| ID | Status | Meaning |
-|---|---|---|
-| D1 | Accepted | Only workspace admins can create invitations |
-| D2 | Accepted | Invitations expire after 48 hours |
-| X1 | Accepted exclusion | No email delivery in this feature |
-| Q1 | Open | Which role does a new member receive? |
-
-This is an explanatory summary, not the full machine-readable decision table.
-
-Then ask:
-
-> Use journeys to map the invitation feature from those decisions. Include
-> creating, revoking and accepting invitations, expired links, repeat acceptance,
-> and losing the response after acceptance. Keep the unanswered role question open.
-
-The output gives each behavior an ID. For example:
-
-```text
-J3.S4.c1: WHEN an existing member accepts the invitation
-          THE SYSTEM SHALL return already-member without another membership
-
-J3.S4.c2: IF the invitation has been revoked
-          THE SYSTEM SHALL NOT grant membership
-```
-
-These are illustrative criteria, not excerpts with matching IDs from the included
-fixture. Tasks and tests can cite the actual generated IDs. A task that grants a new
-membership remains blocked on Q1; unrelated paths can still be specified.
-
-Explore the complete synthetic trial: [brief](evaluation/brief.md),
-[decisions](evaluation/team-invitations/decisions.md), and
-[rendered journeys](evaluation/team-invitations/journeys/invitations.md).
-
-## Example 2: Review an existing retry flow
-
-> Use journeys to review our file-import retry flow. Inspect the retry endpoint,
-> queue submission, worker completion, cancellation and scheduled recovery.
-> Record current behavior with source references. Do not treat existing code as
-> approved policy or change the implementation.
-
-Suppose the handler resets a failed import before submitting it to the queue.
-The agent records that as an observation. This illustrative YAML fragment shows
-its source reference; use the real path, revision and locator from your project:
-
-```yaml
-observations:
-  - id: O1
-    statement: The handler resets the import before submitting work to the queue
-    sources:
-      - ref: src/imports/retry.ts
-        revision: abc1234
-        locator: retryImport
-```
-
-That observation raises a review question: what resumes the import if the process
-stops between the reset and queue submission? The agent looks for an existing
-recovery path. If none is established, it records the gap rather than claiming
-the system already handles it or inventing a retry policy.
-
-```yaml
-coverage:
-  - id: C1
-    actor: user
-    goal: Retry a failed import
-    status: mapped
-    journeys: [J1]
-  - id: C2
-    actor: worker
-    goal: Recover an import interrupted before queue submission
-    status: unresolved
-    reason: No recovery path or approved exclusion has been established
-```
-
-These are fragments, not a standalone valid spine. The complete file also defines
-actors, journeys and the other required fields. `--coverage` fails while C2 is
-unresolved. Even a complete observation-only map cannot pass `--ready`: descriptions
-of current behavior do not approve future requirements.
-
-## Example 3: Catch a journey removed during an edit
-
-Suppose the inventory maps “Retry a failed import” to J1. Someone removes J1 but
-leaves C1 pointing to it. The validator reports:
-
-```text
-C1: missing mapped journey J1
-```
-
-The pre-commit helper can catch that in the staged files before the commit succeeds.
-It also checks step targets and decision references, so a renamed or retired ID
-cannot silently leave a broken link behind.
-
-If someone removes **both** C1 and J1, the checker cannot infer the missing goal.
-That is why the inventory is written from user goals and source entry points first,
-and reviewed against those sources after changes.
-
-## When to use these skills
-
-Use them before a feature with unclear requirements, when handing work to another
-agent, when reviewing existing behavior, or when a policy change affects several
-paths. They are especially useful when retries, permissions and partial failures
-matter as much as the happy path.
-
-Skip the full workflow for a small styling fix or an already precise implementation
-task. These skills do not replace source review, design judgment or behavior tests.
 
 ## Validate a feature
 
