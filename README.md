@@ -173,13 +173,35 @@ explicit adapter or migration; the skills can still guide manual review.
 
 ## Install
 
-Copy the entire `skills/decide` and `skills/journeys` folders into your agent's skill
-directory, preserving their references and scripts. Inspect the destination first;
-do not overwrite existing skills with the same names. For a project that discovers
-skills under `.agents/skills`, the result is:
+The same skill folders can be used by coding agents that support `SKILL.md` skills.
+The installation directory and invocation syntax belong to your agent; the skills
+themselves do not require a particular platform.
+
+Clone this repository:
+
+```sh
+git clone https://github.com/hivinaynair/agentic-skills.git
+```
+
+Choose your agent's documented project-level skill directory to share the skills
+with a team, or its personal skill directory to use them across projects. Inspect
+it for existing `decide` or `journeys` folders before copying. Keep or deliberately
+replace existing versions; do not merge copies blindly.
+
+For a destination with neither skill installed, copy both complete folders. These
+shell commands assume you are in the cloned repository; replace the destination:
+
+```sh
+skill_dir=/path/to/your-agent/skills
+mkdir -p "$skill_dir"
+cp -R skills/decide "$skill_dir/"
+cp -R skills/journeys "$skill_dir/"
+```
+
+The result should preserve the supporting files:
 
 ```text
-.agents/skills/
+<your-agent-skill-directory>/
   decide/SKILL.md
   decide/references/
   journeys/SKILL.md
@@ -187,23 +209,110 @@ skills under `.agents/skills`, the result is:
   journeys/scripts/
 ```
 
-You can also point an agent directly at the two SKILL.md files without installing.
-Discovery locations and invocation syntax depend on the agent. Explicit-path use
-has been exercised in Codex; other agent installers have not been verified. There
-is no agent-specific plugin manifest.
+Open or refresh your agent session according to its documentation, then check that
+both skills appear in its available-skills list. Copying the files requires no
+package installation. Bun is needed only for the optional validator.
 
-The previous seven skills and their installer have been retired from this repository.
-Existing installed copies are not removed automatically. Git history retains the old files.
+If your agent does not support skill discovery, give it the full path to a skill's
+`SKILL.md` and ask it to follow those instructions. It needs access to the supporting
+files too. This is direct use, not automatic discovery. There is no plugin manifest
+or universal installer in this release.
+
+The previous seven skills and their installer have been retired. Existing installed
+copies are not removed automatically; Git history retains the old repository files.
+
+## Invoke explicitly
+
+Ask your agent in plain language:
+
+> Use the decide skill to settle the requirements for team invitations. Read the
+> ticket and existing project context, then ask about the most important missing policy.
+
+> Use the journeys skill to map the agreed invitation feature, including failures
+> and recovery.
+
+You can also select the skill through your agent's skill picker or mention syntax.
+Those controls vary by platform. If the skill is not installed, include its full
+`SKILL.md` path in the request.
+
+<details>
+<summary>Codex example: installation paths and invocation</summary>
+
+Codex discovers project skills under `.agents/skills` and personal skills under
+`~/.agents/skills`. For a project installation, run the copy commands from the clone
+with `skill_dir` set to `/path/to/your-project/.agents/skills`.
+
+In Codex CLI or the IDE extension, `/skills` lists available skills and `$` mentions
+one explicitly:
+
+```text
+$decide Help me settle the requirements for team invitations.
+$journeys Map the agreed invitation feature, including failures and recovery.
+```
+
+If the skills do not appear, restart Codex. See the
+[official documentation](https://learn.chatgpt.com/docs/build-skills). Other agents
+have their own paths and controls; this example is not a required installation layout.
+
+</details>
+
+## Let the agent select a skill
+
+In an agent that supports automatic skill selection, an installed skill can be
+selected when your request matches its description. You do not have to name it:
+
+> We need to plan team invitations before implementing anything. Capture settled
+> requirements, exclusions and blocking product questions, then ask the most
+> important unanswered question.
+
+That is a request for the work covered by `decide`.
+
+> Our task-archiving requirements are agreed. Map the actor goals, steps, failure
+> branches, invariants and testable acceptance criteria.
+
+That is a request for the work covered by `journeys`. Selection is an agent judgment,
+not a guaranteed trigger for every wording or platform. Explicit invocation gives
+you more control. Availability of automatic selection depends on the host agent.
+
+Discovery and selection are different: a skill may be available without being used.
+Look for the agent reading that installed skill's `SKILL.md` or announcing its use;
+producing a similarly named document alone does not prove invocation.
+
+The skills do not automatically chain. To request both:
+
+> Use decide to settle the requirements, then journeys to map the behavior. Ask me
+> about unresolved product choices before treating them as accepted.
+
+Installing skills does not enable pre-commit hooks, background monitoring or automatic
+validation of every edit. Those checks require separate commands or hook configuration.
+
+## Tested compatibility
+
+On 2026-10-16, fresh Codex CLI 0.147.0 sessions used copies of both skills in
+isolated projects under `.agents/skills`. The prompts did not name skills or their
+paths. Successful command traces confirmed the selected local `SKILL.md` was read:
+
+| Request | Observed selection |
+|---|---|
+| Capture invitation requirements and blocking questions | `decide` |
+| Map agreed task-archiving behavior into actor paths and acceptance criteria | `journeys` |
+| Change a README heading | Neither skill |
+
+This verifies project discovery and implicit selection for those CLI requests.
+Desktop UI selection, personal-directory installation, other agents and arbitrary
+prompt wording remain untested. Read the [method and results](evaluation/discovery/RESULTS.md)
+for the evidence, initial inconclusive attempt and reproduction command.
 
 ## Validate a feature
 
-With the journeys folder installed at `.agents/skills/journeys`:
+Set `journeys_dir` to your installed journeys folder. From your project root:
 
 ```sh
-bun .agents/skills/journeys/scripts/journeys.ts validate docs/journeys/invitations.yaml
-bun .agents/skills/journeys/scripts/journeys.ts render docs/journeys/invitations.yaml
-bun .agents/skills/journeys/scripts/journeys.ts check docs/journeys/invitations.yaml --coverage
-bun .agents/skills/journeys/scripts/journeys.ts check docs/journeys/invitations.yaml --ready
+journeys_dir=/path/to/your-agent/skills/journeys
+bun "$journeys_dir/scripts/journeys.ts" validate docs/journeys/invitations.yaml
+bun "$journeys_dir/scripts/journeys.ts" render docs/journeys/invitations.yaml
+bun "$journeys_dir/scripts/journeys.ts" check docs/journeys/invitations.yaml --coverage
+bun "$journeys_dir/scripts/journeys.ts" check docs/journeys/invitations.yaml --ready
 ```
 
 - `validate` checks structure and references; draft policy may produce warnings.
@@ -223,7 +332,7 @@ not execution or assertion quality. No command runs product tests.
 Add this call to your existing hook manager when a feature is ready:
 
 ```sh
-sh .agents/skills/journeys/scripts/pre-commit.sh docs/journeys/invitations.yaml --ready
+sh /path/to/your-agent/skills/journeys/scripts/pre-commit.sh docs/journeys/invitations.yaml --ready
 ```
 
 Use `--coverage` for a source review that does not claim policy approval, or omit

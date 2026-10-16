@@ -21,7 +21,9 @@ the journey and its inventory goal to demonstrate what structural checks cannot 
 
 The code was exercised with Bun 1.4.0-canary.1 on macOS. This does not establish
 stable-release Bun, Windows hook or cross-agent installer compatibility. The skill
-instructions were exercised through explicit file paths in Codex. There is no
+instructions were exercised through explicit file paths in Codex. A subsequent
+[discovery trial](discovery/RESULTS.md) also confirmed implicit selection of both
+project-local skills in Codex CLI for the recorded prompts. There is no
 controlled productivity benchmark or claim of universal project coverage.
 
 Project-specific source-review artifacts remain outside this repository. The
