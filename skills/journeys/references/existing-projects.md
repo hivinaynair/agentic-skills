@@ -1,32 +1,26 @@
 # Reviewing existing behavior
 
-Read this when reconstructing a feature from code or checking a plan against an
-existing implementation. Keep the review bounded to the requested feature.
+Use for code reconstruction or plan/code comparison within the requested feature.
 
-1. Identify its entry points, durable writes, external handoffs and final consumer.
-   Include manual, automatic and scheduled recovery paths that can change the same
-   state. Record which related paths you excluded and why. Review this inventory
-   separately from the graph: a valid graph can omit an entire goal.
-2. At a handoff, compare what the producer can return with what the consumer actually
-   interprets. Inspect normal, empty/null, partial-success and error results. A resolved
-   call or HTTP success does not by itself prove a durable job ID or completed effect.
-3. Compare shared classifiers at their boundaries: error producers, retry eligibility,
-   provider/routing selection and UI display. Check whether the same representative
-   value receives consistent treatment. Label synthetic probe values; do not claim
-   they occur in production without finding an actual producer or runtime evidence.
-4. Track writes before and after external effects, including failure while recording
-   failure. Distinguish stored identifiers, acknowledgment, completion and recovery.
-   Report possible crash/race outcomes as deductions unless exercised by a test.
-5. Inspect test assertions. Classify evidence as helper behavior, source-text checking,
-   mocked integration, real integration or live observation. Do not let a descriptive
-   test title stand in for what the test executes.
-6. Report findings with source path/revision, the observed condition, its consequence,
-   and evidence level. If a small read-only probe resolves uncertainty, use one. Do
-   not automatically add framework dependencies or run services to complete a review.
+1. Inventory entry points, durable writes, external handoffs and final consumers,
+   including manual, automatic and scheduled recovery affecting the same state.
+   Record review boundaries separately from approved scope exclusions.
+2. Compare producer outputs with consumer interpretation: normal, null/empty,
+   partial and error results. HTTP/resolved-call success proves neither a durable
+   job identity nor a completed effect.
+3. Follow representative values through error producers, retry eligibility,
+   provider classifiers and UI. Label constructed probes; do not claim they occur
+   in production without an actual producer or runtime evidence.
+4. Track writes around external effects and failure-recording failures. Distinguish
+   stored identity, acknowledgment, completion and recovery. Label untested crash
+   or race outcomes as deductions.
+5. Inspect assertions: helper tests, source-text checks, mocked integration, real
+   integration or live observation. A test title proves nothing about execution.
+6. Report source path/revision, condition, consequence and evidence level. Run
+   bounded read-only probes when useful; do not install dependencies or start
+   services implicitly.
 
-For an as-is reconstruction, use the schema’s source-backed O observations instead
-of draft D transcriptions. Build the coverage inventory from source entry points
-before mapping journeys. --coverage checks those mappings without requiring approval
-of existing behavior. --ready still requires accepted decisions; never relabel an
-observation to make it green. Report remaining open branch reviews separately from
-coverage results. A future policy change still needs an accepted decision.
+Use source-backed O observations for descriptions, never draft D transcriptions.
+Inventory from sources before graph mapping. Report coverage and branch-review
+results separately; the schema defines their gates. Observations never approve
+future policy, even when structural validation passes.

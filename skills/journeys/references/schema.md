@@ -1,9 +1,8 @@
 # Journey schema v1
 
-The optional checker uses Bun 1.4+. The skills themselves do not require it.
-Each feature has one YAML spine. IDs are unique within that file; pair an ID with
-its feature path when referencing it outside that feature. Decision IDs belong to
-the decision record. The checker accepts explicit paths and does not scan tests.
+Optional tooling: Bun 1.4+. The skills need no runtime. One spine per feature;
+IDs are local except D/X/Q IDs, which belong to its decision record. Outside a
+spine, pair IDs with its path. The checker accepts explicit paths; it does not scan tests.
 
 ```yaml
 version: 1
@@ -45,153 +44,125 @@ journeys:
         exit: created
 ```
 
-Optional `surface` and `state` strings describe an actual UI/API state. No UI is
-required. Every step has a nonempty criteria map and decision or observation references. Criteria
-keys are c1, c2, etc. Optional `tasks: [{id: T1, serves: [J1.S1]}]` ties planned work
-to steps. Tasks may overlap; implementation ownership is outside this schema.
-Do not add tasks merely to make a specification validate.
+## Structure and IDs
 
-Every step has exactly one of `next` (nonempty labeled edge list) or `exit` (named
-terminal outcome). Each edge has exactly one of `to` or `exit`. All steps must be
-reachable from entry and able to reach an exit. Cycles with an exit are valid.
-Invariants require accepted policy at the ready gate. A step referencing an invariant
-needs at least one unwanted-case `IF ... THE SYSTEM SHALL NOT ...` criterion.
+Every step has nonempty criteria keyed `c1`, `c2`, etc., a decision/observation basis, and
+exactly one terminal `exit` or nonempty `next`. Edges have a label and exactly one
+`to` or `exit`. Steps must be reachable from entry and able to reach an exit;
+cycles with exits are valid. Optional `surface`/`state` describe real interfaces;
+state requires a surface. Empty `invariants: []` is allowed.
 
-Optional verification map (JSON, path passed explicitly):
+Steps referencing an invariant need an `IF … THE SYSTEM SHALL NOT …` criterion.
+Invariants use `id`, `rule` and a decision/observation basis. Optional
+`tasks: [{id: T1, serves: [J1.S1]}]` links planned work to steps; ownership may overlap.
+Do not invent tasks for validation.
 
-```json
-{"J1.S1.c1": [{"path": "tests/invitations.test.ts", "locator": "admin can invite"}]}
+IDs are permanent: J journeys, J.S steps, J.S.c criteria, I invariants, O observations,
+C coverage. Retain removed IDs in `retired`; never reuse them. Detecting deleted
+history or changed meaning under an unchanged ID requires diff review.
+
+## Observations
+
+Descriptive evidence stays separate from approved policy:
+
+```yaml
+observations:
+  - id: O1
+    statement: The handler resets a job before submitting it to the queue
+    sources:
+      - {ref: src/retry.ts, revision: abc123, locator: retryJob}
+# Step/invariant basis: observations: [O1], decisions: []
 ```
 
-Paths resolve relative to the map. Locators are exact substrings of a test name or
-other check identifier; choose a unique one. This checks that a file and locator
-exist, not whether the test runs, passes, or asserts the requirement. Python, Go,
-manual check documents and other formats can use the same mapping. Map keys are
-criterion or invariant IDs, not bare steps. Skipped/dead tests require human review.
+Each O requires a statement and nonempty sources with `ref`, `revision` and `locator`.
+Sources may identify files, URLs, documents or tests; revisions can be commits,
+versions or dates. Metadata is required, but its truth/currency is not checked.
+Label deductions, constructed probes and what test evidence actually executed.
 
-From any host project, with `<skill>` the installed journeys folder:
+Steps/invariants need nonempty decisions, observations, or both. Put O IDs under
+`observations`, never `decisions`. Observation-only spines may omit the `decisions`
+file path; D/X/Q references still need its record. Drafts may cite Q; readiness
+requires accepted D/X references on **every step and invariant**. When approved,
+add policy references; never relabel observations to pass. Review whether the
+referenced policy actually supports each rule.
 
-```sh
-bun <skill>/scripts/journeys.ts validate docs/journeys/team-invitations.yaml
-bun <skill>/scripts/journeys.ts render docs/journeys/team-invitations.yaml
-bun <skill>/scripts/journeys.ts check docs/journeys/team-invitations.yaml --ready
-bun <skill>/scripts/journeys.ts check docs/journeys/team-invitations.yaml --ready --verification docs/verification.json --require-links
+## Coverage inventory
+
+Build goals from actors and source entry/recovery points before mapping the graph.
+
+```yaml
+coverage:
+  - {id: C1, actor: admin, goal: Invite a teammate, status: mapped, journeys: [J1]}
+  - id: C2
+    actor: admin
+    goal: Recover after an interrupted request
+    status: unresolved
+    reason: Recovery behavior has not been agreed
+  - id: C3
+    actor: admin
+    goal: Send invitation emails
+    status: excluded
+    reason: Owner chose shareable links only
+    decision: X1
 ```
 
-`validate` checks structure and references, allowing draft decisions and open questions
-with warnings. `render` validates then writes adjacent Markdown, including a Mermaid
-flowchart. `check` also requires that Markdown to be fresh. `--ready` rejects unresolved
-or draft policy for this feature. `--require-links` requires a verification entry for
-every criterion and invariant, and requires `--verification`. It does not execute tests.
-All commands fail on missing inputs; none silently claim success when no spec exists.
-Retired IDs are checked against active IDs; detecting deleted history or a changed
-meaning under an existing ID still requires diff review.
+Actors must exist. `mapped` requires existing journey IDs; every journey needs a
+mapping. `unresolved`/`excluded` require reasons. Exclusions may cite only active
+X decisions; coverage/readiness require accepted X. Absent code is not an exclusion.
+Removing a journey while retaining its mapping always fails. A goal omitted from
+both inventory and graph, a dishonest exclusion or an insufficient mapping still
+requires source/diff review.
 
-## Recorded branch review
+## Branch review
 
-Each journey may include `review`, required at the `--ready` gate:
+Each journey needs all seven review entries for readiness: `input`, `permissions`,
+`interruption`, `dependencies`, `duplicates`, `concurrency`, `recovery`.
 
 ```yaml
 review:
   permissions:
     status: covered # covered | not-applicable | open
-    reason: Non-admin requests end without creating an invite
+    reason: Non-admin requests cannot create invitations
     refs: [J1.S1.c2]
 ```
 
-Include entries for `input`, `permissions`, `interruption`, `dependencies`,
-`duplicates`, `concurrency`, and `recovery`. Covered entries need references to
-steps or criteria in that journey. Not-applicable entries need a concrete reason.
-Open entries block readiness. The checker verifies this record's structure and
-references, not the truth of the reasoning or completeness of the journey list.
-Review the feature's actor goals separately to find missing entire journeys.
+`covered` needs references to that journey's steps/criteria. `not-applicable` needs
+a concrete reason establishing impossibility or accepted exclusion. `open` blocks
+readiness and can name a Q in its reason. Syntax/reference checks do not assess
+the reasoning; apply the [branch checklist](branches.md).
 
-A `not-applicable` reason must explain why the risk cannot occur in this slice or
-cite an explicit scope exclusion. Silence in the requirements is not an exclusion.
-An `open` entry can point to a question in its reason. This rule is reviewed by a
-person or agent; the checker cannot judge the reasoning from a nonempty string.
+## Commands and gates
 
-## Observations (additive v1 fields)
-
-Observed behavior is evidence, not approval. Store it separately from D/X/Q policy
-rows, in the spine. Steps and invariants may cite observations, decisions, or both:
-
-```yaml
-observations:
-  - id: O1
-    statement: The retry handler resets a job before asking the queue to run it
-    sources:
-      - ref: apps/web/retry.ts
-        revision: abc123 # commit, document version, or dated observation
-        locator: retryJob, lines 20-35
-# On a step or invariant:
-# observations: [O1]
-# decisions: []
-```
-
-`O` IDs are permanent. Each observation requires a statement and at least one source
-with `ref`, `revision`, and `locator`. A ref can identify a file, URL, document or test
-result. These fields identify the evidence; the checker does not fetch it, verify
-source truth or prove it is current. Label deductions and constructed probes in the
-statement. A test source should say whether it ran and what it actually asserts.
-
-The `decisions` file path is optional for an observation-only spine. Any D/X/Q reference
-still must resolve in the specified decision record. Each step/invariant needs at least
-one decision or observation reference. Use `observations: [O1]`, never `decisions: [O1]`.
-The renderer labels observation-only steps as descriptive, not approved, even though
-criteria keep the common EARS syntax. Observations alone never pass `--ready`:
-**every step and invariant still needs accepted policy references**. When policy is
-accepted, add D references without changing an observation into a decision. Inspect
-whether the decision actually supports the rule; ID resolution cannot prove that.
-
-## Coverage inventory (additive v1 field)
-
-List actor goals and recovery entry points from the request and relevant sources
-**before** mapping journeys. Do not generate the inventory just by copying the
-journey list: that would preserve the same omissions. Keep it short and scoped.
-
-```yaml
-coverage:
-  - id: C1
-    actor: user
-    goal: Retry a failed job
-    status: mapped
-    journeys: [J1]
-  - id: C2
-    actor: worker
-    goal: Recover work after a dispatch failure
-    status: unresolved
-    reason: No recovery path or explicit exclusion has been established
-  - id: C3
-    actor: user
-    goal: Send invitations by email
-    status: excluded
-    reason: Owner limited this feature to shareable links
-    decision: X1
-```
-
-Actors must exist in `actors`. C IDs are permanent. Every mapped entry requires
-existing journey IDs; every journey should appear in the inventory. A reason is
-required for unresolved/excluded entries. Excluded entries may cite only active X
-scope-exclusion decisions, and coverage/readiness gates require an accepted X.
-An absence of code is not an approved scope exclusion. Unresolved entries keep
-missing journeys visible; they do not invent a recovery policy.
-
-`--coverage` requires a nonempty inventory, all entries mapped or explicitly excluded,
-and every journey mapped. It permits observation-only journeys and still reports
-open branch reviews as warnings. Use it during existing-code reviews without claiming
-implementation readiness. `--ready` includes the coverage gate plus policy and branch
-readiness. Draft validation warns on absent/incomplete inventory; malformed entries
-and missing mapped journey references always fail.
+With `<skill>` replaced by the installed journeys folder:
 
 ```sh
-bun <skill>/scripts/journeys.ts check docs/journeys/retry.yaml --coverage
-# The same --coverage flag works with the pre-commit helper.
+bun <skill>/scripts/journeys.ts validate docs/journeys/feature.yaml
+bun <skill>/scripts/journeys.ts render docs/journeys/feature.yaml
+bun <skill>/scripts/journeys.ts check docs/journeys/feature.yaml --coverage
+bun <skill>/scripts/journeys.ts check docs/journeys/feature.yaml --ready
 ```
 
-Retain retired O/C IDs in `retired`, just like retired journey IDs. These checks detect
-a journey removed while its inventory reference remains. They cannot detect a goal
-missing from both artifacts, a dishonest exclusion, or a semantically wrong mapping.
-Review the inventory against source entry points and the user's goals, not just its
-syntax. Older v1 spines still validate/render/check without the inventory, with a
-warning; they need coverage before passing --ready. No files are migrated implicitly.
+- `validate`: structure and references; unresolved policy/reviews warn in draft.
+- `render`: validate, then generate adjacent Markdown with tables/flowcharts.
+- `check`: also require current generated Markdown.
+- `--coverage`: require a nonempty inventory, no unresolved goals, accepted
+  exclusions and every journey mapped. Observed behavior is permitted.
+- `--ready`: coverage plus accepted policy and completed branch reviews.
+
+Missing inputs fail. Old v1 spines without inventory remain valid drafts with a
+warning, but cannot pass either gate. Malformed entries and missing mapped journeys
+always fail. No implicit migration occurs. The pre-commit helper accepts the same
+flags; these commands never execute product tests.
+
+## Optional verification links
+
+```json
+{"J1.S1.c1": [{"path": "tests/invitations.test.ts", "locator": "admin can invite"}]}
+```
+
+Pass `--verification docs/verification.json` to check file and locator existence;
+add `--require-links` to require links for every criterion/invariant. Keys are rule
+IDs, not steps. Paths resolve relative to the map; locators are exact substrings of
+a test/check identifier, preferably unique. This is language-independent and may
+reference manual checks. Linked, skipped or dead tests still require execution
+and assertion review; links prove neither.

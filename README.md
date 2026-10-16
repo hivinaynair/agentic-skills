@@ -23,7 +23,7 @@ flowchart LR
 
 ## decide: What are we actually building?
 
-**Input:** your request, existing decisions, and relevant project code or docs.
+**Input:** your request or company ticket, existing decisions, and relevant project code or docs.
 **Output:** a decision record, normally `docs/decisions.md`.
 
 Suppose you say:
@@ -50,8 +50,34 @@ A later agent can read the same record without asking you to repeat settled answ
 If an accepted choice changes, its replacement names the decision it supersedes,
 so affected references can be reviewed.
 
-You own the product choices. Existing code, an agent's recommendation and an
-unanswered suggestion do not become accepted policy automatically.
+Product choices stay with whoever is authorized to make them. Existing code, an
+agent's recommendation and an unanswered suggestion do not become accepted policy.
+
+### Starting from a vague company ticket
+
+> Use decide to clarify this ticket before implementation: "Add CSV export to the
+> reports page." Read the ticket and existing reporting behavior first. Establish
+> who needs it, what they need to accomplish, and what outcome would satisfy it.
+
+The agent checks the problem and intended outcome before specifying an export
+button. It extracts established scope and constraints, and marks assumptions,
+tentative solutions and contradictions. It reads project facts rather than asking
+you to repeat them; it does not invent success metrics or turn a small ticket into
+a full product-discovery process.
+
+For example, "export current filtered results or all accessible records?" may need
+an answer. The agent records a recommendation and identifies who can settle it.
+Your preferred behavior can remain a proposal if a PM or another stakeholder owns
+that choice. Questions can be prepared for them without automatically contacting them.
+
+The result stays in the decision record. Before handing it to journeys, the agent
+identifies which scope has enough agreed policy to map and which paths remain
+blocked on specific questions. Journeys can uncover further questions as branches
+are explored; they go back into the same record. No third shaping skill is required
+for this ticket-clarification step.
+
+See the [vague-ticket trial](evaluation/ticket-clarification/RESULTS.md) for the
+synthetic CSV ticket and the decision record produced by a fresh agent.
 
 ## journeys: What happens in each case?
 

@@ -1,0 +1,107 @@
+{
+  "date": "2026-10-16",
+  "startedAt": "2026-10-16T14:43:23.460Z",
+  "version": "codex-cli 0.147.0",
+  "platform": "darwin",
+  "model": "CLI default; no override",
+  "userConfig": "ignored; machine/user skill discovery was not disabled",
+  "skillHashes": {
+    "decide": "cb777dd79b60e5199b744f5b82139fbb3cc4d586c0bcf98af082a019d95375cc",
+    "journeys": "1d7a081d5b078a66f67b09f1d5d046bf9eaed31a25e3babaa1aaa3164c461f2a"
+  },
+  "cases": [
+    {
+      "id": "implicit-decide",
+      "prompt": "We need to plan team invitations before implementing anything. Only admins can invite, links expire after 48 hours and admins can revoke them. We want shareable links without email delivery. The role granted to a new member is still unclear. Capture settled requirements, exclusions and blocking product questions in docs/decisions.md, then ask the single most important unanswered question. Do not implement application code.",
+      "expected": [
+        "decide"
+      ],
+      "loaded": [
+        "decide"
+      ],
+      "exitCode": 0,
+      "passed": true,
+      "inputFiles": [
+        "docs/context.md"
+      ],
+      "generatedFiles": [
+        "docs/decisions.md"
+      ],
+      "modifiedInputFiles": [],
+      "removedInputFiles": []
+    },
+    {
+      "id": "implicit-journeys",
+      "prompt": "Our task-archiving requirements are agreed in docs/decisions.md. Map the feature into actor goals, steps, failure branches, invariants and testable acceptance criteria. Write the structured specification and readable view under docs/journeys. Include unauthorized access, duplicate requests and interrupted completion. Keep unsupported behavior visible rather than inventing product policy. Do not implement application code.",
+      "expected": [
+        "journeys"
+      ],
+      "loaded": [
+        "journeys"
+      ],
+      "exitCode": 0,
+      "passed": true,
+      "inputFiles": [
+        "docs/decisions.md"
+      ],
+      "generatedFiles": [
+        "docs/journeys/task-archiving.md",
+        "docs/journeys/task-archiving.yaml"
+      ],
+      "modifiedInputFiles": [],
+      "removedInputFiles": []
+    },
+    {
+      "id": "negative-small-edit",
+      "prompt": "Change the heading in README.md from Task Board to Taskboard. Make only that wording change.",
+      "expected": [],
+      "loaded": [],
+      "exitCode": 0,
+      "passed": true,
+      "inputFiles": [],
+      "generatedFiles": [],
+      "modifiedInputFiles": [],
+      "removedInputFiles": []
+    },
+    {
+      "id": "vague-company-ticket",
+      "prompt": "I have been assigned the ticket in docs/ticket.md. Read it and the project context, clarify the requirements before implementation, and leave a useful record for the next builder. I am the implementing engineer. Ask the most useful next question. Do not implement the feature or contact colleagues.",
+      "expected": [
+        "decide"
+      ],
+      "loaded": [
+        "decide"
+      ],
+      "exitCode": 0,
+      "passed": true,
+      "inputFiles": [
+        "docs/context.md",
+        "docs/ticket.md"
+      ],
+      "generatedFiles": [
+        "docs/decisions.md"
+      ],
+      "modifiedInputFiles": [],
+      "removedInputFiles": []
+    }
+  ],
+  "firstPass": {
+    "selectionCasesPassed": true,
+    "semanticIssues": [
+      "Invitation output inferred that shareable links need no recipient binding.",
+      "Journey output used an [OPEN] placeholder criterion for unknown interruption behavior."
+    ],
+    "response": "Made source fidelity and non-placeholder gap recording explicit, then reran all four cases."
+  },
+  "journeyCheck": {
+    "draftErrors": [],
+    "draftWarnings": 14,
+    "rules": 15,
+    "markdownFresh": true,
+    "coverageErrors": [
+      "C5: unresolved coverage"
+    ],
+    "readyErrors": 14
+  },
+  "limits": "Pass flags score invocation/process completion, not semantic correctness. Parent reviewed the documents. Invitation alternative wording still includes an unsupported not-selected label for recipient-bound delivery; source review remains necessary."
+}

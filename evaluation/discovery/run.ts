@@ -20,6 +20,10 @@ const cases = [
     id: 'negative-small-edit', expected: [],
     prompt: 'Change the heading in README.md from Task Board to Taskboard. Make only that wording change.',
   },
+  {
+    id: 'vague-company-ticket', expected: ['decide'],
+    prompt: 'I have been assigned the ticket in docs/ticket.md. Read it and the project context, clarify the requirements before implementation, and leave a useful record for the next builder. I am the implementing engineer. Ask the most useful next question. Do not implement the feature or contact colleagues.',
+  },
 ];
 const decisionRecord = `# Decisions\n\n| ID | Status | Decision | Why | Alternatives | Source | Date | Supersedes |\n|---|---|---|---|---|---|---|---|\n| D1 | accepted | Only the signed-in task owner can archive a task | Account isolation | Anyone can archive: rejected | Synthetic fixture owner | 2026-10-16 | |\n| D2 | accepted | Archiving sets the task to archived without deleting its contents | Preserve history | Permanent deletion: rejected | Synthetic fixture owner | 2026-10-16 | |\n| D3 | accepted | Repeating an archive request returns the existing archived result without another effect | Safe repeats | Duplicate effects: rejected | Synthetic fixture owner | 2026-10-16 | |\n| X1 | accepted | Restore and bulk archive are outside this feature | Bound the task | Include both: rejected | Synthetic fixture owner | 2026-10-16 | |\n`;
 const version = Bun.spawnSync(['codex', '--version']).stdout.toString().trim();
@@ -37,6 +41,11 @@ const results = await Promise.all(selected.map(async (test) => {
   if (test.id === 'implicit-journeys') {
     await mkdir(join(project, 'docs'));
     await writeFile(join(project, 'docs/decisions.md'), decisionRecord);
+  }
+  if (test.id === 'vague-company-ticket') {
+    await mkdir(join(project, 'docs'));
+    await writeFile(join(project, 'docs/context.md'), '# Project context\n\nThis is an existing TypeScript application. Reports already have date and status filters. Report access is restricted to authorized members of the current workspace. CSV export does not exist. Mara is the product manager responsible for report behavior. The assigned engineer can choose internal implementation details and propose product behavior; they cannot approve changes to data access or export scope.\n');
+    await writeFile(join(project, 'docs/ticket.md'), '# Ticket REP-42: Add CSV export to the reports page\n\nSupport relayed that customers spend time manually copying report data for their monthly review. Add a CSV download. Existing report access restrictions must be preserved. Exporting all rows might be useful, but that suggestion has not been agreed. Which customer role needs this and which records or fields they need has not yet been confirmed.\n');
   }
   const init = Bun.spawnSync(['git', 'init', '-q', project]);
   if (init.exitCode) throw Error('Could not initialize fixture');
