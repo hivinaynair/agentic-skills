@@ -171,30 +171,37 @@ its [decision table](skills/decide/references/record-format.md) and
 [journey schema](skills/journeys/references/schema.md). Other formats may need an
 explicit adapter or migration; the skills can still guide manual review.
 
-## Install in Codex
+## Install
 
-Clone this repository somewhere outside the project where you want to use the skills:
+The same skill folders can be used by coding agents that support `SKILL.md` skills.
+The installation directory and invocation syntax belong to your agent; the skills
+themselves do not require a particular platform.
+
+Clone this repository:
 
 ```sh
 git clone https://github.com/hivinaynair/agentic-skills.git
 ```
 
-In your project's root, inspect `.agents/skills` for existing `decide` or `journeys`
-folders. Keep or deliberately replace existing versions; do not copy over them blindly.
-For a project with neither skill installed, copy the complete folders:
+Choose your agent's documented project-level skill directory to share the skills
+with a team, or its personal skill directory to use them across projects. Inspect
+it for existing `decide` or `journeys` folders before copying. Keep or deliberately
+replace existing versions; do not merge copies blindly.
+
+For a destination with neither skill installed, copy both complete folders. These
+shell commands assume you are in the cloned repository; replace the destination:
 
 ```sh
-cd /path/to/your-project
-mkdir -p .agents/skills
-cp -R /path/to/agentic-skills/skills/decide .agents/skills/
-cp -R /path/to/agentic-skills/skills/journeys .agents/skills/
+skill_dir=/path/to/your-agent/skills
+mkdir -p "$skill_dir"
+cp -R skills/decide "$skill_dir/"
+cp -R skills/journeys "$skill_dir/"
 ```
 
-Replace the example paths with your actual project and clone locations. Include
-all supporting files, not just `SKILL.md`:
+The result should preserve the supporting files:
 
 ```text
-.agents/skills/
+<your-agent-skill-directory>/
   decide/SKILL.md
   decide/references/
   journeys/SKILL.md
@@ -202,45 +209,57 @@ all supporting files, not just `SKILL.md`:
   journeys/scripts/
 ```
 
-Open Codex in that project. In CLI or the IDE extension, `/skills` lists available
-skills; typing `$` lets you select one. If an installation does not appear, restart
-Codex. Copying these files requires no package installation. Bun is needed only
-when running the optional validator.
+Open or refresh your agent session according to its documentation, then check that
+both skills appear in its available-skills list. Copying the files requires no
+package installation. Bun is needed only for the optional validator.
 
-Codex also supports personal skills in `~/.agents/skills`. Use that location if you
-want the skills available across projects, after checking for existing copies with
-the same names. The project installation above is the path exercised by our discovery
-trial. These locations and invocation modes follow the
-[official Codex skill documentation](https://learn.chatgpt.com/docs/build-skills).
-
-For other coding agents, copy the complete folders into their documented skill
-directory and check their invocation syntax. Those installations have not been
-verified here. There is no plugin manifest in this release.
+If your agent does not support skill discovery, give it the full path to a skill's
+`SKILL.md` and ask it to follow those instructions. It needs access to the supporting
+files too. This is direct use, not automatic discovery. There is no plugin manifest
+or universal installer in this release.
 
 The previous seven skills and their installer have been retired. Existing installed
 copies are not removed automatically; Git history retains the old repository files.
 
 ## Invoke explicitly
 
-In Codex, mention the installed skill using `$`:
+Ask your agent in plain language:
+
+> Use the decide skill to settle the requirements for team invitations. Read the
+> ticket and existing project context, then ask about the most important missing policy.
+
+> Use the journeys skill to map the agreed invitation feature, including failures
+> and recovery.
+
+You can also select the skill through your agent's skill picker or mention syntax.
+Those controls vary by platform. If the skill is not installed, include its full
+`SKILL.md` path in the request.
+
+<details>
+<summary>Codex example: installation paths and invocation</summary>
+
+Codex discovers project skills under `.agents/skills` and personal skills under
+`~/.agents/skills`. For a project installation, run the copy commands from the clone
+with `skill_dir` set to `/path/to/your-project/.agents/skills`.
+
+In Codex CLI or the IDE extension, `/skills` lists available skills and `$` mentions
+one explicitly:
 
 ```text
 $decide Help me settle the requirements for team invitations.
-```
-
-```text
 $journeys Map the agreed invitation feature, including failures and recovery.
 ```
 
-You can also ask in ordinary language: “Use the decide skill to plan invitations.”
-If you have not installed it, provide the full path to its `SKILL.md` file and ask
-the agent to follow it. This reads the instructions explicitly; it does not install
-the skill or establish that automatic discovery works.
+If the skills do not appear, restart Codex. See the
+[official documentation](https://learn.chatgpt.com/docs/build-skills). Other agents
+have their own paths and controls; this example is not a required installation layout.
+
+</details>
 
 ## Let the agent select a skill
 
-Once installed in a discoverable location, Codex can select a skill when your
-request matches its description. You do not have to name it:
+In an agent that supports automatic skill selection, an installed skill can be
+selected when your request matches its description. You do not have to name it:
 
 > We need to plan team invitations before implementing anything. Capture settled
 > requirements, exclusions and blocking product questions, then ask the most
@@ -252,7 +271,8 @@ That is a request for the work covered by `decide`.
 > branches, invariants and testable acceptance criteria.
 
 That is a request for the work covered by `journeys`. Selection is an agent judgment,
-not a guaranteed trigger for every wording. Explicit invocation gives you more control.
+not a guaranteed trigger for every wording or platform. Explicit invocation gives
+you more control. Availability of automatic selection depends on the host agent.
 
 Discovery and selection are different: a skill may be available without being used.
 Look for the agent reading that installed skill's `SKILL.md` or announcing its use;
@@ -266,7 +286,7 @@ The skills do not automatically chain. To request both:
 Installing skills does not enable pre-commit hooks, background monitoring or automatic
 validation of every edit. Those checks require separate commands or hook configuration.
 
-## Automatic discovery test
+## Tested compatibility
 
 On 2026-10-16, fresh Codex CLI 0.147.0 sessions used copies of both skills in
 isolated projects under `.agents/skills`. The prompts did not name skills or their
@@ -285,13 +305,14 @@ for the evidence, initial inconclusive attempt and reproduction command.
 
 ## Validate a feature
 
-With the journeys folder installed at `.agents/skills/journeys`:
+Set `journeys_dir` to your installed journeys folder. From your project root:
 
 ```sh
-bun .agents/skills/journeys/scripts/journeys.ts validate docs/journeys/invitations.yaml
-bun .agents/skills/journeys/scripts/journeys.ts render docs/journeys/invitations.yaml
-bun .agents/skills/journeys/scripts/journeys.ts check docs/journeys/invitations.yaml --coverage
-bun .agents/skills/journeys/scripts/journeys.ts check docs/journeys/invitations.yaml --ready
+journeys_dir=/path/to/your-agent/skills/journeys
+bun "$journeys_dir/scripts/journeys.ts" validate docs/journeys/invitations.yaml
+bun "$journeys_dir/scripts/journeys.ts" render docs/journeys/invitations.yaml
+bun "$journeys_dir/scripts/journeys.ts" check docs/journeys/invitations.yaml --coverage
+bun "$journeys_dir/scripts/journeys.ts" check docs/journeys/invitations.yaml --ready
 ```
 
 - `validate` checks structure and references; draft policy may produce warnings.
@@ -311,7 +332,7 @@ not execution or assertion quality. No command runs product tests.
 Add this call to your existing hook manager when a feature is ready:
 
 ```sh
-sh .agents/skills/journeys/scripts/pre-commit.sh docs/journeys/invitations.yaml --ready
+sh /path/to/your-agent/skills/journeys/scripts/pre-commit.sh docs/journeys/invitations.yaml --ready
 ```
 
 Use `--coverage` for a source review that does not claim policy approval, or omit
