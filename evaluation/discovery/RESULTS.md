@@ -30,7 +30,7 @@ negative control requests only a README heading change.
 | Small wording edit | Neither | Neither | Requested README heading changed |
 
 [Recorded results](results.json) contain the exact prompts, skill entry-point hashes,
-process exit codes and generated-file lists. The runner accepts a read only when a
+process exit codes, seeded document inputs and generated-file lists. The runner accepts a read only when a
 completed shell command names the local skill entry point, exits successfully and
 returns that skill's instruction heading. Final self-reports alone do not pass.
 All three selected cases passed this check, and the negative edit was verified.
@@ -61,6 +61,25 @@ bun evaluation/discovery/run.ts implicit-decide
 The runner prints its temporary artifact directory and JSON results. Raw command
 traces and model output stay there, outside this repository. Each session has a
 five-minute process timeout. The checked-in summary omits machine-specific paths.
+
+New runs capture `startedAt` at execution in UTC and derive `date` from that
+timestamp. Fixed dates inside the synthetic decision record are fixture data only.
+Before launching Codex, the runner snapshots the document inputs. It reports new
+documents under `generatedFiles`, seeded documents under `inputFiles`, and changed
+or removed inputs under `modifiedInputFiles` or `removedInputFiles` respectively.
+These fields cover documents under `docs/`; the negative README edit is checked
+separately.
+
+Review corrected the original summary, which had counted `docs/context.md` and the
+journey fixture's `docs/decisions.md` as generated. They now appear as inputs, using
+the known fixture definitions. The original trial date and selection results are
+preserved. No model sessions were repeated for this correction, and changes to
+the original inputs cannot be reconstructed from the old filename-only inventory.
+
+The offline [runner regression test](../../tests/discovery-runner.test.ts) uses a
+stub Codex executable and a simulated 2031 clock to verify provenance and runtime
+dating without authentication, network access or model quota. It does not count
+as another automatic-discovery trial.
 
 The test exercises Codex CLI project installation. It does not verify Codex desktop
 skill selectors, personal-directory installs, Claude Code, Cursor, other operating

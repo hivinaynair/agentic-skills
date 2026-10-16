@@ -21,8 +21,10 @@
       "exitCode": 0,
       "passed": true,
       "generatedFiles": [
-        "docs/context.md",
         "docs/decisions.md"
+      ],
+      "inputFiles": [
+        "docs/context.md"
       ]
     },
     {
@@ -37,9 +39,11 @@
       "exitCode": 0,
       "passed": true,
       "generatedFiles": [
-        "docs/decisions.md",
         "docs/journeys/task-archiving.md",
         "docs/journeys/task-archiving.yaml"
+      ],
+      "inputFiles": [
+        "docs/decisions.md"
       ]
     },
     {
@@ -49,12 +53,14 @@
       "loaded": [],
       "exitCode": 0,
       "passed": true,
-      "generatedFiles": []
+      "generatedFiles": [],
+      "inputFiles": []
     }
   ],
   "initialDecideAttempt": {
     "selectedSkillAnnounced": true,
     "entrypointReadConfirmed": false,
     "reason": "The compound entry-point read/search command returned exit 1 with no captured body. Strict scorer did not accept it as a confirmed read. Added a neutral docs/context.md fixture and reran only this case."
-  }
+  },
+  "provenanceCorrection": "Seeded docs moved from generatedFiles to inputFiles using the original fixture definitions. Discovery runs were not repeated. Original input content hashes were not captured, so modifications to seeded inputs are not reconstructed here. The date remains the date of the original trial."
 }

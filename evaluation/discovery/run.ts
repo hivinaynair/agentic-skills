@@ -4,6 +4,7 @@ import { resolve, join } from 'node:path';
 
 // Optional behavioral evaluation: requires an authenticated Codex CLI and uses model quota.
 // It is deliberately not part of bun test. Generated projects and raw logs stay in /tmp.
+const startedAt = new Date().toISOString();
 const repo = resolve(import.meta.dir, '../..');
 const root = await mkdtemp(join(tmpdir(), 'agentic-discovery-'));
 const cases = [
@@ -39,6 +40,10 @@ const results = await Promise.all(selected.map(async (test) => {
   }
   const init = Bun.spawnSync(['git', 'init', '-q', project]);
   if (init.exitCode) throw Error('Could not initialize fixture');
+  const inputFiles = new Map(await Promise.all(
+    (await Array.fromAsync(new Bun.Glob('docs/**/*').scan({ cwd: project, onlyFiles: true })))
+      .map(async path => [path, await Bun.file(join(project, path)).text()] as const)
+  ));
   const args = ['exec', '--ignore-user-config', '--ephemeral', '--json', '-s', 'workspace-write', '-C', project, test.prompt];
   const proc = Bun.spawn(['codex', ...args], { stdout: 'pipe', stderr: 'pipe' });
   const timeout = setTimeout(() => proc.kill(), 300_000);
@@ -55,13 +60,17 @@ const results = await Promise.all(selected.map(async (test) => {
   ));
   const final = events.filter(e => e.item?.type === 'agent_message').map(e => e.item.text).join('\n');
   const files = await Array.fromAsync(new Bun.Glob('docs/**/*').scan({ cwd: project, onlyFiles: true }));
+  const generatedFiles = files.filter(path => !inputFiles.has(path)).sort();
+  const modifiedInputFiles = [];
+  for (const path of files) if (inputFiles.has(path) && inputFiles.get(path) !== await Bun.file(join(project, path)).text()) modifiedInputFiles.push(path);
+  const removedInputFiles = [...inputFiles.keys()].filter(path => !files.includes(path)).sort();
   const negativeEdit = test.id !== 'negative-small-edit' || await Bun.file(join(project, 'README.md')).text() === '# Taskboard\n';
   const passed = exitCode === 0 && JSON.stringify(loaded) === JSON.stringify(test.expected) && negativeEdit;
-  return { id: test.id, prompt: test.prompt, expected: test.expected, loaded, exitCode, passed, generatedFiles: files, finalResponse: final };
+  return { id: test.id, prompt: test.prompt, expected: test.expected, loaded, exitCode, passed, inputFiles: [...inputFiles.keys()].sort(), generatedFiles, modifiedInputFiles: modifiedInputFiles.sort(), removedInputFiles, finalResponse: final };
 }));
 const hashes: Record<string, string> = {};
 for (const name of ['decide', 'journeys']) hashes[name] = new Bun.CryptoHasher('sha256').update(await Bun.file(join(repo, 'skills', name, 'SKILL.md')).text()).digest('hex');
-const result = { date: '2026-10-16', version, platform: process.platform, model: 'CLI default; no override', userConfig: 'ignored; machine/user skill discovery was not disabled', skillHashes: hashes, results };
+const result = { date: startedAt.slice(0, 10), startedAt, version, platform: process.platform, model: 'CLI default; no override', userConfig: 'ignored; machine/user skill discovery was not disabled', skillHashes: hashes, results };
 await writeFile(join(root, 'results.json'), JSON.stringify(result, null, 2) + '\n');
 console.log(JSON.stringify({ rawArtifacts: root, ...result }, null, 2));
 if (results.some(r => !r.passed)) process.exitCode = 1;
