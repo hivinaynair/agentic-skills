@@ -341,6 +341,11 @@ Git files without modifying or staging anything. An unstaged fix cannot disguise
 a broken commit. Run the equivalent `check` in CI too; local hooks can be bypassed.
 Do not overwrite an existing hook setup. Bun must be on PATH.
 
+Pass the feature and any `--verification` map as paths relative to the repository
+root, without `..` segments. For a validator installed inside that repository,
+stage its script too: the helper runs the staged copy. A personal or external
+installation uses the validator at that external location.
+
 For development of this repository, `.githooks/pre-commit` optionally runs its
 checks and tests against the staged snapshot. Enable it explicitly with
 `git config core.hooksPath .githooks` if it fits your existing hook setup.
@@ -348,10 +353,12 @@ checks and tests against the staged snapshot. Enable it explicitly with
 ## Try the included example
 
 ```sh
-bun run check
-bun test
-bun skills/journeys/scripts/journeys.ts check evaluation/team-invitations/journeys/invitations.yaml
+bun run verify
 ```
+
+This runs skill metadata/reference checks, offline tests and the draft invitation
+example check. Run `bun run check`, `bun test` or `bun run check:example` separately
+when you only need one check. It does not launch model sessions or use account quota.
 
 The [invitation example](evaluation/team-invitations/journeys/invitations.md) is a
 synthetic planning exercise, not an implemented app. Draft checking passes with

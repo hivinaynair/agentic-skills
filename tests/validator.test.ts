@@ -74,3 +74,55 @@ test('CLI rejects missing files and stale rendering; hook checks staged snapshot
     expect(run(dir,'bun',cli,'check','feature.yaml').exitCode).not.toBe(0);
   } finally { await rm(dir,{recursive:true,force:true}); }
 });
+
+test('repository-local hook runs the staged validator, including when an unstaged copy would pass', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'journeys-staged-tool-'));
+  try {
+    const installed = join(dir, '.agents/skills/journeys/scripts');
+    await mkdir(installed, {recursive:true});
+    const localCli = join(installed, 'journeys.ts');
+    const localHook = join(installed, 'pre-commit.sh');
+    const validatorSource = await Bun.file(cli).text();
+    await writeFile(localCli, validatorSource);
+    await writeFile(localHook, await Bun.file(hook).text());
+    await writeFile(join(dir, 'decisions.md'), decisionText);
+    await writeFile(join(dir, 'feature.yaml'), Bun.YAML.stringify(fixture()));
+    expect(run(dir, 'git', 'init', '-q').exitCode).toBe(0);
+    expect(run(dir, 'bun', localCli, 'render', 'feature.yaml').exitCode).toBe(0);
+    expect(run(dir, 'git', 'add', '.').exitCode).toBe(0);
+    expect(run(dir, 'sh', localHook, 'feature.yaml', '--ready').exitCode).toBe(0);
+    await writeFile(localCli, 'process.exit(1);');
+    expect(run(dir, 'sh', localHook, 'feature.yaml', '--ready').exitCode).toBe(0);
+    expect(run(dir, 'git', 'add', '.agents').exitCode).toBe(0);
+    await writeFile(localCli, validatorSource);
+    expect(run(dir, 'sh', localHook, 'feature.yaml', '--ready').exitCode).not.toBe(0);
+    expect(run(dir, 'git', 'add', '.agents').exitCode).toBe(0);
+    const broken = fixture(); broken.journeys[0].steps[0].next[0].to = 'J1.S99';
+    await writeFile(join(dir, 'feature.yaml'), Bun.YAML.stringify(broken));
+    expect(run(dir, 'git', 'add', 'feature.yaml').exitCode).toBe(0);
+    await writeFile(localCli, 'process.exit(0);');
+    const result = run(dir, 'sh', localHook, 'feature.yaml', '--ready');
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr.toString()).toContain('missing target J1.S99');
+  } finally { await rm(dir, {recursive:true, force:true}); }
+});
+
+test('hook rejects feature and verification paths that bypass the staged snapshot', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'journeys-hook-paths-'));
+  try {
+    expect(run(dir, 'git', 'init', '-q').exitCode).toBe(0);
+    await writeFile(join(dir, 'feature.yaml'), Bun.YAML.stringify(fixture()));
+    await writeFile(join(dir, 'decisions.md'), decisionText);
+    expect(run(dir, 'bun', cli, 'render', 'feature.yaml').exitCode).toBe(0);
+    expect(run(dir, 'git', 'add', '.').exitCode).toBe(0);
+    for (const args of [
+      [join(dir, 'feature.yaml')], ['../feature.yaml'], ['docs/../../feature.yaml'],
+      ['feature.yaml', '--verification', join(dir, 'verification.json')],
+      ['feature.yaml', '--verification', '../verification.json'],
+    ]) {
+      const result = run(dir, 'sh', hook, ...args);
+      expect(result.exitCode).not.toBe(0);
+      expect(result.stderr.toString()).toContain('repository-relative paths');
+    }
+  } finally { await rm(dir, {recursive:true, force:true}); }
+});
