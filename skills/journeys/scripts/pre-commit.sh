@@ -23,10 +23,21 @@ trap 'rm -rf "$staged_dir"' EXIT HUP INT TERM
 # checkout-index exports the index without changing the working tree or index.
 git checkout-index --all --prefix="$staged_dir/"
 case "$checker_dir" in
-  "$root") checker="$staged_dir/journeys.ts" ;;
-  "$root/"*) checker="$staged_dir/${checker_dir#"$root/"}/journeys.ts" ;;
-  *) checker="$checker_dir/journeys.ts" ;; # Personal/external installation is outside this index.
+  "$root") checker="$staged_dir/journeys.ts"; local_checker=true ;;
+  "$root/"*) checker="$staged_dir/${checker_dir#"$root/"}/journeys.ts"; local_checker=true ;;
+  *) checker="$checker_dir/journeys.ts"; local_checker=false ;; # Personal/external installation is outside this index.
 esac
 [ -f "$checker" ] || { echo 'journeys hook: stage the repository-local validator before running the hook' >&2; exit 1; }
+if [ "$local_checker" = true ]; then
+  # Check the staged executable before running it; its filename can be a symlink too.
+  bun -e '
+    const {realpathSync} = require("node:fs");
+    const {relative, isAbsolute, sep} = require("node:path");
+    const fromRoot = relative(realpathSync(process.argv[1]), realpathSync(process.argv[2]));
+    if (fromRoot === ".." || fromRoot.startsWith(".." + sep) || isAbsolute(fromRoot)) {
+      console.error("journeys hook: validator escapes staged snapshot"); process.exit(1);
+    }
+  ' "$staged_dir" "$checker"
+fi
 cd "$staged_dir"
-bun "$checker" check "$@"
+JOURNEYS_SNAPSHOT_ROOT="$staged_dir" bun "$checker" check "$@"

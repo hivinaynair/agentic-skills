@@ -344,7 +344,10 @@ Do not overwrite an existing hook setup. Bun must be on PATH.
 Pass the feature and any `--verification` map as paths relative to the repository
 root, without `..` segments. For a validator installed inside that repository,
 stage its script too: the helper runs the staged copy. A personal or external
-installation uses the validator at that external location.
+installation uses the validator at that external location. Feature documents,
+decision records, verification maps and their linked files, and generated Markdown
+must resolve inside the staged export. Internal relative references and symlinks
+are supported; paths resolving outside are rejected before their contents are read.
 
 For development of this repository, `.githooks/pre-commit` optionally runs its
 checks and tests against the staged snapshot. Enable it explicitly with

@@ -1,7 +1,7 @@
 import {test, expect} from 'bun:test';
-import {mkdtemp, rm, mkdir, writeFile} from 'node:fs/promises';
+import {mkdtemp, rm, mkdir, writeFile, symlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
-import {resolve, join} from 'node:path';
+import {resolve, join, basename} from 'node:path';
 import {validate, decisionsFrom, render, risks, verificationProblems} from '../skills/journeys/scripts/journeys';
 const decisionText = '| ID | Status | Decision | Supersedes |\n|---|---|---|---|\n| D1 | accepted | Admins can invite | |\n| Q1 | open | Which role? | |';
 const decisions = decisionsFrom(decisionText);
@@ -124,5 +124,86 @@ test('hook rejects feature and verification paths that bypass the staged snapsho
       expect(result.exitCode).not.toBe(0);
       expect(result.stderr.toString()).toContain('repository-relative paths');
     }
+  } finally { await rm(dir, {recursive:true, force:true}); }
+});
+
+const escapingInputs = [
+  'feature-directory-symlink', 'absolute-decisions', 'traversal-decisions', 'decision-symlink',
+  'verification-map-symlink', 'absolute-verification-link', 'traversal-verification-link',
+  'verification-link-symlink', 'rendered-markdown-symlink', 'validator-symlink',
+];
+test.each(escapingInputs)('hook rejects %s after resolving the staged paths', async (kind) => {
+  const dir = await mkdtemp(join(tmpdir(), 'journeys-read-boundary-'));
+  try {
+    const repo = join(dir, 'repo'), outside = join(dir, 'outside');
+    await mkdir(repo); await mkdir(outside);
+    const s = fixture();
+    const args = ['feature.yaml', '--ready'];
+    let selectedHook = hook;
+    await writeFile(join(repo, 'decisions.md'), decisionText);
+    await writeFile(join(outside, 'decisions.md'), decisionText);
+    await writeFile(join(outside, 'test.ts'), 'test_admin_invites');
+    if (kind === 'feature-directory-symlink') {
+      await writeFile(join(outside, 'feature.yaml'), Bun.YAML.stringify(s));
+      await writeFile(join(outside, 'feature.md'), render(s));
+      await symlink(outside, join(repo, 'current'), 'dir');
+      args[0] = 'current/feature.yaml';
+    }
+    if (kind === 'absolute-decisions') s.decisions = join(outside, 'decisions.md');
+    if (kind === 'traversal-decisions') s.decisions = `../${basename(dir)}/outside/decisions.md`;
+    if (kind === 'decision-symlink') {
+      await rm(join(repo, 'decisions.md'));
+      await symlink(join(outside, 'decisions.md'), join(repo, 'decisions.md'));
+    }
+    if (kind.includes('verification')) {
+      let linkPath = 'test.ts';
+      if (kind === 'absolute-verification-link') linkPath = join(outside, 'test.ts');
+      if (kind === 'traversal-verification-link') linkPath = `../${basename(dir)}/outside/test.ts`;
+      const map = JSON.stringify({'J1.S1.c1':[{path:linkPath, locator:'test_admin_invites'}]});
+      if (kind === 'verification-map-symlink') {
+        await writeFile(join(outside, 'verification.json'), map);
+        await symlink(join(outside, 'verification.json'), join(repo, 'verification.json'));
+      } else await writeFile(join(repo, 'verification.json'), map);
+      if (kind === 'verification-link-symlink') await symlink(join(outside, 'test.ts'), join(repo, 'test.ts'));
+      args.push('--verification', 'verification.json');
+    }
+    await writeFile(join(repo, 'feature.yaml'), Bun.YAML.stringify(s));
+    if (kind === 'rendered-markdown-symlink') {
+      await writeFile(join(outside, 'feature.md'), render(s));
+      await symlink(join(outside, 'feature.md'), join(repo, 'feature.md'));
+    } else await writeFile(join(repo, 'feature.md'), render(s));
+    if (kind === 'validator-symlink') {
+      const scripts = join(repo, 'scripts'); await mkdir(scripts);
+      await writeFile(join(scripts, 'pre-commit.sh'), await Bun.file(hook).text());
+      await writeFile(join(outside, 'journeys.ts'), 'process.exit(0);');
+      await symlink(join(outside, 'journeys.ts'), join(scripts, 'journeys.ts'));
+      selectedHook = join(scripts, 'pre-commit.sh');
+    }
+    expect(run(repo, 'git', 'init', '-q').exitCode).toBe(0);
+    expect(run(repo, 'git', 'add', '.').exitCode).toBe(0);
+    const result = run(repo, 'sh', selectedHook, ...args);
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr.toString()).toContain('escapes staged snapshot');
+  } finally { await rm(dir, {recursive:true, force:true}); }
+});
+
+test('hook permits references and symlinks contained within the staged snapshot', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'journeys-contained-links-'));
+  try {
+    const s = fixture(); s.decisions = 'config/decisions.md';
+    await mkdir(join(dir, 'config'));
+    await mkdir(join(dir, 'checks'));
+    await writeFile(join(dir, 'decisions.md'), decisionText);
+    await symlink('../decisions.md', join(dir, 'config/decisions.md'));
+    await writeFile(join(dir, 'checks/test.ts'), 'test_admin_invites');
+    await symlink('checks/test.ts', join(dir, 'test.ts'));
+    await writeFile(join(dir, 'verification.json'), JSON.stringify({'J1.S1.c1':[{path:'test.ts',locator:'test_admin_invites'}]}));
+    await writeFile(join(dir, 'feature.yaml'), Bun.YAML.stringify(s));
+    await writeFile(join(dir, 'feature.md'), render(s));
+    expect(run(dir, 'git', 'init', '-q').exitCode).toBe(0);
+    expect(run(dir, 'git', 'add', '.').exitCode).toBe(0);
+    const result = run(dir, 'sh', hook, 'feature.yaml', '--ready', '--verification', 'verification.json');
+    expect(result.stderr.toString()).toBe('');
+    expect(result.exitCode).toBe(0);
   } finally { await rm(dir, {recursive:true, force:true}); }
 });
