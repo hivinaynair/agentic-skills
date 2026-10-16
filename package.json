@@ -3,6 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "description": "Portable agent skills for decisions and testable journeys",
-  "scripts": {"test": "bun test", "check": "bun run scripts/check-skills.ts"},
+  "scripts": {
+    "test": "bun test",
+    "check": "bun run scripts/check-skills.ts",
+    "check:example": "bun skills/journeys/scripts/journeys.ts check evaluation/team-invitations/journeys/invitations.yaml",
+    "verify": "bun run check && bun test && bun run check:example"
+  },
   "engines": {"bun": ">=1.4.0"}
 }

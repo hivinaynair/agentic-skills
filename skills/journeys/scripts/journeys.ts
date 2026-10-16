@@ -1,5 +1,6 @@
 #!/usr/bin/env bun
-import { resolve, dirname, extname } from 'node:path';
+import { resolve, dirname, extname, relative, isAbsolute, sep } from 'node:path';
+import { realpath } from 'node:fs/promises';
 
 // Deliberately dependency-free. Parsing uses Bun; pure validation is exported for tests.
 type Obj = Record<string, any>;
@@ -9,6 +10,16 @@ const nonempty = (v: unknown): v is string => typeof v === 'string' && v.trim().
 const ears = /^(?:(?:WHEN|IF|WHILE) .+ )?THE SYSTEM SHALL(?: NOT)? .+/;
 export const risks = ['input', 'permissions', 'interruption', 'dependencies', 'duplicates', 'concurrency', 'recovery'];
 export type Decision = { id: string; status: string; text: string; supersedes: string[] };
+// The hook supplies its exported index root. Resolve symlinks before any content
+// read, including paths nested in the spine and verification map. Standalone CLI
+// use retains its existing support for external files.
+async function snapshotRead(path: string, root?: string): Promise<string> {
+  if (!root) return path;
+  const [base, target] = await Promise.all([realpath(root), realpath(path)]);
+  const fromRoot = relative(base, target);
+  if (fromRoot === '..' || fromRoot.startsWith(`..${sep}`) || isAbsolute(fromRoot)) throw Error(`Path escapes staged snapshot: ${path}`);
+  return target;
+}
 export function decisionsFrom(markdown: string): Map<string, Decision> {
   const result = new Map<string, Decision>();
   let headers: string[] = [];
@@ -263,7 +274,7 @@ export function render(s: Obj): string {
   return out.join('\n');
 }
 
-export async function verificationProblems(map: unknown, base: string, rules: Set<string>, requireLinks: boolean) {
+export async function verificationProblems(map: unknown, base: string, rules: Set<string>, requireLinks: boolean, snapshotRoot?: string) {
   const errors: string[] = [];
   if (!object(map)) return ['Verification map must be an object'];
   for (const [id, links] of Object.entries(map)) {
@@ -271,7 +282,10 @@ export async function verificationProblems(map: unknown, base: string, rules: Se
     if (!Array.isArray(links) || !links.length) { errors.push(`${id}: empty verification links`); continue; }
     for (const link of links) {
       if (!object(link) || !nonempty(link.path) || !nonempty(link.locator)) { errors.push(`${id}: link requires path and locator`); continue; }
-      const file = Bun.file(resolve(base, link.path));
+      let path: string;
+      try { path = await snapshotRead(resolve(base, link.path), snapshotRoot); }
+      catch (e) { errors.push(`${id}: ${e instanceof Error ? e.message : e}`); continue; }
+      const file = Bun.file(path);
       if (!await file.exists()) errors.push(`${id}: missing verification file ${link.path}`);
       else if (!(await file.text()).includes(link.locator)) errors.push(`${id}: missing locator in ${link.path}`);
     }
@@ -290,21 +304,23 @@ if (import.meta.main) {
       else if (!['--ready', '--coverage', '--require-links'].includes(flags[i])) throw Error(`Unknown option ${flags[i]}`);
     }
     if (flags.includes('--require-links') && !verification) throw Error('--require-links requires --verification');
-    const s = Bun.YAML.parse(await Bun.file(input).text());
+    const snapshotRoot = process.env.JOURNEYS_SNAPSHOT_ROOT;
+    const readText = async (path: string) => Bun.file(await snapshotRead(path, snapshotRoot)).text();
+    const s = Bun.YAML.parse(await readText(input));
     if (!object(s)) throw Error('Spine must be an object');
     if (s.decisions !== undefined && !nonempty(s.decisions)) throw Error('Invalid decisions path');
-    const decisions = s.decisions ? decisionsFrom(await Bun.file(resolve(dirname(input), s.decisions)).text()) : new Map<string, Decision>();
+    const decisions = s.decisions ? decisionsFrom(await readText(resolve(dirname(input), s.decisions))) : new Map<string, Decision>();
     const result = validate(s, decisions, flags.includes('--ready'), flags.includes('--coverage'));
     for (const w of result.warnings) console.error(`warn: ${w}`);
     if (result.errors.length) throw Error(result.errors.join('\n'));
     if (verification) {
-      const errors = await verificationProblems(await Bun.file(verification).json(), dirname(resolve(verification)), result.rules, flags.includes('--require-links'));
+      const errors = await verificationProblems(JSON.parse(await readText(verification)), dirname(resolve(verification)), result.rules, flags.includes('--require-links'), snapshotRoot);
       if (errors.length) throw Error(errors.join('\n'));
     }
     const output = input.replace(/\.ya?ml$/, '.md');
     const expected = render(s);
     if (cmd === 'render') await Bun.write(output, expected);
-    if (cmd === 'check' && (!await Bun.file(output).exists() || await Bun.file(output).text() !== expected)) throw Error(`${output}: generated document is missing or stale; run render`);
+    if (cmd === 'check' && (!await Bun.file(output).exists() || await readText(output) !== expected)) throw Error(`${output}: generated document is missing or stale; run render`);
     console.log(`ok: ${cmd} ${input}; ${result.rules.size} rules; ${result.warnings.length} warnings. Tests were not executed.`);
   } catch (e) { console.error(`ERROR: ${e instanceof Error ? e.message : e}`); process.exit(1); }
 }
