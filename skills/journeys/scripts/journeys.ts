@@ -50,7 +50,8 @@ export function decisionsFrom(markdown: string): Map<string, Decision> {
   return result;
 }
 
-export function validate(s: unknown, decisions: Map<string, Decision>, ready = false, requireCoverage = false) {
+export function validate(s: unknown, decisions: Map<string, Decision>, ready = false, requireCoverage = false, policyReady = false) {
+  const policyGate = ready || policyReady;
   const errors: string[] = [], warnings: string[] = [];
   const active = new Set<string>(), rules = new Set<string>();
   const err = (m: string) => errors.push(m);
@@ -65,7 +66,7 @@ export function validate(s: unknown, decisions: Map<string, Decision>, ready = f
       const d = decisions.get(id);
       if (!d) err(`${owner}: unknown decision ${id}`);
       else if (['superseded', 'retired', 'resolved'].includes(d.status)) err(`${owner}: inactive decision ${id}`);
-      else if (d.status !== 'accepted') (ready ? errors : warnings).push(`${owner}: unresolved policy ${id}`);
+      else if (d.status !== 'accepted') (policyGate ? errors : warnings).push(`${owner}: unresolved policy ${id}`);
     }
   };
   const rule = (v: unknown, id: string) => {
@@ -102,7 +103,7 @@ export function validate(s: unknown, decisions: Map<string, Decision>, ready = f
     if (!strings(observed)) err(`${id}: observations must be an ID list`);
     else for (const ref of observed) if (!observationIds.has(ref)) err(`${id}: unknown observation ${ref}`);
     if ((!strings(policy) || !policy.length) && (!strings(observed) || !observed.length)) err(`${id}: requires decisions or observations`);
-    if (ready && strings(policy) && !policy.length) err(`${id}: observed behavior is not approved policy; accepted decisions required for readiness`);
+    if (policyGate && strings(policy) && !policy.length) err(`${id}: observed behavior is not approved policy; accepted decisions required for readiness`);
   };
   const invariantIds = new Set<string>();
   if (!Array.isArray(s.invariants)) err('invariants must be a list (empty is allowed)');
@@ -169,18 +170,30 @@ export function validate(s: unknown, decisions: Map<string, Decision>, ready = f
     while (changed) { changed = false; for (const [id, edges] of graph) if (!canExit.has(id) && edges.some(e => canExit.has(e))) { canExit.add(id); changed = true; } }
     for (const id of steps.keys()) if (!canExit.has(id)) err(`${id}: no path to an exit`);
     // A review records human/agent reasoning. It cannot establish semantic completeness.
-    for (const risk of risks) {
+    let requiredRisks = risks;
+    if (j.review_scope !== undefined) {
+      const scope = j.review_scope;
+      if (!object(scope) || !strings(scope.risks) || !nonempty(scope.reason)
+          || scope.risks.some((r: string) => !risks.includes(r))
+          || new Set(scope.risks).size !== scope.risks.length) {
+        err(`${j.id}: review_scope needs unique known risks and a reason`);
+      } else requiredRisks = scope.risks;
+    }
+    if (j.review !== undefined && !object(j.review)) err(`${j.id}: review must be a map`);
+    if (object(j.review)) for (const key of Object.keys(j.review)) if (!risks.includes(key)) err(`${j.id}: unknown review category ${key}`);
+    // Existing reviews remain visible and binding even if a later scope omits them.
+    for (const risk of new Set([...requiredRisks, ...Object.keys(object(j.review) ? j.review : {})])) {
       const r = object(j.review) ? j.review[risk] : undefined;
       if (!object(r)) { (ready ? errors : warnings).push(`${j.id}: missing ${risk} branch review`); continue; }
       if (!['covered', 'not-applicable', 'open'].includes(r.status) || !nonempty(r.reason)) err(`${j.id}/${risk}: needs status and reason`);
       if (r.status === 'open') (ready ? errors : warnings).push(`${j.id}/${risk}: review remains open`);
       if (r.status === 'covered') {
         if (!strings(r.refs) || !r.refs.length) err(`${j.id}/${risk}: covered review needs refs`);
-        else for (const ref of r.refs) if (!steps.has(ref) && ![...steps.keys()].some(id => object(steps.get(id)!.criteria) && Object.keys(steps.get(id)!.criteria).some(k => `${id}.${k}` === ref))) err(`${j.id}/${risk}: unknown review ref ${ref}`);
+        else for (const ref of r.refs) if (!invariantIds.has(ref) && !steps.has(ref) && ![...steps.keys()].some(id => object(steps.get(id)!.criteria) && Object.keys(steps.get(id)!.criteria).some(k => `${id}.${k}` === ref))) err(`${j.id}/${risk}: unknown review ref ${ref}`);
       }
     }
   }
-  const coverageGate = ready || requireCoverage;
+  const coverageGate = policyGate || requireCoverage;
   const journeyIds = new Set((Array.isArray(s.journeys) ? s.journeys : []).filter(object).map(j => j.id));
   const mapped = new Set<string>();
   if (s.coverage === undefined || (Array.isArray(s.coverage) && !s.coverage.length)) (coverageGate ? errors : warnings).push('Missing coverage inventory');
@@ -267,7 +280,8 @@ export function render(s: Obj): string {
       for (const [k, v] of Object.entries(st.criteria)) out.push(`- **${st.id}.${k}**: ${v}`);
     }
     out.push('', '### Branch review', '');
-    for (const risk of risks) { const r = j.review?.[risk]; out.push(`- **${risk}**: ${r ? `${r.status}; ${r.reason}${r.refs ? ` (${r.refs.join(', ')})` : ''}` : 'not reviewed'}`); }
+    if (j.review_scope) out.push(`Review scope: ${j.review_scope.risks.join(', ') || 'none'}. ${j.review_scope.reason}`, '');
+    for (const risk of new Set([...(j.review_scope?.risks ?? risks), ...Object.keys(j.review ?? {})])) { const r = j.review?.[risk]; out.push(`- **${risk}**: ${r ? `${r.status}; ${r.reason}${r.refs ? ` (${r.refs.join(', ')})` : ''}` : 'not reviewed'}`); }
   }
   if (s.tasks?.length) { out.push('', '## Tasks', ''); for (const t of s.tasks) out.push(`- **${t.id}**: ${t.serves.join(', ')}`); }
   out.push('', `Retired IDs: ${s.retired.join(', ') || 'none'}.`, '');
@@ -297,12 +311,13 @@ export async function verificationProblems(map: unknown, base: string, rules: Se
 if (import.meta.main) {
   try {
     const [cmd, input, ...flags] = process.argv.slice(2);
-    if (!['validate', 'render', 'check'].includes(cmd) || !input || !['.yaml', '.yml'].includes(extname(input))) throw Error('Usage: bun journeys.ts validate|render|check feature.yaml [--ready] [--coverage] [--verification map.json] [--require-links]');
+    if (!['validate', 'render', 'check'].includes(cmd) || !input || !['.yaml', '.yml'].includes(extname(input))) throw Error('Usage: bun journeys.ts validate|render|check feature.yaml [--ready | --policy-ready] [--coverage] [--verification map.json] [--require-links]');
     let verification: string | undefined;
     for (let i = 0; i < flags.length; i++) {
       if (flags[i] === '--verification') { verification = flags[++i]; if (!verification || verification.startsWith('--')) throw Error('--verification needs a path'); }
-      else if (!['--ready', '--coverage', '--require-links'].includes(flags[i])) throw Error(`Unknown option ${flags[i]}`);
+      else if (!['--ready', '--policy-ready', '--coverage', '--require-links'].includes(flags[i])) throw Error(`Unknown option ${flags[i]}`);
     }
+    if (flags.includes('--ready') && flags.includes('--policy-ready')) throw Error('Choose --ready or --policy-ready');
     if (flags.includes('--require-links') && !verification) throw Error('--require-links requires --verification');
     const snapshotRoot = process.env.JOURNEYS_SNAPSHOT_ROOT;
     const readText = async (path: string) => Bun.file(await snapshotRead(path, snapshotRoot)).text();
@@ -310,7 +325,7 @@ if (import.meta.main) {
     if (!object(s)) throw Error('Spine must be an object');
     if (s.decisions !== undefined && !nonempty(s.decisions)) throw Error('Invalid decisions path');
     const decisions = s.decisions ? decisionsFrom(await readText(resolve(dirname(input), s.decisions))) : new Map<string, Decision>();
-    const result = validate(s, decisions, flags.includes('--ready'), flags.includes('--coverage'));
+    const result = validate(s, decisions, flags.includes('--ready'), flags.includes('--coverage'), flags.includes('--policy-ready'));
     for (const w of result.warnings) console.error(`warn: ${w}`);
     if (result.errors.length) throw Error(result.errors.join('\n'));
     if (verification) {
@@ -321,6 +336,6 @@ if (import.meta.main) {
     const expected = render(s);
     if (cmd === 'render') await Bun.write(output, expected);
     if (cmd === 'check' && (!await Bun.file(output).exists() || await readText(output) !== expected)) throw Error(`${output}: generated document is missing or stale; run render`);
-    console.log(`ok: ${cmd} ${input}; ${result.rules.size} rules; ${result.warnings.length} warnings. Tests were not executed.`);
+    console.log(`ok: ${cmd} ${input}; ${result.rules.size} rules; ${result.warnings.length} warnings. Gate: ${flags.includes('--ready') ? 'policy + branch reviews' : flags.includes('--policy-ready') ? 'policy only; engineering reviews may remain' : flags.includes('--coverage') ? 'coverage only' : 'draft'}. Tests were not executed; release readiness was not checked.`);
   } catch (e) { console.error(`ERROR: ${e instanceof Error ? e.message : e}`); process.exit(1); }
 }

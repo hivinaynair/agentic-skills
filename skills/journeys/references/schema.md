@@ -1,7 +1,12 @@
 # Journey schema v1
 
 The optional checker uses Bun 1.4+. The skills themselves do not require it.
-Each feature has one YAML spine. IDs are unique within that file; pair an ID with
+Group routine clicks into outcome
+steps; keep only distinct behavior criteria. Share safeguards through invariant
+references, retaining required local forbidden-effect criteria. Generated Markdown
+is a read view, not another source to maintain: generate it for review or `check`,
+or use `validate` alone when no rendered view is needed.
+Each feature has one authoritative YAML spine. IDs are unique within that file; pair an ID with
 its feature path when referencing it outside that feature. Decision IDs belong to
 the decision record. The checker accepts explicit paths and does not scan tests.
 
@@ -80,8 +85,13 @@ bun <skill>/scripts/journeys.ts check docs/journeys/team-invitations.yaml --read
 
 `validate` checks structure and references, allowing draft decisions and open questions
 with warnings. `render` validates then writes adjacent Markdown, including a Mermaid
-flowchart. `check` also requires that Markdown to be fresh. `--ready` rejects unresolved
-or draft policy for this feature. `--require-links` requires a verification entry for
+flowchart. `check` also requires that Markdown to be fresh. `--policy-ready` rejects
+unresolved/draft policy and requires coverage, while
+leaving open engineering branch reviews as warnings. `--ready` additionally requires
+completed applicable branch reviews. Neither gate proves implementation or release
+readiness, and neither executes tests. Both gates cover the whole input file; use a
+manual review of named IDs for a smaller slice and its dependencies in a larger
+spine. `--require-links` requires a verification entry for
 every criterion and invariant, and requires `--verification`. It does not execute tests.
 All commands fail on missing inputs; none silently claim success when no spec exists.
 Retired IDs are checked against active IDs; detecting deleted history or a changed
@@ -99,16 +109,37 @@ review:
     refs: [J1.S1.c2]
 ```
 
-Include entries for `input`, `permissions`, `interruption`, `dependencies`,
-`duplicates`, `concurrency`, and `recovery`. Covered entries need references to
-steps or criteria in that journey. Not-applicable entries need a concrete reason.
-Open entries block readiness. The checker verifies this record's structure and
+Legacy spines without `review_scope` require entries for `input`, `permissions`,
+`interruption`, `dependencies`, `duplicates`, `concurrency`, and `recovery`.
+For a lightweight map, explicitly select applicable categories with a reason:
+
+```yaml
+review_scope:
+  risks: [input, permissions, dependencies]
+  reason: Read-only export; authorization and load failures matter, with no durable writes
+```
+
+Do not omit a risk merely because its handling is unknown. Select deeper review for
+money, access changes and irreversible/data-integrity effects. An empty list needs
+a concrete reason too. The checker validates the declaration, not whether risk
+selection is sound. Existing review entries outside the selection are still checked
+and open entries still block `--ready`; shrinking the list cannot hide them.
+Shared safeguards may be referenced by invariant ID in `refs` instead of copying
+criteria across journeys. This documents reasoning, not executed implementation.
+
+Covered entries need references to steps or criteria in that journey, or shared
+invariants. Not-applicable entries need a concrete reason.
+Open entries block `--ready`, but remain warnings under `--policy-ready`. The checker verifies this record's structure and
 references, not the truth of the reasoning or completeness of the journey list.
 Review the feature's actor goals separately to find missing entire journeys.
 
 A `not-applicable` reason must explain why the risk cannot occur in this slice or
 cite an explicit scope exclusion. Silence in the requirements is not an exclusion.
-An `open` entry can point to a question in its reason. This rule is reviewed by a
+If an open review contains an unanswered product choice, record its Q ID in the
+relevant step/invariant's decisions, or an unresolved coverage goal when the path
+is not yet mapped. Do not hide unresolved policy in free-text engineering notes;
+`--policy-ready` cannot infer policy from a reason string. An engineering-only open
+entry should name the remaining action under existing accepted policy. This rule is reviewed by a
 person or agent; the checker cannot judge the reasoning from a nonempty string.
 
 ## Observations (additive v1 fields)
@@ -180,8 +211,8 @@ missing journeys visible; they do not invent a recovery policy.
 `--coverage` requires a nonempty inventory, all entries mapped or explicitly excluded,
 and every journey mapped. It permits observation-only journeys and still reports
 open branch reviews as warnings. Use it during existing-code reviews without claiming
-implementation readiness. `--ready` includes the coverage gate plus policy and branch
-readiness. Draft validation warns on absent/incomplete inventory; malformed entries
+implementation readiness. `--policy-ready` includes coverage plus accepted policy; `--ready` also requires
+applicable branch reviews. Draft validation warns on absent/incomplete inventory; malformed entries
 and missing mapped journey references always fail.
 
 ```sh
@@ -195,3 +226,15 @@ missing from both artifacts, a dishonest exclusion, or a semantically wrong mapp
 Review the inventory against source entry points and the user's goals, not just its
 syntax. Older v1 spines still validate/render/check without the inventory, with a
 warning; they need coverage before passing --ready. No files are migrated implicitly.
+
+For example, stop discovery when creating and accepting an invitation have agreed
+outcomes and no blocking owner choice. The builder can still owe transaction and
+retry design; email delivery can remain explicitly excluded. Report those facts
+without asking the owner to approve database mechanics or adding an email workflow.
+
+```sh
+bun <skill>/scripts/journeys.ts check docs/journeys/team-invitations.yaml --policy-ready
+```
+
+The pre-commit helper passes this flag through. Use a policy-only gate deliberately;
+do not replace an existing engineering or release gate just to remove warnings.

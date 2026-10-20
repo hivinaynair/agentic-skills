@@ -1,7 +1,7 @@
 # Agentic Skills
 
-This repository contains only decide and journeys, plus their supporting tooling,
-tests and a synthetic example. Read README.md before changing the workflow.
+This repository contains decide, journeys and tasks, plus their supporting tooling,
+tests and synthetic examples. Read README.md before changing the workflow.
 
 - Keep each skill self-contained and respect host-project conventions.
 - Keep observations, approved decisions and unresolved questions separate.

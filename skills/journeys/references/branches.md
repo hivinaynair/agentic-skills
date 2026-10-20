@@ -1,5 +1,13 @@
 # Branch review
 
+Default to lightweight review. Select relevant questions by concrete effects and
+accepted scope; deepen money, access, irreversible changes and data-integrity paths.
+Read-only or local paths still need applicable access/error checks, but not an
+invented seven-category matrix. Reference shared invariants rather than repeat
+identical criteria. Record engineering actions without turning them into owner
+policy questions. An unresolved applicable safeguard remains visible even when
+product discovery stops.
+
 Apply only relevant questions. A simple synchronous helper does not need invented
 network outages; an API need not have a screen. Use accepted policy to answer.
 

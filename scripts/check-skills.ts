@@ -1,5 +1,5 @@
 import {resolve, dirname} from 'node:path';
-for (const name of ['decide', 'journeys']) {
+for (const name of ['decide', 'journeys', 'tasks']) {
   const root = `skills/${name}`;
   const text = await Bun.file(`${root}/SKILL.md`).text();
   const front = text.match(/^---\n([\s\S]*?)\n---\n/)?.[1];

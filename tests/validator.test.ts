@@ -207,3 +207,88 @@ test('hook permits references and symlinks contained within the staged snapshot'
     expect(result.exitCode).toBe(0);
   } finally { await rm(dir, {recursive:true, force:true}); }
 });
+
+test('policy readiness allows unfinished engineering but rejects unresolved policy and coverage', () => {
+  const s = fixture();
+  s.journeys[0].review.concurrency = {status:'open', reason:'Builder must specify transaction boundary under D1'};
+  const policy = () => validate(s, decisions, false, false, true);
+  expect(policy().errors).toEqual([]);
+  expect(policy().warnings).toContain('J1/concurrency: review remains open');
+  expect(validate(s, decisions, true).errors).toContain('J1/concurrency: review remains open');
+  s.journeys[0].steps[1].decisions = ['Q1'];
+  expect(policy().errors).toContain('J1.S2: unresolved policy Q1');
+  s.journeys[0].steps[1].decisions = ['D1'];
+  s.coverage.push({id:'C2',actor:'admin',goal:'Accept invitation',status:'unresolved',reason:'Recipient policy missing'});
+  expect(policy().errors).toContain('C2: unresolved coverage');
+});
+
+test('policy readiness cannot promote observations or an unsupported exclusion', () => {
+  const s = fixture();
+  s.observations = [{id:'O1',statement:'Current route returns a link',sources:[{ref:'route.ts',revision:'abc',locator:'create'}]}];
+  s.journeys[0].steps[1].decisions = [];
+  s.journeys[0].steps[1].observations = ['O1'];
+  expect(validate(s, decisions, false, false, true).errors.join()).toContain('not approved policy');
+  s.coverage.push({id:'C2',actor:'admin',goal:'Email invitation',status:'excluded',reason:'Not implemented'});
+  expect(validate(s, decisions, false, false, true).errors).toContain('C2: exclusion needs an accepted X decision');
+});
+
+test('lightweight review requires selected risks but retains existing open reviews', () => {
+  const s = fixture();
+  s.journeys[0].review_scope = {risks:['permissions'],reason:'Synthetic slice isolates access; no external or durable effects'};
+  s.journeys[0].review = {permissions:{status:'covered',reason:'Shared access invariant',refs:['I1']}};
+  expect(validate(s,decisions,true).errors).toEqual([]);
+  expect(render(s)).toContain('Review scope: permissions.');
+  delete s.journeys[0].review.permissions;
+  expect(validate(s,decisions,true).errors).toContain('J1: missing permissions branch review');
+  s.journeys[0].review.permissions = {status:'covered',reason:'Shared access invariant',refs:['I1']};
+  s.journeys[0].review.concurrency = {status:'open',reason:'Previously identified race still needs handling'};
+  expect(validate(s,decisions,true).errors).toContain('J1/concurrency: review remains open');
+  expect(render(s)).toContain('Previously identified race');
+});
+
+test.each([
+  null, {risks:['permissions']}, {risks:['unknown'],reason:'Typo'},
+  {risks:['permissions','permissions'],reason:'Duplicate'}, {risks:'permissions',reason:'Wrong type'},
+])('malformed review scope is rejected: %j', scope => {
+  const s=fixture(); s.journeys[0].review_scope=scope;
+  expect(validate(s,decisions).errors.join()).toContain('review_scope');
+});
+
+test('empty explicit risk scope requires a reason and cannot suppress invariant criteria', () => {
+  const s=fixture(); s.journeys[0].review_scope={risks:[],reason:'Pure local presentation slice; synthetic declaration'};
+  delete s.journeys[0].review;
+  expect(validate(s,decisions,true).errors).toEqual([]);
+  delete s.journeys[0].steps[0].criteria.c2;
+  expect(validate(s,decisions,true).errors.join()).toContain('forbidden-effect');
+});
+
+test('unknown review categories and invalid shared references fail instead of being ignored', () => {
+  const s=fixture(); s.journeys[0].review.permissions.refs=['I99'];
+  expect(validate(s,decisions,true).errors.join()).toContain('unknown review ref I99');
+  s.journeys[0].review.typo={status:'open',reason:'Must not disappear'};
+  expect(validate(s,decisions).errors).toContain('J1: unknown review category typo');
+});
+
+test('CLI and staged hook expose policy-only gate while preserving strict readiness', async () => {
+  const dir=await mkdtemp(join(tmpdir(),'journeys-policy-'));
+  try {
+    const s=fixture(); s.journeys[0].review.dependencies={status:'open',reason:'Persistence design remains'};
+    await writeFile(join(dir,'decisions.md'),decisionText);
+    await writeFile(join(dir,'feature.yaml'),Bun.YAML.stringify(s));
+    expect(run(dir,'bun',cli,'render','feature.yaml').exitCode).toBe(0);
+    const result=run(dir,'bun',cli,'check','feature.yaml','--policy-ready');
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.toString()).toContain('policy only; engineering reviews may remain');
+    expect(run(dir,'bun',cli,'check','feature.yaml','--ready').exitCode).toBe(1);
+    expect(run(dir,'bun',cli,'check','feature.yaml','--ready','--policy-ready').exitCode).toBe(1);
+    expect(run(dir,'git','init','-q').exitCode).toBe(0);
+    expect(run(dir,'git','add','.').exitCode).toBe(0);
+    expect(run(dir,'sh',hook,'feature.yaml','--policy-ready').exitCode).toBe(0);
+    s.journeys[0].steps[1].decisions=['Q1'];
+    await writeFile(join(dir,'feature.yaml'),Bun.YAML.stringify(s));
+    expect(run(dir,'git','add','feature.yaml').exitCode).toBe(0);
+    const rejected=run(dir,'sh',hook,'feature.yaml','--policy-ready');
+    expect(rejected.exitCode).toBe(1);
+    expect(rejected.stderr.toString()).toContain('unresolved policy Q1');
+  } finally { await rm(dir,{recursive:true,force:true}); }
+});

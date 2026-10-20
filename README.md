@@ -1,11 +1,12 @@
 # Agentic Skills
 
-Two skills that help a coding agent agree on what to build, describe how it should
+Three skills that help a coding agent agree on what to build, describe how it should
 behave, and carry that agreement into implementation.
 
 **decide** records your choices and unanswered questions. **journeys** turns those
-choices into steps, branches and testable behavior. An optional validator checks
-the resulting documents for broken references and incomplete recorded coverage.
+choices into steps, branches and testable behavior. **tasks** maps agreed behavior
+to usable implementation slices, dependencies and safe parallel work. The optional
+journeys validator checks references and recorded coverage, not task execution.
 
 These are Markdown instructions an agent follows when invoked. They do not run in
 the background. The skills work without a particular language or framework; the
@@ -17,8 +18,8 @@ Experimental v0.1. Start with one feature.
 flowchart LR
     A[Your request + project context] --> B[decide: what we agreed]
     B --> C[journeys: how it behaves]
-    C --> D[Validate and review]
-    D --> E[Implementation tasks and tests]
+    C --> D[tasks: usable slices and dependencies]
+    D --> E[Implementation and verification]
 ```
 
 ## decide: What are we actually building?
@@ -43,8 +44,10 @@ The agent preserves those answers and separates four things:
 
 It records the choices with stable IDs, their sources, rationale and relevant
 alternatives. If the role is unspecified, it asks about that with a recommendation
-instead of choosing a product rule silently. It asks one important question at a
-time and continues work that does not depend on the answer.
+instead of choosing a product rule silently. It asks only when an answer changes an in-scope outcome and blocks the next useful
+slice, then continues independent work. “Next gap” does not expand the agreed scope.
+When no material owner blocker remains, discovery stops. Deferral and exclusion are
+valid outcomes; retry/locking mechanics normally remain the builder's work.
 
 A later agent can read the same record without asking you to repeat settled answers.
 If an accepted choice changes, its replacement names the decision it supersedes,
@@ -72,6 +75,10 @@ excluded by an accepted scope decision, or marked unresolved.
 
 It writes this inventory before detailing the graph, so reviewing coverage is more
 than checking the journeys it already happened to draw.
+
+Lightweight mapping is the default: the ordinary path and applicable failures,
+with deeper analysis for money, access and data-integrity consequences. A journey
+can declare its applicable review categories instead of filling a mandatory matrix.
 
 Then it expands each journey into steps and branches. At relevant steps it asks:
 
@@ -151,20 +158,39 @@ If both the inventory goal and J1 disappear, the checker cannot infer their abse
 A person or agent still needs to compare the inventory with user goals and source
 entry points, and judge whether a mapping really covers its goal.
 
-## From the spec to implementation
+## tasks: What can we build next, and in parallel?
 
-Steps and acceptance criteria have stable IDs such as `J3.S4` and `J3.S4.c1`.
-An implementation task can cite the step it serves; a test can cite the criterion
-it proves. This gives the next builder and reviewer a shared target.
+**Input:** agreed journeys or another specification, plus the actual code.
+**Output:** one compact backlog, normally `docs/tasks/<feature>.md`.
 
-The skills prepare that handoff. Writing application code, running behavior tests
-and approving a release are separate work. A linked test is not proof that it runs
-or asserts the stated behavior.
+> Use tasks to plan the next usable slice from our agreed journeys. Inspect the
+> implementation first; identify dependencies, parallel work and verification.
 
-Use either skill independently. An existing agreed spec can go straight to journeys.
-Use the full workflow for uncertain features, agent handoffs, requirement changes,
-or flows with retries and partial failures. Skip it for a small styling fix or an
-already precise task.
+For a new application, plan the minimum foundations for an end-to-end slice. For an
+existing feature, inspect what works and plan the gap. A prototype is not durable
+implementation. Tasks link source criterion IDs rather than copy their text, and
+name outcomes, relevant files, required/provided contracts and completion evidence.
+
+Parallel work needs available inputs and compatible write scopes, including shared
+schema and resources. Group usable outcomes instead of making one task per journey.
+Include integration and delivery work needed for the agreed target. Detail the next
+slice; keep later work coarse but accounted for. Stop when the plan is actionable.
+
+The [task record](skills/tasks/references/task-record.md) has the compact format and
+manual coverage/dependency checks. No task-management runtime or automatic agent
+dispatch is installed. The task skill has no automated graph or coverage checker.
+
+## Keep documentation small
+
+One authoritative home per fact: decisions own policy, journeys own behavior, tasks
+own implementation ownership and evidence. Link between them. Omit transcripts,
+repeated requirements, empty sections and speculative detail. Generate secondary
+views only when useful or required by a host check; never hand-maintain copies.
+Report what changed and what needs attention instead of reciting the document.
+
+Use any skill independently; none automatically chains to another. Existing agreed
+specs can go straight to tasks. Skip formal planning for small, precise changes.
+Tasks being checked off is not evidence of an integrated feature or release.
 
 Existing documentation conventions take precedence. The optional checker expects
 its [decision table](skills/decide/references/record-format.md) and
@@ -185,10 +211,10 @@ git clone https://github.com/hivinaynair/agentic-skills.git
 
 Choose your agent's documented project-level skill directory to share the skills
 with a team, or its personal skill directory to use them across projects. Inspect
-it for existing `decide` or `journeys` folders before copying. Keep or deliberately
+it for existing `decide`, `journeys` or `tasks` folders before copying. Keep or deliberately
 replace existing versions; do not merge copies blindly.
 
-For a destination with neither skill installed, copy both complete folders. These
+For a destination with none installed, copy the complete folders you need. These
 shell commands assume you are in the cloned repository; replace the destination:
 
 ```sh
@@ -196,6 +222,7 @@ skill_dir=/path/to/your-agent/skills
 mkdir -p "$skill_dir"
 cp -R skills/decide "$skill_dir/"
 cp -R skills/journeys "$skill_dir/"
+cp -R skills/tasks "$skill_dir/"
 ```
 
 The result should preserve the supporting files:
@@ -207,10 +234,12 @@ The result should preserve the supporting files:
   journeys/SKILL.md
   journeys/references/
   journeys/scripts/
+  tasks/SKILL.md
+  tasks/references/
 ```
 
 Open or refresh your agent session according to its documentation, then check that
-both skills appear in its available-skills list. Copying the files requires no
+the installed skills appear in its available-skills list. Copying the files requires no
 package installation. Bun is needed only for the optional validator.
 
 If your agent does not support skill discovery, give it the full path to a skill's
@@ -230,6 +259,9 @@ Ask your agent in plain language:
 
 > Use the journeys skill to map the agreed invitation feature, including failures
 > and recovery.
+
+> Use the tasks skill to plan implementation from our journeys. Inspect existing
+> code, show the next usable slice and identify work that can run in parallel.
 
 You can also select the skill through your agent's skill picker or mention syntax.
 Those controls vary by platform. If the skill is not installed, include its full
@@ -278,10 +310,10 @@ Discovery and selection are different: a skill may be available without being us
 Look for the agent reading that installed skill's `SKILL.md` or announcing its use;
 producing a similarly named document alone does not prove invocation.
 
-The skills do not automatically chain. To request both:
+The skills do not automatically chain. To request all three:
 
-> Use decide to settle the requirements, then journeys to map the behavior. Ask me
-> about unresolved product choices before treating them as accepted.
+> Use decide to settle the requirements, journeys to map behavior, then tasks to
+> plan implementation. Keep documentation short and preserve accepted scope.
 
 Installing skills does not enable pre-commit hooks, background monitoring or automatic
 validation of every edit. Those checks require separate commands or hook configuration.
@@ -299,6 +331,7 @@ paths. Successful command traces confirmed the selected local `SKILL.md` was rea
 | Change a README heading | Neither skill |
 
 This verifies project discovery and implicit selection for those CLI requests.
+That historical discovery trial covered decide and journeys, not tasks.
 Desktop UI selection, personal-directory installation, other agents and arbitrary
 prompt wording remain untested. Read the [method and results](evaluation/discovery/RESULTS.md)
 for the evidence, initial inconclusive attempt and reproduction command.
@@ -319,8 +352,16 @@ bun "$journeys_dir/scripts/journeys.ts" check docs/journeys/invitations.yaml --r
 - `render` regenerates the Markdown tables and flowcharts.
 - `check` also checks that generated Markdown is current.
 - `--coverage` requires mapped goals or accepted exclusions and no unresolved goals.
-- `--ready` additionally requires accepted policy and completed branch reviews.
-  Observations alone cannot authorize readiness.
+- `--policy-ready` additionally requires accepted policy; engineering reviews may
+  remain open as warnings. This is a stopping point for product discovery.
+- `--ready` requires accepted policy and completed applicable branch reviews.
+  Observations alone cannot authorize either policy/readiness gate.
+
+Both gates check the entire feature file. For a slice in a larger spine, manually
+review its IDs and dependencies and report that bounded result. Policy readiness,
+engineering review and release evidence are separate; no flag proves working code.
+Keep tasks focused on usable slices, referencing source IDs rather than maintaining
+handwritten copies of criteria. Generated copies need freshness checking.
 
 Optional verification maps link criteria to tests or other checks. Pass
 `--verification docs/verification.json`; add `--require-links` to require a link
@@ -363,6 +404,9 @@ This runs skill metadata/reference checks, offline tests and the draft invitatio
 example check. Run `bun run check`, `bun test` or `bun run check:example` separately
 when you only need one check. It does not launch model sessions or use account quota.
 
+The [task planning trial](evaluation/tasks/RESULTS.md) records synthetic agent
+results and their limits.
+
 The [invitation example](evaluation/team-invitations/journeys/invitations.md) is a
 synthetic planning exercise, not an implemented app. Draft checking passes with
 warnings; `--ready` deliberately fails. Read the [evaluation notes](evaluation/RESULTS.md).
@@ -383,5 +427,7 @@ Windows hooks and cross-agent installation compatibility have not been verified.
 No universal bug-prevention or measured productivity claim is made.
 
 MIT licensed. Background inspiration includes [Superpowers](https://github.com/obra/superpowers),
-[Spec Kit](https://github.com/github/spec-kit), [OpenSpec](https://github.com/Fission-AI/OpenSpec)
+[Spec Kit](https://github.com/github/spec-kit),
+[GSD](https://github.com/gsd-build/get-shit-done),
+[Vercel Foreman](https://github.com/vercel-labs/eve-software-factory-template), [OpenSpec](https://github.com/Fission-AI/OpenSpec)
 and the [Agent Skills format](https://agentskills.io/specification).

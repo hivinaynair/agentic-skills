@@ -1,0 +1,1 @@
+Use Bun. Reuse the existing server identity check. Do not add an auth provider or replace the repository layer. UI modules must not import server modules; compose in server entry points. No new product scope.

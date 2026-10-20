@@ -2,7 +2,7 @@
   "name": "agentic-skills",
   "version": "0.1.0",
   "private": true,
-  "description": "Portable agent skills for decisions and testable journeys",
+  "description": "Portable agent skills for decisions, journeys and implementation tasks",
   "scripts": {
     "test": "bun test",
     "check": "bun run scripts/check-skills.ts",
