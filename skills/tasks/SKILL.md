@@ -12,13 +12,17 @@ without decide, journeys, a particular stack or a task-management service.
 1. Read project instructions, accepted scope and the relevant source specification.
    Preserve exclusions and existing task conventions. If a product choice blocks a
    slice, name the affected IDs and ask only the question needed to unblock it;
-   continue independent planning. Do not infer approval from code or prototypes.
+   continue independent planning. Compare accepted scope with the journeys too;
+   flag requirements present only in decisions or build prose. Do not silently
+   amend policy/specs or infer approval from code or prototypes.
 2. Inspect the relevant implementation and checks before naming existing files.
    For a new app, plan only the foundations the first usable slice needs; label
    proposed paths. For an existing app, trace the affected flow and plan the gap,
    reusing working code and preserving compatibility. Distinguish durable behavior,
    prototype fixtures, source inspection and executed verification. Do not ask the
-   owner to select a mode or decide routine engineering mechanics.
+   owner to select a mode or decide routine engineering mechanics. Inspect local
+   backlog validators for rules forcing one-task-per-journey or copied criteria;
+   flag conflicts before proposing a format change, without bypassing checks.
 3. Group work around usable outcomes, not one task per journey or technical layer.
    Split only where work has a reviewable deliverable, a real dependency or a useful
    independent owner. Fold setup and documentation into the task that needs them.
@@ -28,6 +32,9 @@ without decide, journeys, a particular stack or a task-management service.
    `docs/tasks/<feature>.md`, preserving an existing tracker. Use stable task IDs;
    link criterion IDs and source paths instead of copying requirements. Detail the
    next usable slice and its prerequisites; keep later work coarse but accounted for.
+   During active implementation, propose delivery groups over existing IDs. Preserve
+   assignments, in-flight work and completion evidence; do not rewrite the live
+   backlog during a review. Reorganize authorized work at a verified pause/checkpoint.
 5. For each dependency, state the concrete contract or artifact required and whether
    agreement on its interface is enough to start. Check shared files, schema,
    migrations and external resources as well as logical dependencies. Mark work

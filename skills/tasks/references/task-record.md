@@ -35,7 +35,11 @@ artifact, not a completed user feature; an integration owner verifies consumers.
 Coverage is the union of task source references and existing implementation
 references. Use a compact range or list of exact IDs when clear. For larger
 backlogs, a small coverage index is useful only if it reveals gaps; do not repeat
-criterion text. An existing path that is unverified still needs verification work.
+criterion text. Cross-check accepted decisions and delivery requirements against
+journeys: a fully mapped journey list can still omit accepted work. Cite an omitted
+requirement's source and flag its specification/ownership gap; do not invent criteria
+or hide it in a broad task description. An existing path that is unverified still
+needs verification work.
 Retired/excluded criteria do not need tasks; cite their source disposition once.
 
 Before handing off, check missing/duplicate IDs, missing dependency targets, cycles,
@@ -50,3 +54,11 @@ manual observation, limitations and source revision when useful. Do not paste lo
 Separate completed code from integrated feature verification and deployment/live
 checks. A full-product plan must account for all agreed scope; a next-slice plan
 must say what remains later, without treating it as excluded or already built.
+
+When reorganizing an active backlog, first identify the current owners, in-flight
+changes and evidence checkpoint. A review proposes groups without changing live
+IDs, assignments or status. After an authorized pause, retain existing IDs and
+completed evidence; add only needed ownership splits and update affected links.
+Check local validator assumptions before migrating the record. Report any rule
+that forces duplicate prose or one task per journey; changing that rule is separate
+authorized tooling work, not permission to drop requirements or ignore a failing gate.
