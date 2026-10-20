@@ -292,3 +292,28 @@ test('CLI and staged hook expose policy-only gate while preserving strict readin
     expect(rejected.stderr.toString()).toContain('unresolved policy Q1');
   } finally { await rm(dir,{recursive:true,force:true}); }
 });
+
+test('CLI caps warning output without changing validation or readiness and can show full detail', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'journeys-warnings-'));
+  try {
+    const s = fixture();
+    const other = JSON.parse(JSON.stringify(s.journeys[0]).replaceAll('J1', 'J2'));
+    delete s.journeys[0].review;
+    delete other.review;
+    s.journeys.push(other);
+    s.coverage.push({id:'C2',actor:'admin',goal:'Second path',status:'mapped',journeys:['J2']});
+    await writeFile(join(dir,'decisions.md'),decisionText);
+    await writeFile(join(dir,'feature.yaml'),Bun.YAML.stringify(s));
+    const concise = run(dir,'bun',cli,'validate','feature.yaml','--coverage');
+    const verbose = run(dir,'bun',cli,'validate','feature.yaml','--coverage','--verbose');
+    expect(concise.exitCode).toBe(0);
+    expect(verbose.exitCode).toBe(0);
+    expect(concise.stderr.toString().trim().split('\n')).toHaveLength(9);
+    expect(concise.stderr.toString()).toContain('6 more warnings');
+    expect(verbose.stderr.toString().trim().split('\n')).toHaveLength(14);
+    expect(verbose.stderr.toString()).toContain('J2: missing recovery branch review');
+    expect(concise.stdout.toString()).toContain('14 warnings');
+    expect(run(dir,'bun',cli,'validate','feature.yaml','--ready').exitCode).toBe(1);
+    expect(run(dir,'bun',cli,'validate','feature.yaml','--ready','--verbose').exitCode).toBe(1);
+  } finally { await rm(dir,{recursive:true,force:true}); }
+});

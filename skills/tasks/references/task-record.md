@@ -1,64 +1,42 @@
 # Compact task record
 
-Use the host's format first. Otherwise keep one Markdown file per feature, with
-source paths, the delivery target (for example locally working or deployed pilot)
-and the next usable outcome at the top. Do not duplicate the spec or decision log.
-No YAML, renderer, database or new tracker is required by this skill.
-
-Use a short index for multiple tasks:
+Use the host's tracker. Otherwise keep one Markdown file per feature with source
+paths, delivery target (local/deployed/pilot) and next usable outcome. No new YAML,
+renderer, database or task service is required. For multiple tasks, a short index:
 
 | ID | Outcome | Needs | Status |
 |---|---|---|---|
 | T1 | Persist an authorized entry | — | Todo |
 | T2 | Show the saved entry | T1's read/write contract | Todo |
 
-A task needs only enough detail to execute and review:
+Each task contains only what execution/review needs; combine fields and omit empty ones:
 
-## T1 — Observable deliverable
+- Source: linked criterion IDs or spec anchors, qualified by feature path.
+- Change: outcome and relevant paths; label proposed files.
+- Needs/provides: consumed/produced contracts, linked to their defining code.
+- Parallel: ready in parallel, after contract agreed or sequential, with constraints.
+- Verify: command/expected result or exact manual check, with risk-appropriate failures.
+- Status: Todo, In progress, Blocked (reason), Done (executed evidence).
 
-- Source: relative spec link plus stable criterion IDs, or section anchors when
-  the spec has no IDs. Qualify IDs by source file when multiple features use J1.
-- Change: concrete outcome and relevant paths; mark proposed files explicitly.
-- Needs / provides: required inputs and contracts consumed by other tasks. Omit
-  when self-contained; name the defining code location rather than copy types.
-- Parallel: ready in parallel, after contract agreed, or sequential; explain
-  constraints briefly. Name shared schema/migration/resource ownership where needed.
-- Verify: focused command and expected behavior, or exact manual check. Include
-  relevant denied/failure behavior according to risk, not a generic test matrix.
-- Status: Todo, In progress, Blocked (reason), or Done (executed evidence).
+Share constraints once. Keep future work coarse and marked for breakdown before
+execution. Contract-only delivery enables consumers; an integration owner verifies
+the resulting feature. Record concise results/limitations, not logs. Separate code,
+integration and deployment/live evidence.
 
-These are prompts, not mandatory headings on every task. Combine short fields;
-put shared constraints once. Keep large future tasks brief and explicitly marked
-as needing breakdown before execution. A contract-only task is an enabling
-artifact, not a completed user feature; an integration owner verifies consumers.
+Coverage combines task references and existing implementation references. Unverified
+existing code still needs verification work. Compare accepted decisions and delivery
+requirements with journeys; cite specification/ownership gaps without inventing
+criteria. Excluded/retired criteria need no task; cite their disposition once. A
+small coverage index is useful only if it reveals gaps; do not copy requirement text.
 
-Coverage is the union of task source references and existing implementation
-references. Use a compact range or list of exact IDs when clear. For larger
-backlogs, a small coverage index is useful only if it reveals gaps; do not repeat
-criterion text. Cross-check accepted decisions and delivery requirements against
-journeys: a fully mapped journey list can still omit accepted work. Cite an omitted
-requirement's source and flag its specification/ownership gap; do not invent criteria
-or hide it in a broad task description. An existing path that is unverified still
-needs verification work.
-Retired/excluded criteria do not need tasks; cite their source disposition once.
+Check missing/duplicate IDs, missing dependencies, cycles and parallel ownership.
+Different files can conflict through contracts, schema or services. Shared-file
+writers serialize unless exclusive ownership is established. Recheck downstream
+ordering after a conflict changes scheduling; a clean graph cannot prove safety.
 
-Before handing off, check missing/duplicate IDs, missing dependency targets, cycles,
-and whether each claimed parallel group has satisfied prerequisites and compatible
-write scopes. Distinct files may still conflict through APIs, schema or shared
-services. If two tasks share a file, serialize them or establish concrete exclusive
-ownership before calling them parallel. Re-evaluate downstream ordering after a
-conflict changes the schedule. A drawing or a clean graph is not proof of safety.
-
-On completion, record concise evidence on the task: relevant command/result or
-manual observation, limitations and source revision when useful. Do not paste logs.
-Separate completed code from integrated feature verification and deployment/live
-checks. A full-product plan must account for all agreed scope; a next-slice plan
-must say what remains later, without treating it as excluded or already built.
-
-When reorganizing an active backlog, first identify the current owners, in-flight
-changes and evidence checkpoint. A review proposes groups without changing live
-IDs, assignments or status. After an authorized pause, retain existing IDs and
-completed evidence; add only needed ownership splits and update affected links.
-Check local validator assumptions before migrating the record. Report any rule
-that forces duplicate prose or one task per journey; changing that rule is separate
-authorized tooling work, not permission to drop requirements or ignore a failing gate.
+For active backlogs, identify owners, in-flight work and the evidence checkpoint.
+A review proposes groups; an authorized paused migration preserves IDs, assignments
+and completed evidence, adding only needed splits and updating affected links.
+Validator changes are separate authorized work, not permission to ignore failing
+gates. A whole-product plan accounts for all agreed scope; a slice plan names later
+work without implying exclusion or completion.

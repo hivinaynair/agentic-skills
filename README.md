@@ -186,7 +186,8 @@ One authoritative home per fact: decisions own policy, journeys own behavior, ta
 own implementation ownership and evidence. Link between them. Omit transcripts,
 repeated requirements, empty sections and speculative detail. Generate secondary
 views only when useful or required by a host check; never hand-maintain copies.
-Report what changed and what needs attention instead of reciting the document.
+Read supporting references only as needed. Run checker scripts without loading their
+source unless debugging them. Report changes and blockers instead of reciting documents.
 
 Use any skill independently; none automatically chains to another. Existing agreed
 specs can go straight to tasks. Skip formal planning for small, precise changes.
@@ -349,6 +350,8 @@ bun "$journeys_dir/scripts/journeys.ts" check docs/journeys/invitations.yaml --r
 ```
 
 - `validate` checks structure and references; draft policy may produce warnings.
+  Output shows at most eight warnings by default; `--verbose` shows all. Warning
+  totals and gate outcomes are unchanged.
 - `render` regenerates the Markdown tables and flowcharts.
 - `check` also checks that generated Markdown is current.
 - `--coverage` requires mapped goals or accepted exclusions and no unresolved goals.

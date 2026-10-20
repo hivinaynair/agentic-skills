@@ -1,67 +1,47 @@
 ---
 name: tasks
-description: Turn agreed journeys or specifications into a concise implementation backlog with coverage, dependencies, safe parallel work and completion evidence. Use for planning a new application or a feature in an existing codebase; skip trivial edits, unresolved product discovery and executing an already actionable task.
+description: "Plan implementation from agreed journeys or specs: usable slices, coverage, dependencies, parallel work and completion evidence. Supports new apps and existing code. Skip trivial edits, product discovery and executing an actionable task."
 ---
 
 # Tasks
 
-Turn agreed behavior into work that delivers connected, usable features. This skill
-plans work; it does not implement, dispatch agents, commit or publish. It is usable
-without decide, journeys, a particular stack or a task-management service.
+Plan connected, usable features. Do not implement, dispatch agents, commit or
+publish. Follow host conventions; no other skill, stack or task service is required.
+Read relevant slices/reference sections, not entire histories or generated copies.
 
-1. Read project instructions, accepted scope and the relevant source specification.
-   Preserve exclusions and existing task conventions. If a product choice blocks a
-   slice, name the affected IDs and ask only the question needed to unblock it;
-   continue independent planning. Compare accepted scope with the journeys too;
-   flag requirements present only in decisions or build prose. Do not silently
-   amend policy/specs or infer approval from code or prototypes.
-2. Inspect the relevant implementation and checks before naming existing files.
-   For a new app, plan only the foundations the first usable slice needs; label
-   proposed paths. For an existing app, trace the affected flow and plan the gap,
-   reusing working code and preserving compatibility. Distinguish durable behavior,
-   prototype fixtures, source inspection and executed verification. Do not ask the
-   owner to select a mode or decide routine engineering mechanics. Inspect local
-   backlog validators for rules forcing one-task-per-journey or copied criteria;
-   flag conflicts before proposing a format change, without bypassing checks.
-3. Group work around usable outcomes, not one task per journey or technical layer.
-   Split only where work has a reviewable deliverable, a real dependency or a useful
-   independent owner. Fold setup and documentation into the task that needs them.
-   Establish shared contracts only where they unblock consumers; avoid a speculative
-   foundation phase. A small precise request may need only one task or no new file.
-4. Write the [compact task record](references/task-record.md). Default to one
-   `docs/tasks/<feature>.md`, preserving an existing tracker. Use stable task IDs;
-   link criterion IDs and source paths instead of copying requirements. Detail the
-   next usable slice and its prerequisites; keep later work coarse but accounted for.
-   During active implementation, propose delivery groups over existing IDs. Preserve
-   assignments, in-flight work and completion evidence; do not rewrite the live
-   backlog during a review. Reorganize authorized work at a verified pause/checkpoint.
-5. For each dependency, state the concrete contract or artifact required and whether
-   agreement on its interface is enough to start. Check shared files, schema,
-   migrations and external resources as well as logical dependencies. Mark work
-   ready in parallel, after contract agreed, or sequential with a short reason.
-   Unchecked overlap is not safe parallelism. Do not dispatch or assign agents.
-6. Review coverage against the source, not just the tasks already written. Every
-   in-scope criterion and applicable shared invariant needs task ownership, or a
-   source-backed existing implementation reference with its verification status.
-   Whole-journey references are shorthand only when all its criteria are accounted
-   for. Keep missing coverage and blocked work visible; do not exclude it yourself.
-7. Include the work needed to connect the slice end to end: UI/API/storage/provider
-   handoffs, migrations, configuration and integration checks where applicable to
-   the delivery target. Attach a verification command or observable check to each
-   deliverable. Unavailable credentials, deployments or physical checks remain
-   named blockers to the relevant target, not permission to claim completion.
-8. Stop when the next slice has actionable tasks, justified dependencies and clear
-   evidence requirements, with remaining scope assigned or visibly blocked. Report
-   only the next work, parallel opportunities and material blockers. Do not reopen
-   settled product policy, recursively expand the backlog or prescribe every edit.
+1. Read accepted scope, the specification and relevant code/checks. Compare decisions
+   with journeys too: flag accepted work missing from criteria. Do not amend policy
+   or infer approval from prototypes. Ask only about an in-scope outcome blocked by
+   a missing owner choice; continue independent planning.
+2. For a new app, identify the minimum foundations for its first usable slice and
+   label proposed paths. For existing code, trace the flow, reuse working parts and
+   plan the gap with compatibility in mind. Distinguish source inspection, prototypes
+   and executed evidence. Inspect local validators for rules forcing duplicated
+   prose or one-task-per-journey; flag conflicts without bypassing checks.
+3. Group usable outcomes rather than journeys or technical layers. Split for a
+   reviewable deliverable, dependency or independent owner. Fold setup/docs into
+   consumers; establish shared contracts only when needed. A precise small edit
+   needs no backlog artifact. Engineering mechanics are the builder's responsibility.
+4. Use [task record](references/task-record.md), normally one `docs/tasks/<feature>.md`.
+   Preserve existing trackers and IDs; link criteria instead of copying requirements.
+   Detail the next slice; keep later work coarse but assigned or visibly blocked.
+   During active work, propose groups over existing IDs without changing assignments,
+   status or evidence. Reorganize authorized work at a verified pause/checkpoint.
+5. Name the contract/artifact each dependency needs and whether interface agreement
+   is enough to start. Check files, schema/migrations and shared resources as well
+   as logical dependencies. Label work ready in parallel, after contract agreed or
+   sequential, with reasons. Unchecked overlap is not safe parallelism.
+6. Account for every in-scope criterion and applicable invariant through task ownership
+   or existing implementation with verification status. Whole-journey shorthand is
+   valid only when all criteria are covered. Include integration, migrations,
+   configuration and checks needed for the delivery target. Give each deliverable
+   executable or observable verification; unavailable external checks remain blockers
+   to the relevant target, not evidence of completion.
 
-Keep one authoritative home per fact. Omit empty sections and repeated history;
-expand only to resolve a concrete ambiguity. Summarize changes, not the entire plan.
-When scope or a contract changes, update affected tasks and coverage, preserve IDs
-and completion evidence, and recheck parallel groups; do not regenerate the backlog
-or silently rewrite accepted requirements.
-
-Task checkboxes are tracking, not proof. Feature completion requires verification
-of the integrated source behavior at the agreed target. On resume, verify recorded
-status against current code/evidence before scheduling dependent work. Mechanical
-ID/dependency checks cannot prove correct implementation or safe parallelism.
+Stop when the next slice is actionable with justified dependencies and evidence
+requirements. Do not expand scope, recursively split work or prescribe every edit.
+Keep each fact in one place; omit repeated history and empty sections. Report the
+next work, parallel opportunities and blockers. On contract/scope changes, update
+only affected tasks and links, preserve evidence and recheck parallel groups.
+On resume, verify recorded status before scheduling dependents. Checkboxes and
+mechanical coverage are not proof of integrated feature or release readiness.

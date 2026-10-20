@@ -311,11 +311,11 @@ export async function verificationProblems(map: unknown, base: string, rules: Se
 if (import.meta.main) {
   try {
     const [cmd, input, ...flags] = process.argv.slice(2);
-    if (!['validate', 'render', 'check'].includes(cmd) || !input || !['.yaml', '.yml'].includes(extname(input))) throw Error('Usage: bun journeys.ts validate|render|check feature.yaml [--ready | --policy-ready] [--coverage] [--verification map.json] [--require-links]');
+    if (!['validate', 'render', 'check'].includes(cmd) || !input || !['.yaml', '.yml'].includes(extname(input))) throw Error('Usage: bun journeys.ts validate|render|check feature.yaml [--ready | --policy-ready] [--coverage] [--verification map.json] [--require-links] [--verbose]');
     let verification: string | undefined;
     for (let i = 0; i < flags.length; i++) {
       if (flags[i] === '--verification') { verification = flags[++i]; if (!verification || verification.startsWith('--')) throw Error('--verification needs a path'); }
-      else if (!['--ready', '--policy-ready', '--coverage', '--require-links'].includes(flags[i])) throw Error(`Unknown option ${flags[i]}`);
+      else if (!['--ready', '--policy-ready', '--coverage', '--require-links', '--verbose'].includes(flags[i])) throw Error(`Unknown option ${flags[i]}`);
     }
     if (flags.includes('--ready') && flags.includes('--policy-ready')) throw Error('Choose --ready or --policy-ready');
     if (flags.includes('--require-links') && !verification) throw Error('--require-links requires --verification');
@@ -326,7 +326,9 @@ if (import.meta.main) {
     if (s.decisions !== undefined && !nonempty(s.decisions)) throw Error('Invalid decisions path');
     const decisions = s.decisions ? decisionsFrom(await readText(resolve(dirname(input), s.decisions))) : new Map<string, Decision>();
     const result = validate(s, decisions, flags.includes('--ready'), flags.includes('--coverage'), flags.includes('--policy-ready'));
-    for (const w of result.warnings) console.error(`warn: ${w}`);
+    const shownWarnings = flags.includes('--verbose') ? result.warnings : result.warnings.slice(0, 8);
+    for (const w of shownWarnings) console.error(`warn: ${w}`);
+    if (shownWarnings.length < result.warnings.length) console.error(`warn: ${result.warnings.length - shownWarnings.length} more warnings; use --verbose for all. Gate result is unchanged.`);
     if (result.errors.length) throw Error(result.errors.join('\n'));
     if (verification) {
       const errors = await verificationProblems(JSON.parse(await readText(verification)), dirname(resolve(verification)), result.rules, flags.includes('--require-links'), snapshotRoot);

@@ -1,37 +1,25 @@
 # Branch review
 
-Default to lightweight review. Select relevant questions by concrete effects and
-accepted scope; deepen money, access, irreversible changes and data-integrity paths.
-Read-only or local paths still need applicable access/error checks, but not an
-invented seven-category matrix. Reference shared invariants rather than repeat
-identical criteria. Record engineering actions without turning them into owner
-policy questions. An unresolved applicable safeguard remains visible even when
-product discovery stops.
+Select questions by concrete effects and accepted scope. Deepen consequential
+money, access, irreversible changes and data integrity. Local/read-only work still
+needs applicable checks, not invented outages or a blanket matrix.
 
-Apply only relevant questions. A simple synchronous helper does not need invented
-network outages; an API need not have a screen. Use accepted policy to answer.
+- Person: invalid input, permission, cancellation, reload/resume, stale view?
+- Dependency: unavailable, timeout, rate limit, unknown/contradictory result?
+- Events: duplicate, delayed, out of order, absent, replay after partial completion?
+- State: conflicting edits, concurrent requests, crash between effects?
+- Recovery: what survives, retries, intervention and visible outcome?
+- Boundary: tenant/account isolation, revoked access, deletion, leaks?
+- Effect: forbidden duplication, loss, disclosure or publication?
+- Completion: named outcome/reconnection; visible pending state or agreed timeout?
 
-- Person: invalid input, missing permission, cancellation, reload/resume, stale view?
-- Dependency: unavailable, timeout, rate limit, unknown response, contradictory state?
-- Events: duplicate, out of order, delayed, absent, replayed after partial completion?
-- State: conflicting edits, concurrent requests, a crash between side effects?
-- Recovery: what remains durable, what can retry, who can intervene, what is shown?
-- Boundaries: tenant/account isolation, revoked access, deleted resources, leaked data?
-- Effects: could this path duplicate, lose, reveal or publish something forbidden?
-- Completion: does each branch reach an explicit outcome or reconnect? Does an
-  indefinite wait need an owner-defined timeout or a visible pending state?
+Name the invariant and forbidden effect; reference shared safeguards rather than
+repeat generic failures. Keep domain policy in project sources, not imported from
+unrelated work. Engineering actions need not become owner questions, and remain
+visible after product discovery stops.
 
-Domain-specific branches belong in the project's own sources. Do not import payment,
-healthcare or other domain policies into unrelated work. Name the applicable invariant
-and what must not happen, rather than adding generic failure text to every step.
-
-Unknown is not the same as not applicable. Do not mark a risk not-applicable merely
-because the request did not mention it. Use `open` when an applicable behavior lacks
-policy, or cite an explicit exclusion agreed for this slice. For example, email
-sending can be excluded while database failure during invite creation still needs
-consideration. Do not treat the absence of an external service as absence of failure.
-
-For a boundary between components, follow the producer's possible values through
-the consumer. Include empty/null success, partial success, and classifier mismatches;
-see [existing-project review](existing-projects.md). A generic dependency-failure
-branch does not describe these distinct outcomes.
+Unknown is not not-applicable. Use open for unresolved applicable behavior; excluding
+email does not exclude database failure. An exclusion needs accepted scope support.
+At component boundaries, follow actual producer values through consumers, including
+empty/null success, partial success and classifier mismatches. Generic dependency
+failure text does not cover these; see [existing-project review](existing-projects.md).
