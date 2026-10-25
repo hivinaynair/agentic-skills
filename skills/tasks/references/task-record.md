@@ -33,18 +33,25 @@ Tests:
 - **Target** is where the slice must work to count as done: local, deployed or a pilot.
 - **Covers** names journeys, steps, criterion IDs or invariants; a journey or step
   means all of its criteria. Notes in parentheses are ignored. Each criterion has one
-  owning task; a later task that changes it says so in its builder notes.
+  owning task; a later task that changes it says so in its builder notes. When only
+  part of a criterion can be built now, the task building that part owns it and notes
+  the rest, and the owner is asked to split it. Delivery-only work uses `Covers: none`.
 - **Needs / Provides** name contracts between tasks and link the code that defines them.
 - **Needs** names tasks in this plan it depends on, in the index or a `Needs:` line;
   both must agree. Work outside the plan goes in a Blocked reason.
 - **Parallel:** when it can start (now, after a task's contract, after a task) and, if
   it shares files, schema or migrations, which task it merges after.
 - **Builder notes** say how each invariant holds, plus integration notes for each
-  external system the task calls. Mechanics live here, not in decisions.
+  external system the task calls; a system it only reads needs one line. Mechanics
+  live here, not in decisions.
 - **Tests** maps each criterion and invariant the task owns to the test that proves
   it: `- J1.S1.c1: path/to/file.test.ts › test name`, or `manual › what to do`. Paths
-  are from the repository root.
-- **Status:** Todo, Built (code exists; verify command not yet run), In progress,
+  are from the repository root; run the check there.
+- **Walkthrough** (last task of a slice): the journeys walked as the person would,
+  e.g. `Walkthrough: J1 on My bookings: cancel one date, a closed date, a stranger's
+  link, a repeated tap`, or `Blocked (reason)` when it cannot run yet.
+- **Status:** Todo, Built (this journey's own path already works in code; its named
+  tests must exist; behavior reached only through another path is not Built), In progress,
   Blocked (reason, such as Q4 or an unbuilt feature), or Done with an `Evidence:` line
   giving the command run and its result. A Done task's named tests must exist.
 - Code done, integrated and deployed are separate evidence; record which one you have.

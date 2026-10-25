@@ -404,7 +404,7 @@ export function validate(spec: Spec, decisions: Map<string, Decision>, ready = f
 // index table with a Needs column, and a Source line linking the journeys file with
 // the approval it was built on: "Source: [journeys](../journeys/x.md), approved by D11 b6fa08c8".
 export type TaskTest = { ids: string[]; path?: string; locator: string };
-export type Task = { id: string; covers: string[]; needs: string[]; indexNeeds?: string[]; section: boolean; verify: boolean; tests: TaskTest[]; evidence?: string; status?: string; parallel?: string };
+export type Task = { id: string; covers: string[]; coversLine?: boolean; needs: string[]; indexNeeds?: string[]; section: boolean; verify: boolean; tests: TaskTest[]; evidence?: string; status?: string; parallel?: string };
 const taskId = /\bT(?:\d+|-[A-Za-z0-9][\w-]*)\b/g;
 const specRef = /\b(?:J\d+(?:\.S\d+[a-z]?(?:\.c\d+)?)?|I\d+)\b/g;
 // Parenthetical notes such as "I2 (issuing links)" or "(after T-REMINDERS)" are prose.
@@ -456,7 +456,7 @@ export function parseTasks(markdown: string) {
     if (line.startsWith('## ')) { current = undefined; continue; }
     const field = current && line.match(/^(Covers|Needs|Verify|Tests|Evidence|Status|Parallel)\b(?:\s*\([^)]*\))?:\s*(.*)$/);
     if (current && field) {
-      if (field[1] === 'Covers') current.covers.push(...refsIn(field[2], specRef));
+      if (field[1] === 'Covers') { current.covers.push(...refsIn(field[2], specRef)); current.coversLine = true; }
       else if (field[1] === 'Needs') current.needs.push(...refsIn(field[2], taskId));
       else if (field[1] === 'Verify') { current.verify ||= field[2].trim().length > 0; if (!field[2].trim()) block = 'verify'; }
       else if (field[1] === 'Tests') { if (field[2].trim()) addTest(current, field[2].trim()); else block = 'tests'; }
@@ -483,7 +483,7 @@ export function validateTasks(tasks: Task[], source: { approval?: string }, spec
   const fileTests: { task: string; ids: string[]; path: string; locator: string }[] = [];
   for (const t of tasks) {
     if (!t.section) warnings.push(`${t.id}: listed in the index but has no "## ${t.id}" section`);
-    else if (!t.covers.length) errors.push(`${t.id}: needs a Covers line naming journeys, steps, criteria or invariants`);
+    else if (!t.coversLine) errors.push(`${t.id}: needs a Covers line naming journeys, steps, criteria or invariants (or "none" for delivery work)`);
     for (const ref of new Set(t.covers)) {
       const covered = journeys.get(ref)?.steps.flatMap(st => st.criteria.map(([k]) => `${st.id}.${k}`))
         ?? steps.get(ref)?.criteria.map(([k]) => `${ref}.${k}`)
@@ -508,7 +508,14 @@ export function validateTasks(tasks: Task[], source: { approval?: string }, spec
     if (/^done\b/i.test(t.status ?? '')) {
       if (!t.evidence) errors.push(`${t.id}: Done needs an Evidence line with the command run and its result`);
       else if (/\b[1-9]\d*\s+skip/i.test(t.evidence)) errors.push(`${t.id}: Evidence shows skipped tests; a skipped test proves nothing`);
-      for (const test of t.tests) if (test.path) fileTests.push({ task: t.id, ids: test.ids, path: test.path, locator: test.locator });
+    }
+    // Done and Built both claim the code exists, so their named tests must exist too.
+    if (/^(done|built)\b/i.test(t.status ?? '')) for (const test of t.tests) if (test.path) fileTests.push({ task: t.id, ids: test.ids, path: test.path, locator: test.locator });
+    // A task blocked on a question needs that question to exist and still be open.
+    for (const q of /^blocked/i.test(t.status ?? '') ? (t.status ?? '').match(/\bQ\d+\b/g) ?? [] : []) {
+      const d = decisions.get(q);
+      if (!d) warnings.push(`${t.id}: blocked on ${q}, which is not in the decision record`);
+      else if (!['open', 'deferred'].includes(d.status)) warnings.push(`${t.id}: blocked on ${q}, which is ${d.status}; unblock the task`);
     }
     if (/^blocked\s*$/i.test(t.status ?? '')) warnings.push(`${t.id}: Blocked needs a reason, such as "Blocked (Q4)"`);
     if (/^start now/i.test(t.parallel ?? '') && t.needs.length) warnings.push(`${t.id}: marked start now but needs ${t.needs.join(', ')}`);
@@ -539,9 +546,10 @@ export function validateTasks(tasks: Task[], source: { approval?: string }, spec
   // One row per criterion and invariant: who builds it, what proves it, where it stands.
   const byTask = new Map(tasks.map(t => [t.id, t]));
   const report = targets.map(id => {
-    const owner = owners.get(id)?.[0];
-    const test = owner ? byTask.get(owner)?.tests.find(x => x.ids.includes(id)) : undefined;
-    return { id, task: owner ?? '—', test: test ? `${test.path ?? 'manual'} › ${test.locator}` : '—', status: (owner && byTask.get(owner)?.status) || '—' };
+    const by = [...new Set(owners.get(id) ?? [])];
+    const tests = by.flatMap(owner => byTask.get(owner)?.tests.filter(x => x.ids.includes(id)) ?? []);
+    return { id, task: by.join(', ') || '—', test: tests.map(x => `${x.path ?? 'manual'} › ${x.locator}`).join('; ') || '—',
+      manual: tests.length > 0 && tests.every(x => !x.path), status: by.map(owner => byTask.get(owner)?.status || '—').join('; ') || '—' };
   });
   return { errors, warnings, fileTests, report, covered: targets.length - [...owners.values()].filter(by => !by.length).length, total: targets.length };
 }
@@ -575,8 +583,8 @@ if (import.meta.main) {
       for (const w of result.warnings) console.error(`warn: ${w}`);
       const errors = [...plan.errors, ...parsedSpec.errors.map(e => `journeys ${e}`), ...record.errors, ...result.errors];
       if (errors.length) throw Error(errors.join('\n'));
-      const named = result.report.filter(row => row.test !== '—').length, done = result.report.filter(row => /^done\b/i.test(row.status)).length;
-      console.log(`ok: tasks ${input}; ${plan.tasks.length} tasks; ${result.covered} of ${result.total} criteria and invariants have an owner, ${named} a named test, ${done} done with evidence.${plan.source.approval ? ` Built on approval ${plan.source.approval}.` : ''} Tests were not run.`);
+      const named = result.report.filter(row => row.test !== '—'), manual = named.filter(row => row.manual).length, done = result.report.filter(row => /^done\b/i.test(row.status)).length;
+      console.log(`ok: tasks ${input}; ${plan.tasks.length} tasks; ${result.covered} of ${result.total} criteria and invariants have an owner, ${named.length} a named test (${manual} manual only), ${done} done with evidence.${plan.source.approval ? ` Built on approval ${plan.source.approval}.` : ''} Tests were not run.`);
       process.exit(0);
     }
     const text = await read(input);

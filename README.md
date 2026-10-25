@@ -129,10 +129,11 @@ Run `bun run verify` to check the skills, tests and examples.
 In a small blind-judged trial (2026-10-25), agents using these skills invented no
 product rules and gave the clearest "ready or not" answer, with about half the text
 of agents without them. Agents without the skills went deeper on payment-provider
-details, which these skills leave to the task plan. A second trial of the tasks skill
-on two real codebases scored level with planning without it: better verification and
-half the length, but weaker delivery structure and one plan that settled product
-questions itself; the skill now asks for both. One run per case, so treat these as
+details, which these skills leave to the task plan. A trial of the tasks skill on two real
+codebases first scored level with planning without it; after tightening the skill, a
+rerun on kubera scored 36 to 32, with a named test per rule, questions raised instead
+of decided, and the spec landed in the repo. Agents without the skill still read the
+code slightly more deeply. One run per case, so treat these as
 a direction, not a measurement.
 
 ## Background

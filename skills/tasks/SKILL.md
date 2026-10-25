@@ -1,77 +1,66 @@
 ---
 name: tasks
-description: Plan implementation from an approved journey spec or other agreed spec, as usable slices with dependencies, safe parallel work, builder notes and verification. Use for new apps or existing code before building; skip trivial edits.
+description: Plan implementation from an approved journey spec or other agreed spec, as usable slices with dependencies, safe parallel work, builder notes and a named test for every criterion. Use for new apps or existing code before building; skip trivial edits.
 ---
 
 # Tasks
 
-You plan how the **builder** delivers an agreed spec: slices a person can use,
-in an order that works, with proof each one is done. Follow the project's tracker
-or task convention if it has one; otherwise write `docs/tasks/<feature>.md` using
-the [task record](references/task-record.md). The checker below ships with the
-journeys skill, at `journeys/scripts/journeys.ts` beside this skill's folder.
+You plan how the **builder** delivers an agreed spec: slices a person can use, in a
+working order, with a named test proving every criterion. Follow the project's
+tracker if it has one; otherwise write `docs/tasks/<feature>.md` in the
+[task record](references/task-record.md) format. The checker is the journeys skill's
+`journeys/scripts/journeys.ts`, beside this skill's folder.
 
 ## Steps
 
-1. **Read.** Read the spec, its decisions and the code it touches. For a journeys
-   file, run `journeys.ts check <journeys file> --ready`; if approval is missing or
-   stale, tell the owner and
-   plan only what they ask for. Done when you know what exists, what is missing,
-   and any accepted decision the journeys do not cover.
+1. **Read.** Read the spec, its decisions and the code it touches, and run
+   `journeys.ts check <journeys file> --ready`. If approval is missing or stale, tell
+   the owner and plan only what they ask for. Done when you know what exists and
+   what is missing.
 
-2. **Slice.** Group criteria into outcomes a person can use, end to end. A new app
-   gets the minimum foundations folded into its first slice; existing code reuses
-   what works and plans the gap; criteria the code already meets go in a task marked
-   `Built` with the command that would verify them. Each criterion has one owning
-   task; if only part of a criterion can be built now, split it in the journeys and
-   re-approve. Include the delivery work too: landing the spec and decisions in the
-   repo, migrations, configuration, and the project's own checks and gates. Done when
-   every in-scope criterion and invariant has an owner.
+2. **Slice.** Group criteria into outcomes a person can use end to end, and give
+   each criterion and invariant one owning task. Fold foundations into the first
+   slice; reuse working code, marking criteria it already meets on this journey's
+   path `Built`. Plan the delivery work too: landing the spec and decisions,
+   migrations, configuration and the project's own gates. Done when everything in
+   scope has an owner.
 
-3. **Order.** For each dependency, name the contract it needs and whether agreeing
-   on that contract is enough to start. Say when each task can start (now, after a
-   named task's contract, or after a named task) and, when it shares files, schema
-   or migrations with another task, which one it merges after. Work outside this
-   plan goes in a Blocked reason, not in Needs. Put shared schema in one early
-   migration where you can, so later tasks run in parallel, and say which tasks must
-   ship together so a person never meets a dead end. Done when every task says when
-   it starts and what it merges after.
+3. **Order.** Name the contract each dependency needs and whether agreeing on it is
+   enough to start. Say when each task starts and, where tasks share files, schema or
+   migrations, which merges after which. Put shared schema in one early migration
+   where you can, and say which tasks must ship together so nobody meets a dead end.
+   Done when every task has a start and a merge order.
 
-4. **Builder notes.** For each invariant, write how the builder will hold it:
-   transactions, idempotency, retries, ordering. For each external system the task
-   calls (payment, messaging, email, identity provider), add integration notes:
-   calls made, idempotency, webhooks and their order, reconciling when its state
-   drifts from ours, and how to test it. Done when every invariant and external
-   system a task touches has a note.
+4. **Builder notes.** For each invariant, say how the builder holds it: transactions,
+   idempotency, retries, ordering. Find the existing constraints, unique indexes and
+   validators the new behavior will hit, and put access checks before anything that
+   replays or reveals stored state. For each external system the task calls, note
+   the calls, idempotency, webhooks, reconciling drift and how to test it. Done when
+   every invariant and external system has a note.
 
-5. **Verify.** Under `Tests:`, name the test that will prove each criterion and
-   invariant the task owns: a test file and name, or a manual step. Give the task a
-   command, the setup it needs (a test database, environment variables), and for the
-   last task of a slice, a walkthrough of its journeys: each person step on its
-   screen, plus the denied, invalid, failed and repeated cases. A skipped test
-   verifies nothing. Done when every owned criterion has a named test.
+5. **Verify.** Under `Tests:`, name the test proving each criterion and invariant the
+   task owns: a file and test name, or a manual step. Give each task a command with
+   its setup, and end each slice with a `Walkthrough:` of its journeys, including the
+   denied, invalid, failed and repeated cases. A skipped test verifies nothing. Done
+   when every owned criterion has a named test.
 
-6. **Check.** For a journeys spec, stamp its approval in the Source line and run
-   `bun <journeys-skill-dir>/scripts/journeys.ts tasks docs/tasks/<feature>.md` from
-   the repository root. It checks that every criterion and invariant has an owner and
-   a named test, every dependency is a real task with no cycles, and the plan matches
-   the current approval. Done when it passes. It checks structure, not quality: review
-   the slices, notes and tests yourself.
+6. **Check.** Stamp the journeys' approval in the Source line and run
+   `journeys.ts tasks docs/tasks/<feature>.md` from the repository root. Done when it
+   passes. It checks structure, so review the slices, notes and tests yourself.
 
-Planning surfaces product choices the spec does not settle: a status change, a
-label, what happens at an edge. Raise each one as a question; a builder note only
-says how, never what the person sees. Add the question to the decision record as a
-Q line (the decide skill's format) and mark the affected task Blocked (Q<n>);
-answering it may change the journeys and need re-approval.
+## Questions and the build
 
-During the build, mark a task Done only with `Evidence:` (the command run and its
-result, nothing skipped); the check then confirms each named test exists. If a
-criterion proves wrong or impossible, stop work on it and raise a question; never
-change the behavior quietly. `tasks <file> --status` shows each criterion's task,
-test and status.
+A product choice the spec leaves open (a status, a label, an edge case) becomes a Q
+line in the decision record, never a builder note. A `Blocks:` question marks the
+tasks that depend on it Blocked (Q<n>); split a task so only those criteria wait. A
+`Default` question blocks nothing.
 
-Detail every task that can start now; give later ones a short entry with outcome,
-dependencies, builder notes and verify. Link criterion IDs instead of copying their
-text. Stop when the next slice is actionable. Reply with the next work, what
-can run in parallel and blockers. Planning ends here: implementing, committing and
-dispatching agents wait for the user.
+During the build, a task is Done only with `Evidence:`: the command run and its
+result, nothing skipped. If a criterion proves wrong or impossible, stop it and raise
+a question; never change behavior quietly. `tasks <file> --status` shows each
+criterion's task, test and status.
+
+Detail every task that can start now; later ones get a short entry that still names
+its tests. Link criterion IDs rather than copying their text. Stop when the next
+slice is actionable, and reply with the next work, what runs in parallel and
+blockers. Implementing, committing and dispatching agents wait for the user.

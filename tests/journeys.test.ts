@@ -532,7 +532,7 @@ test('CLI checks a task plan against its journeys', async () => {
     await writeFile(join(dir, 'tasks.md'), plan(fullPlan));
     const ok = run(dir, 'bun', cli, 'tasks', 'tasks.md');
     expect(ok.exitCode).toBe(0);
-    expect(ok.stdout.toString()).toContain('2 tasks; 5 of 5 criteria and invariants have an owner, 5 a named test, 0 done with evidence');
+    expect(ok.stdout.toString()).toContain('2 tasks; 5 of 5 criteria and invariants have an owner, 5 a named test (1 manual only), 0 done with evidence');
     await writeFile(join(dir, 'tasks.md'), plan(fullPlan, '00000000'));
     expect(run(dir, 'bun', cli, 'tasks', 'tasks.md').stderr.toString()).toContain('Re-plan the affected tasks');
     await writeFile(join(dir, 'tasks.md'), '# No source\n');
@@ -595,4 +595,20 @@ test('CLI confirms a Done task\'s tests exist and reports status per criterion',
     expect(status.stdout.toString()).toContain('| J1.S1.c3 | T1 | invite.test.ts › malformed email | Done |');
     expect(status.stdout.toString()).toContain('4 done with evidence');
   } finally { await rm(dir, {recursive: true, force: true}); }
+});
+
+test('delivery-only tasks, Built tests and blocking questions', () => {
+  const delivery = fullPlan + '\n## T3 Land the spec\nCovers: none (delivery: decisions and journeys into the repo)\nVerify: `bun run check-journeys`.\n';
+  expect(taskResult(plan(delivery)).errors).toBe('');
+  expect(taskResult(plan(fullPlan.replace('Tests: J1.S2.c1: manual', 'Status: Blocked (Q1)\nTests: J1.S2.c1: manual'))).warnings.join()).not.toContain('blocked on Q1');
+  expect(taskResult(plan(fullPlan.replace('Tests: J1.S2.c1: manual', 'Status: Blocked (Q9)\nTests: J1.S2.c1: manual'))).warnings).toContain('T2: blocked on Q9, which is not in the decision record');
+  const p = parseTasks(plan(fullPlan.replace('Verify: `bun test invite` — non-admin refused.', 'Verify: `bun test invite`.\nStatus: Built')));
+  const r = validateTasks(p.tasks, p.source, approvedSpec(), parseDecisions(decisionsMd).decisions);
+  expect(r.fileTests.map(t => t.task)).toEqual(['T1', 'T1', 'T1']);
+});
+
+test('status report lists every owner of a shared invariant', () => {
+  const p = parseTasks(plan(fullPlan.replace('Covers: J1.S2.c1.', 'Covers: J1.S2.c1, I1.').replace('Tests: J1.S2.c1: manual › create an invite and see its link', 'Tests:\n- J1.S2.c1: manual › create an invite and see its link\n- I1: link.test.ts › link hidden from non-admins')));
+  const r = validateTasks(p.tasks, p.source, approvedSpec(), parseDecisions(decisionsMd).decisions);
+  expect(r.report.find(row => row.id === 'I1')).toMatchObject({task: 'T1, T2', test: 'invite.test.ts › non-admin cannot create; link.test.ts › link hidden from non-admins'});
 });
