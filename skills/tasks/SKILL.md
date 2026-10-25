@@ -1,47 +1,47 @@
 ---
 name: tasks
-description: "Plan implementation from agreed journeys or specs: usable slices, coverage, dependencies, parallel work and completion evidence. Supports new apps and existing code. Skip trivial edits, product discovery and executing an actionable task."
+description: Plan implementation from an approved journey spec or other agreed spec, as usable slices with dependencies, safe parallel work, builder notes and verification. Use for new apps or existing code before building; skip trivial edits.
 ---
 
 # Tasks
 
-Plan connected, usable features. Do not implement, dispatch agents, commit or
-publish. Follow host conventions; no other skill, stack or task service is required.
-Read relevant slices/reference sections, not entire histories or generated copies.
+You plan how the **builder** delivers an agreed spec: slices a person can use,
+in an order that works, with proof each one is done. Follow the project's tracker
+or task convention if it has one; otherwise write `docs/tasks/<feature>.md` using
+the [task record](references/task-record.md).
 
-1. Read accepted scope, the specification and relevant code/checks. Compare decisions
-   with journeys too: flag accepted work missing from criteria. Do not amend policy
-   or infer approval from prototypes. Ask only about an in-scope outcome blocked by
-   a missing owner choice; continue independent planning.
-2. For a new app, identify the minimum foundations for its first usable slice and
-   label proposed paths. For existing code, trace the flow, reuse working parts and
-   plan the gap with compatibility in mind. Distinguish source inspection, prototypes
-   and executed evidence. Inspect local validators for rules forcing duplicated
-   prose or one-task-per-journey; flag conflicts without bypassing checks.
-3. Group usable outcomes rather than journeys or technical layers. Split for a
-   reviewable deliverable, dependency or independent owner. Fold setup/docs into
-   consumers; establish shared contracts only when needed. A precise small edit
-   needs no backlog artifact. Engineering mechanics are the builder's responsibility.
-4. Use [task record](references/task-record.md), normally one `docs/tasks/<feature>.md`.
-   Preserve existing trackers and IDs; link criteria instead of copying requirements.
-   Detail the next slice; keep later work coarse but assigned or visibly blocked.
-   During active work, propose groups over existing IDs without changing assignments,
-   status or evidence. Reorganize authorized work at a verified pause/checkpoint.
-5. Name the contract/artifact each dependency needs and whether interface agreement
-   is enough to start. Check files, schema/migrations and shared resources as well
-   as logical dependencies. Label work ready in parallel, after contract agreed or
-   sequential, with reasons. Unchecked overlap is not safe parallelism.
-6. Account for every in-scope criterion and applicable invariant through task ownership
-   or existing implementation with verification status. Whole-journey shorthand is
-   valid only when all criteria are covered. Include integration, migrations,
-   configuration and checks needed for the delivery target. Give each deliverable
-   executable or observable verification; unavailable external checks remain blockers
-   to the relevant target, not evidence of completion.
+## Steps
 
-Stop when the next slice is actionable with justified dependencies and evidence
-requirements. Do not expand scope, recursively split work or prescribe every edit.
-Keep each fact in one place; omit repeated history and empty sections. Report the
-next work, parallel opportunities and blockers. On contract/scope changes, update
-only affected tasks and links, preserve evidence and recheck parallel groups.
-On resume, verify recorded status before scheduling dependents. Checkboxes and
-mechanical coverage are not proof of integrated feature or release readiness.
+1. **Read.** Read the spec, its decisions and the code it touches. For a journeys
+   file, run `check --ready`; if approval is missing or stale, tell the owner and
+   plan only what they ask for. Done when you know what exists, what is missing,
+   and any accepted decision the journeys do not cover.
+
+2. **Slice.** Group criteria into outcomes a person can use, end to end. A new app
+   gets the minimum foundations folded into its first slice; existing code reuses
+   what works and plans the gap. Done when every in-scope criterion and invariant
+   belongs to a task, or to existing code with a command that verifies it.
+
+3. **Order.** For each dependency, name the contract it needs and whether agreeing
+   on that contract is enough to start. Mark tasks parallel only when their files,
+   schema and shared resources do not overlap. Done when every task is labeled
+   start now, after a contract or sequential, with the reason.
+
+4. **Builder notes.** For each invariant, write how the builder will hold it:
+   transactions, idempotency, retries, ordering. For each external system (payment,
+   messaging, email, identity provider), add integration notes: calls made,
+   idempotency, webhooks and their order, reconciling when its state drifts from
+   ours, and how to test it. Done when every invariant and external system a task
+   touches has a note.
+
+5. **Verify.** Give each task a command or exact check, with the failure cases its
+   criteria name, and the setup it needs (a test database, environment variables).
+   A skipped test verifies nothing. Done when every task has one.
+
+Detail the next slice fully; give later slices a short entry with outcome,
+dependencies, builder notes and verify. Link criterion IDs instead of copying
+their text. If planning uncovers a product question, record it the decide way and
+mark the affected task blocked; answering it may change the journeys and need
+re-approval. Stop when the next slice is actionable. Reply with the next work, what
+can run in parallel and blockers. Planning ends here: implementing, committing and
+dispatching agents wait for the user.

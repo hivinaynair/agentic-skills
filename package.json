@@ -2,12 +2,14 @@
   "name": "agentic-skills",
   "version": "0.1.0",
   "private": true,
-  "description": "Portable agent skills for decisions, journeys and implementation tasks",
+  "description": "Agent skills for framing ideas, mapping user journeys and planning implementation",
   "scripts": {
     "test": "bun test",
     "check": "bun run scripts/check-skills.ts",
-    "check:example": "bun skills/journeys/scripts/journeys.ts check evaluation/team-invitations/journeys/invitations.yaml",
+    "check:example": "bun skills/journeys/scripts/journeys.ts check examples/team-invitations/journeys/invitations.md && bun skills/journeys/scripts/journeys.ts check examples/password-reset/journeys/password-reset.md --ready",
     "verify": "bun run check && bun test && bun run check:example"
   },
-  "engines": {"bun": ">=1.4.0"}
+  "engines": {
+    "bun": ">=1.4.0"
+  }
 }

@@ -1,14 +1,14 @@
 # Agentic Skills
 
-This repository contains decide, journeys and tasks, plus their supporting tooling,
+This repository contains decide, journeys and tasks, plus the journeys checker,
 tests and synthetic examples. Read README.md before changing the workflow.
 
-- Keep each skill self-contained and respect host-project conventions.
-- Keep observations, approved decisions and unresolved questions separate.
-- Do not claim structural validity proves completeness or product correctness.
+- Keep each skill self-contained, short and in plain prose; respect host-project conventions.
+- Keep owner decisions, observations, open questions and builder mechanics separate.
+- A passing checker shows consistency and approval, not product correctness.
 - Preserve stable IDs and unrelated work. Re-read files before editing.
 - Use Bun for tooling and tests; no dependency installation or build is needed.
-- Run `bun run check` and `bun test` after tooling changes. Re-render modified
-  journey examples and check their generated Markdown.
-- The invitation example intentionally fails readiness. Do not invent policy to
-  make it pass. Do not include private-project trial artifacts in this repository.
+- Run `bun run verify` after changes.
+- The invitation example intentionally fails `--ready`; leave its questions open.
+  The password-reset example must pass `--ready`; re-run `approve` after changing it.
+- Keep private-project trial artifacts out of this repository.

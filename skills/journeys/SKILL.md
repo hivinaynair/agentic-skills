@@ -1,48 +1,53 @@
 ---
 name: journeys
-description: Map agreed behavior into actor paths, relevant failures, invariants and testable criteria. Use for behavior specification or reconstruction; skip trivial edits and unsettled product discovery.
+description: Map how people move through a feature, from goal to every outcome they can see, as screens, steps and testable criteria, ending in an owner-approved spec ready to build. Use after decisions exist, to map user journeys, check a spec is ready, or reconstruct a feature from existing code.
 ---
 
 # Journeys
 
-Make agreed behavior buildable with a small authoritative record. Read project
-instructions and accepted scope. Preserve existing formats; decide and automated
-checks are optional. Read relevant source/reference sections; run checker scripts
-without loading their source unless diagnosing them. For code reconstruction, read [existing-project review](references/existing-projects.md).
+You map each person's path through a feature, from their goal to every outcome
+they can see. Write one Markdown file per feature, `docs/journeys/<feature>.md`,
+in the [journey format](references/format.md). Every step rests on owner decisions
+in the project's decision record. Ask missing product questions the decide way:
+one at a time, with a recommendation, recorded as a Q line.
 
-1. Inventory requested actor goals and recovery entries before drawing paths.
-   Mark each mapped, explicitly excluded or unresolved; compare against sources,
-   not just the resulting graph. Code describes behavior, not approved policy.
-2. Identify the few shared invariants. Cite accepted decisions for policy and
-   sourced O observations for current behavior. Ask only when a missing choice
-   changes an in-scope outcome and blocks the next slice. Leave engineering
-   mechanics to the builder; never invent policy or limits to pass a check.
-3. Use [schema](references/schema.md) for `docs/journeys/<feature>.yaml`. Group
-   routine clicks into outcome steps. Cite decisions/observations and affected
-   invariants; name only real surfaces. Each criterion describes one observable
-   behavior in WHEN/IF/WHILE EARS syntax. Share safeguards through references,
-   retaining local forbidden-effect criteria on invariant-sensitive steps.
-4. Map ordinary paths, applicable failures and recovery. Deepen for consequential
-   money, access, irreversible writes or data integrity, or a requested audit.
-   Select relevant [branch questions](references/branches.md), not a blanket matrix.
-   Every branch exits or reconnects. Unknown applicable handling is not excluded.
-5. Walk the slice and dependencies against sources. Separate owner blockers,
-   engineering work and unexecuted release checks. Report code conflicts without
-   rewriting policy. Keep IDs permanent: changed meaning needs a new ID; wording
-   clarification does not. Retire removed IDs and review downstream task/test links.
-6. If Bun exists, run the bundled checker per the schema. Otherwise report manual
-   review; do not install tools or change package managers. Gates cover the entire
-   file; a smaller-slice review must name its IDs and dependencies without claiming
-   a whole-file pass. Observations cannot authorize policy readiness.
+## Steps
 
-Keep YAML authoritative; generate Markdown only for useful review or a host check.
-Use validate when no generated view is needed. Tasks reference IDs; generated copies
-need freshness checks. Avoid duplicated prose, empty sections and routine-click detail.
-Reply with the flow/change, material tradeoff and blockers, not the whole document.
+1. **Goals.** List every actor goal for this feature from the decisions and sources,
+   including recovery goals such as a link that stopped working. Mark each one mapped
+   to journeys, excluded by an accepted X, covered elsewhere (another spec), or
+   unresolved. Done when every goal of this feature has a line.
 
-Stop when outcomes and safeguards are agreed and no owner choice blocks the slice;
-engineering/release work may remain. “Next gap” stays in scope. Preserve deferrals
-and exclusions; do not reopen policy without a request or conflicting evidence.
-Planning alone does not authorize implementation, dispatch, commits or publishing.
-Separate references checked, tests run and assertions reviewed. A linked test or
-structural pass is not behavioral proof; keep host testing conventions.
+2. **Journeys.** Write each path from the person's first action to every exit.
+   Person steps name the screen and what the person sees, including pending, empty
+   and error states. System steps hold the rules a person never sees directly.
+   Each step cites its Basis and has EARS criteria. Done when every step reaches an exit.
+
+3. **Invariants.** Write the few "never" rules that hold across paths, such as
+   "never two memberships per account". Races, duplicate events and crashes become
+   invariants; the builder decides how to hold them. Done when every money, access
+   and data-integrity effect has an invariant.
+
+4. **Outcome checks.** Answer [denied, invalid, failed and repeated](references/checks.md)
+   for each journey: cite criteria or decisions, mark n/a with a reason, or mark open
+   with the blocking Q. Done when every journey answers all four.
+
+5. **Check and review.** List the decisions this feature must honor on a `Scope:`
+   line. Run `bun <skill-dir>/scripts/journeys.ts check docs/journeys/<feature>.md`
+   and fix every error. Then run `check --review` and read each step beside the text
+   it rests on: every criterion follows from it, each criterion is one behavior, and
+   nothing contradicts another decision. Fix the spec or ask. Done when both pass.
+
+6. **Ready.** When `check --ready` fails only on approval, give the owner a short
+   Ready summary: goals covered, non-goals, screens, external systems involved
+   (payment, messaging, identity providers), builder work left, and other specs
+   that cite a decision this one supersedes. Ask "Approve for build?". On yes,
+   add `- D<n> accepted — Approved for build: <feature> J1–J<n>` to the decision
+   record and run `approve docs/journeys/<feature>.md D<n>`. Done when
+   `check --ready` passes.
+
+Changing the journeys or the decisions they cite makes the approval stale; repeat
+Ready. If the project keeps an index of journeys, add this file to it. For an
+existing feature, start with [existing code](references/existing-projects.md).
+Reply with what changed, open questions and the next step. An approved spec is
+complete enough to build; tests and running code prove the behavior.
