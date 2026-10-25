@@ -1,6 +1,6 @@
 # Password reset tasks
 
-Source: [journeys](../journeys/password-reset.md), approved by D11 · Target: local
+Source: [journeys](../journeys/password-reset.md), approved by D11 78c53f1d · Target: local
 All paths are proposed; no application exists.
 
 | ID | Outcome | Needs | Parallel | Status |

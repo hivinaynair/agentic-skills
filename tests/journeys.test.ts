@@ -2,7 +2,7 @@ import {test, expect} from 'bun:test';
 import {mkdtemp, rm, mkdir, writeFile, symlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {resolve, join, basename} from 'node:path';
-import {parseJourneys, parseDecisions, validate, approvalHash, reviewPacket} from '../skills/journeys/scripts/journeys';
+import {parseJourneys, parseDecisions, validate, approvalHash, reviewPacket, parseTasks, validateTasks} from '../skills/journeys/scripts/journeys';
 
 const decisionsMd = `# Invite decisions
 
@@ -479,4 +479,85 @@ test('CLI prints the review packet', async () => {
     expect(review.exitCode).toBe(0);
     expect(review.stdout.toString()).toStartWith('# Review: Invite');
   } finally { await rm(dir, {recursive: true, force: true}); }
+});
+
+const approvedSpec = () => parseJourneys(approve(base)).spec;
+const stamp = () => approvedSpec().approval!.hash;
+const plan = (body: string, approval = stamp()) => `# Invite tasks\n\nSource: [journeys](feature.md), approved by D3 ${approval} · Target: local\n\n| ID | Outcome | Needs | Parallel | Status |\n|---|---|---|---|---|\n| T1 | Create invite | — | Start now | Todo |\n| T2 | Show link | T1 | After T1 | Todo |\n\n${body}`;
+const fullPlan = '## T1 Create invite\nCovers: J1.S1, I1 (admin check).\nVerify: `bun test invite` — non-admin refused.\n\n## T2 Show link\nCovers: J1.S2.c1.\nNeeds: T1 invite contract.\nVerify: `bun test link`.\n';
+function taskResult(md: string) {
+  const p = parseTasks(md), d = parseDecisions(decisionsMd).decisions, r = validateTasks(p.tasks, p.source, approvedSpec(), d);
+  return {errors: [...p.errors, ...r.errors].join('\n'), warnings: r.warnings, covered: r.covered, total: r.total};
+}
+
+test('a complete task plan covers every criterion and invariant on the current approval', () => {
+  expect(taskResult(plan(fullPlan))).toMatchObject({errors: '', warnings: [], covered: 5, total: 5});
+  expect(parseTasks(plan(fullPlan)).source).toEqual({path: 'feature.md', approval: stamp()});
+});
+
+test.each([
+  ['an uncovered criterion', fullPlan.replace('Covers: J1.S2.c1.', 'Covers: I1.'), 'J1.S2.c1: no task covers it'],
+  ['an unknown reference', fullPlan.replace('J1.S2.c1', 'J1.S9.c1'), 'T2: covers unknown J1.S9.c1'],
+  ['an unknown dependency', fullPlan.replace('Needs: T1', 'Needs: T7'), 'T2: needs unknown task T7'],
+  ['a dependency cycle', fullPlan.replace('Covers: J1.S1, I1', 'Covers: J1.S1, I1\nNeeds: T2'), 'Dependency cycle: T1 → T2 → T1'],
+  ['a task without Covers', fullPlan.replace('Covers: J1.S2.c1.\n', ''), 'T2: needs a Covers line'],
+  ['a duplicate task section', fullPlan + '\n## T2 Again\nCovers: J1.S2.c1.\n', 'Duplicate task T2'],
+  ['a task without Verify', fullPlan.replace('Verify: `bun test link`.\n', ''), 'T2: needs a Verify line'],
+  ['index and section Needs that disagree', fullPlan.replace('Needs: T1 invite contract.', 'Needs: T1, T3.\n\n## T3 Extra\nCovers: I1.\nVerify: manual.'), 'T2: index Needs (T1) and section Needs (T1, T3) disagree'],
+])('task check rejects %s', (_, body, message) => {
+  expect(taskResult(plan(body)).errors).toContain(message);
+});
+
+test('a plan built on an older approval is stale; a missing stamp or approval warns', () => {
+  expect(taskResult(plan(fullPlan, '00000000')).errors).toContain('Plan was built on approval 00000000');
+  expect(taskResult(plan(fullPlan).replace(/, approved by D3 \w+/, '')).warnings.join()).toContain('Stamp the approval in the Source line');
+  const p = parseTasks(plan(fullPlan));
+  expect(validateTasks(p.tasks, p.source, parseJourneys(base).spec, parseDecisions(decisionsMd).decisions).warnings).toContain('Journeys are not approved; plan only what the owner asks for');
+});
+
+test('shared criteria warn; index-only tasks warn; shared invariants are fine', () => {
+  const r = taskResult(plan(fullPlan.replace('Covers: J1.S2.c1.', 'Covers: J1.S2.c1, J1.S1.c1, I1.') + '\n| T3 | Later | — | Start now | Todo |\n'));
+  expect(r.warnings).toContain('J1.S1.c1: covered by T1 and T2; give one task ownership');
+  expect(r.warnings).toContain('T3: listed in the index but has no "## T3" section');
+  expect(r.warnings.join()).not.toContain('I1: covered');
+});
+
+test('CLI checks a task plan against its journeys', async () => {
+  const dir = await project('journeys-tasks-');
+  try {
+    await writeFile(join(dir, 'feature.md'), approve(base));
+    await writeFile(join(dir, 'tasks.md'), plan(fullPlan));
+    const ok = run(dir, 'bun', cli, 'tasks', 'tasks.md');
+    expect(ok.exitCode).toBe(0);
+    expect(ok.stdout.toString()).toContain('2 tasks; 5 of 5 criteria and invariants have an owner');
+    await writeFile(join(dir, 'tasks.md'), plan(fullPlan, '00000000'));
+    expect(run(dir, 'bun', cli, 'tasks', 'tasks.md').stderr.toString()).toContain('Re-plan the affected tasks');
+    await writeFile(join(dir, 'tasks.md'), '# No source\n');
+    expect(run(dir, 'bun', cli, 'tasks', 'tasks.md').stderr.toString()).toContain('Add a Source line');
+  } finally { await rm(dir, {recursive: true, force: true}); }
+});
+
+test('example task plan covers its approved journeys', () => {
+  const r = run('.', 'bun', cli, 'tasks', 'examples/password-reset/tasks/password-reset.md');
+  expect(r.exitCode).toBe(0);
+  expect(r.stderr.toString()).toBe('');
+});
+
+test('task plan warnings: bare Blocked, start now with needs, criteria owned only by blocked tasks', () => {
+  const md = plan(fullPlan).replace('| T2 | Show link | T1 | After T1 | Todo |', '| T2 | Show link | T1 | Start now | Blocked |');
+  const r = taskResult(md);
+  expect(r.warnings).toContain('T2: Blocked needs a reason, such as "Blocked (Q4)"');
+  expect(r.warnings).toContain('T2: marked start now but needs T1');
+  expect(r.warnings).toContain('Owned only by blocked tasks: J1.S2.c1');
+});
+
+test('dependencies in parentheses are notes, in the index as on Needs lines', () => {
+  const md = plan(fullPlan).replace('| T2 | Show link | T1 |', '| T2 | Show link | T1 (after T-REMINDERS) |');
+  expect(taskResult(md).errors).toBe('');
+});
+
+test('Verify may carry a note and introduce a list', () => {
+  const listed = fullPlan.replace('Verify: `bun test link`.', 'Verify (repo root):\n- `bun test link` — link shown.');
+  expect(taskResult(plan(listed)).errors).toBe('');
+  expect(taskResult(plan(fullPlan.replace('Verify: `bun test link`.', 'Verify:\n\n## T3 Next\nCovers: I1.\nVerify: manual.'))).errors).toContain('T2: needs a Verify line');
 });

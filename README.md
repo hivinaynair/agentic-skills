@@ -127,8 +127,11 @@ Run `bun run verify` to check the skills, tests and examples.
 In a small blind-judged trial (2026-10-25), agents using these skills invented no
 product rules and gave the clearest "ready or not" answer, with about half the text
 of agents without them. Agents without the skills went deeper on payment-provider
-details, which these skills leave to the task plan. One run per case, so treat it
-as a direction, not a measurement.
+details, which these skills leave to the task plan. A second trial of the tasks skill
+on two real codebases scored level with planning without it: better verification and
+half the length, but weaker delivery structure and one plan that settled product
+questions itself; the skill now asks for both. One run per case, so treat these as
+a direction, not a measurement.
 
 ## Background
 
