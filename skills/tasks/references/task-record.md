@@ -20,7 +20,12 @@ Provides: invite contract — token, workspace, expiry, revoked state.
 Builder notes:
 - I1: check admin role inside the same request that writes the invite.
 - Email provider: send after commit; dedupe by invite ID; a bounced send leaves the link valid; test with the provider's sandbox.
-Verify: `bun test invites` — admin creates; non-admin is refused (J1.S1.c2).
+Verify: `bun test invites` (0 skipped).
+Tests:
+- J1.S1.c1, J1.S1.c2: src/invites.test.ts › admin creates; non-admin is refused
+- J1.S1.c3: src/invites.test.ts › malformed email shows a field error
+- J1.S2.c1: manual › create an invite and copy the link with its expiry
+- I1: src/invites.test.ts › role is checked in the same request that writes
 ```
 
 - **Source** links the journeys file and copies its `Approved:` stamp. When the
@@ -36,10 +41,15 @@ Verify: `bun test invites` — admin creates; non-admin is refused (J1.S1.c2).
   it shares files, schema or migrations, which task it merges after.
 - **Builder notes** say how each invariant holds, plus integration notes for each
   external system the task calls. Mechanics live here, not in decisions.
+- **Tests** maps each criterion and invariant the task owns to the test that proves
+  it: `- J1.S1.c1: path/to/file.test.ts › test name`, or `manual › what to do`. Paths
+  are from the repository root.
 - **Status:** Todo, Built (code exists; verify command not yet run), In progress,
-  Blocked (reason, such as Q4 or an unbuilt feature), Done (evidence: command and result).
+  Blocked (reason, such as Q4 or an unbuilt feature), or Done with an `Evidence:` line
+  giving the command run and its result. A Done task's named tests must exist.
 - Code done, integrated and deployed are separate evidence; record which one you have.
 
-`bun <journeys-skill-dir>/scripts/journeys.ts tasks <file>` checks coverage,
-dependencies, cycles and the approval stamp. It cannot judge whether the slices,
-builder notes or verification are good; review those.
+`bun <journeys-skill-dir>/scripts/journeys.ts tasks <file>` checks ownership, named
+tests, dependencies, cycles, Done evidence and the approval stamp; `--status` lists
+each criterion's task, test and status. It cannot judge whether the slices, builder
+notes or tests are good; review those.

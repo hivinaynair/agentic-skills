@@ -67,7 +67,9 @@ longer counts until you approve again.
 
 **4. tasks plans the build.** It splits the work into pieces a person can actually
 use, says which can be built in parallel, notes how to work with outside services
-such as payment providers, and gives each piece a way to verify it.
+such as payment providers, and names the test that will prove each rule. A piece
+counts as done only with evidence, and `journeys.ts tasks <plan> --status` shows
+which rules are built and proven.
 
 ## Who decides what
 

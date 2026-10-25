@@ -44,22 +44,31 @@ journeys skill, at `journeys/scripts/journeys.ts` beside this skill's folder.
    drifts from ours, and how to test it. Done when every invariant and external
    system a task touches has a note.
 
-5. **Verify.** Give each task a command or exact check, with the failure cases its
-   criteria name, and the setup it needs (a test database, environment variables).
-   A skipped test verifies nothing. Done when every task has one.
+5. **Verify.** Under `Tests:`, name the test that will prove each criterion and
+   invariant the task owns: a test file and name, or a manual step. Give the task a
+   command, the setup it needs (a test database, environment variables), and for the
+   last task of a slice, a walkthrough of its journeys: each person step on its
+   screen, plus the denied, invalid, failed and repeated cases. A skipped test
+   verifies nothing. Done when every owned criterion has a named test.
 
 6. **Check.** For a journeys spec, stamp its approval in the Source line and run
-   `bun <journeys-skill-dir>/scripts/journeys.ts tasks docs/tasks/<feature>.md`. It
-   checks that every criterion and invariant is covered, every dependency is a real
-   task, the order has no cycles, and the plan matches the current approval. Done
-   when it passes. It checks ownership and order, not quality: review the slices,
-   notes and verification yourself.
+   `bun <journeys-skill-dir>/scripts/journeys.ts tasks docs/tasks/<feature>.md` from
+   the repository root. It checks that every criterion and invariant has an owner and
+   a named test, every dependency is a real task with no cycles, and the plan matches
+   the current approval. Done when it passes. It checks structure, not quality: review
+   the slices, notes and tests yourself.
 
 Planning surfaces product choices the spec does not settle: a status change, a
 label, what happens at an edge. Raise each one as a question; a builder note only
 says how, never what the person sees. Add the question to the decision record as a
 Q line (the decide skill's format) and mark the affected task Blocked (Q<n>);
 answering it may change the journeys and need re-approval.
+
+During the build, mark a task Done only with `Evidence:` (the command run and its
+result, nothing skipped); the check then confirms each named test exists. If a
+criterion proves wrong or impossible, stop work on it and raise a question; never
+change the behavior quietly. `tasks <file> --status` shows each criterion's task,
+test and status.
 
 Detail every task that can start now; give later ones a short entry with outcome,
 dependencies, builder notes and verify. Link criterion IDs instead of copying their

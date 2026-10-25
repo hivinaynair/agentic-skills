@@ -400,6 +400,9 @@ test('the format examples in the skill references pass the checker together', as
   expect(decisions.errors).toEqual([]);
   expect(journeys.errors).toEqual([]);
   expect(validate(journeys.spec, decisions.decisions).errors).toEqual([]);
+  const tasks = parseTasks(await fenced('skills/tasks/references/task-record.md'));
+  expect(tasks.errors).toEqual([]);
+  expect(validateTasks(tasks.tasks, tasks.source, journeys.spec, decisions.decisions).errors).toEqual([]);
 });
 
 test('CLI rejects misuse with clear messages and marks every error line', async () => {
@@ -484,7 +487,7 @@ test('CLI prints the review packet', async () => {
 const approvedSpec = () => parseJourneys(approve(base)).spec;
 const stamp = () => approvedSpec().approval!.hash;
 const plan = (body: string, approval = stamp()) => `# Invite tasks\n\nSource: [journeys](feature.md), approved by D3 ${approval} · Target: local\n\n| ID | Outcome | Needs | Parallel | Status |\n|---|---|---|---|---|\n| T1 | Create invite | — | Start now | Todo |\n| T2 | Show link | T1 | After T1 | Todo |\n\n${body}`;
-const fullPlan = '## T1 Create invite\nCovers: J1.S1, I1 (admin check).\nVerify: `bun test invite` — non-admin refused.\n\n## T2 Show link\nCovers: J1.S2.c1.\nNeeds: T1 invite contract.\nVerify: `bun test link`.\n';
+const fullPlan = '## T1 Create invite\nCovers: J1.S1, I1 (admin check).\nVerify: `bun test invite` — non-admin refused.\nTests:\n- J1.S1.c1, J1.S1.c2: invite.test.ts › admin creates, non-admin refused\n- J1.S1.c3: invite.test.ts › malformed email\n- I1: invite.test.ts › non-admin cannot create\n\n## T2 Show link\nCovers: J1.S2.c1.\nNeeds: T1 invite contract.\nVerify: `bun test link`.\nTests: J1.S2.c1: manual › create an invite and see its link\n';
 function taskResult(md: string) {
   const p = parseTasks(md), d = parseDecisions(decisionsMd).decisions, r = validateTasks(p.tasks, p.source, approvedSpec(), d);
   return {errors: [...p.errors, ...r.errors].join('\n'), warnings: r.warnings, covered: r.covered, total: r.total};
@@ -529,7 +532,7 @@ test('CLI checks a task plan against its journeys', async () => {
     await writeFile(join(dir, 'tasks.md'), plan(fullPlan));
     const ok = run(dir, 'bun', cli, 'tasks', 'tasks.md');
     expect(ok.exitCode).toBe(0);
-    expect(ok.stdout.toString()).toContain('2 tasks; 5 of 5 criteria and invariants have an owner');
+    expect(ok.stdout.toString()).toContain('2 tasks; 5 of 5 criteria and invariants have an owner, 5 a named test, 0 done with evidence');
     await writeFile(join(dir, 'tasks.md'), plan(fullPlan, '00000000'));
     expect(run(dir, 'bun', cli, 'tasks', 'tasks.md').stderr.toString()).toContain('Re-plan the affected tasks');
     await writeFile(join(dir, 'tasks.md'), '# No source\n');
@@ -560,4 +563,36 @@ test('Verify may carry a note and introduce a list', () => {
   const listed = fullPlan.replace('Verify: `bun test link`.', 'Verify (repo root):\n- `bun test link` — link shown.');
   expect(taskResult(plan(listed)).errors).toBe('');
   expect(taskResult(plan(fullPlan.replace('Verify: `bun test link`.', 'Verify:\n\n## T3 Next\nCovers: I1.\nVerify: manual.'))).errors).toContain('T2: needs a Verify line');
+});
+
+test('every criterion and invariant a task owns names its test; blocked tasks are exempt', () => {
+  expect(taskResult(plan(fullPlan.replace('- J1.S1.c3: invite.test.ts › malformed email\n', ''))).errors).toContain('J1.S1.c3: T1 names no test for it');
+  expect(taskResult(plan(fullPlan.replace('- I1: invite.test.ts', '- I1, J1.S2.c1: invite.test.ts'))).errors).toContain('T1: names a test for J1.S2.c1, which it does not cover');
+  expect(taskResult(plan(fullPlan.replace('Tests: J1.S2.c1: manual › create an invite and see its link\n', 'Status: Blocked (Q1)\n'))).errors).toBe('');
+  expect(taskResult(plan(fullPlan.replace('invite.test.ts › malformed email', 'invite.test.ts'))).errors).toContain('needs a name or manual step');
+});
+
+test('Done needs evidence without skipped tests', () => {
+  const done = (evidence: string) => plan(fullPlan.replace('Tests: J1.S2.c1: manual', `Status: Done\n${evidence}Tests: J1.S2.c1: manual`));
+  expect(taskResult(done('')).errors).toContain('T2: Done needs an Evidence line');
+  expect(taskResult(done('Evidence: `bun test link` 3 pass, 2 skipped\n')).errors).toContain('T2: Evidence shows skipped tests');
+  expect(taskResult(done('Evidence: `bun test link` 3 pass, 0 skipped\n')).errors).toBe('');
+});
+
+test('CLI confirms a Done task\'s tests exist and reports status per criterion', async () => {
+  const dir = await project('journeys-tests-');
+  try {
+    await writeFile(join(dir, 'feature.md'), approve(base));
+    const donePlan = plan(fullPlan.replace('Verify: `bun test invite` — non-admin refused.', 'Verify: `bun test invite`.\nStatus: Done\nEvidence: `bun test invite` 4 pass, 0 skipped'));
+    await writeFile(join(dir, 'tasks.md'), donePlan);
+    const missing = run(dir, 'bun', cli, 'tasks', 'tasks.md');
+    expect(missing.stderr.toString()).toContain('T1: test file invite.test.ts for J1.S1.c1, J1.S1.c2 does not exist');
+    await writeFile(join(dir, 'invite.test.ts'), "test('admin creates, non-admin refused'); test('malformed email');");
+    expect(run(dir, 'bun', cli, 'tasks', 'tasks.md').stderr.toString()).toContain('invite.test.ts has no test "non-admin cannot create" for I1');
+    await writeFile(join(dir, 'invite.test.ts'), "test('admin creates, non-admin refused'); test('malformed email'); test('non-admin cannot create');");
+    const status = run(dir, 'bun', cli, 'tasks', 'tasks.md', '--status');
+    expect(status.exitCode).toBe(0);
+    expect(status.stdout.toString()).toContain('| J1.S1.c3 | T1 | invite.test.ts › malformed email | Done |');
+    expect(status.stdout.toString()).toContain('4 done with evidence');
+  } finally { await rm(dir, {recursive: true, force: true}); }
 });
