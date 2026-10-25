@@ -71,7 +71,7 @@ export function parseDecisions(markdown: string) {
     for (const old of d.supersedes) {
       if (old === d.id || !decisions.has(old)) errors.push(`${d.id}: supersedes unknown decision ${old}`);
       // A draft replacement leaves the old decision in force until the owner accepts it.
-      else if (d.status === 'accepted' && decisions.get(old)!.status !== 'superseded') errors.push(`${old}: mark replaced decision superseded`);
+      else if (d.status === 'accepted' && decisions.get(old)?.status !== 'superseded') errors.push(`${old}: mark replaced decision superseded`);
     }
     if (d.answer && !decisions.has(d.answer)) errors.push(`${d.id}: answered by unknown decision ${d.answer}`);
   }
@@ -123,66 +123,74 @@ export function parseJourneys(markdown: string) {
     } else return false;
     return true;
   };
-  markdown.split('\n').forEach((raw, index) => {
+  for (const [index, raw] of markdown.split('\n').entries()) {
     const line = raw.trim(), at = `line ${index + 1}`;
-    const bad = () => { errors.push(`${at}: cannot parse "${line}"`); };
-    let m: RegExpMatchArray | null;
-    if (!line || line.startsWith('<!--')) return;
-    if ((m = line.match(/^# (.+)$/))) { if (!spec.feature) spec.feature = m[1].trim(); return; }
-    if ((m = line.match(/^## (.+)$/))) {
+    const bad = () => errors.push(`${at}: cannot parse "${line}"`);
+    if (!line || line.startsWith('<!--')) continue;
+    const title = line.match(/^# (.+)$/);
+    if (title) { if (!spec.feature) spec.feature = title[1].trim(); continue; }
+    const heading = line.match(/^## (.+)$/);
+    if (heading) {
       journey = step = undefined; inChecks = false;
-      const name = m[1].trim(), j = name.match(/^(J\d+):\s*(.+)$/);
+      const name = heading[1].trim(), j = name.match(/^(J\d+):\s*(.+)$/);
       if (j) { journey = { id: j[1], title: j[2], exits: [], checks: {}, steps: [] }; spec.journeys.push(journey); section = 'journey'; }
       else section = ['Actors', 'Goals', 'Invariants', 'Observations'].includes(name) ? name.toLowerCase() : 'prose';
-      return;
+      continue;
     }
-    if (section === 'prose') return;
-    if ((m = line.match(/^### (.+)$/))) {
+    if (section === 'prose') continue;
+    const stepHeading = line.match(/^### (.+)$/);
+    if (stepHeading) {
       inChecks = false;
-      const s = m[1].match(/^(J\d+\.S\d+[a-z]?)\s+(.+?)\s+\((person|system|external)\)$/);
-      if (!journey || !s) return bad();
+      const s = stepHeading[1].match(/^(J\d+\.S\d+[a-z]?)\s+(.+?)\s+\((person|system|external)\)$/);
+      if (!journey || !s) { bad(); continue; }
       step = { id: s[1], title: s[2], kind: s[3], basis: [], guards: [], criteria: [], edges: [] };
       journey.steps.push(step);
-      return;
+      continue;
     }
     // "Key: value · Key: value" with a known key is structure; any other text is prose.
     const first = line.match(/^([A-Z][a-z]+):/);
     if (first && keys.includes(first[1])) {
       for (const part of line.split(/\s+·\s+/)) {
         const kv = part.match(/^([A-Z][a-z]+):\s*(.*)$/);
-        if (!kv || !keys.includes(kv[1])) return bad();
-        if (!setKey(kv[1], kv[2].trim())) { errors.push(`${at}: ${kv[1]} is not valid here`); return; }
+        if (!kv || !keys.includes(kv[1])) { bad(); break; }
+        if (!setKey(kv[1], kv[2].trim())) { errors.push(`${at}: ${kv[1]} is not valid here`); break; }
       }
-      return;
+      continue;
     }
     if (/^(→|->)/.test(line)) {
       const e = line.match(/^(?:→|->)\s*(?:exit\s+([\w-]+)|(J\d+\.S\d+[a-z]?))(?:\s+when\s+(.+))?$/);
-      if (!step || !e) return bad();
-      step.edges.push({ exit: e[1], to: e[2], when: e[3]?.trim() });
-      return;
-    }
-    if (!/^[-*]\s/.test(line)) return;
-    if (section === 'actors' && (m = line.match(/^[-*]\s+([\w-]+):\s*(.+)$/))) spec.actors.push({ id: m[1], name: m[2] });
-    else if (section === 'goals' && (m = line.match(/^[-*]\s+(C\d+)\s+([\w-]+):\s*(.+?)\s*(?:→|->)\s*(.+)$/))) {
-      const [, id, actor, goal, target] = m;
-      const excluded = target.match(/^excluded\s+(X\d+)$/), other = target.match(/^(unresolved|elsewhere)\b\s*(?:—|–|--?|:)?\s*(.*)$/);
-      if (excluded) spec.goals.push({ id, actor, goal, status: 'excluded', journeys: [], decision: excluded[1] });
-      else if (other) spec.goals.push({ id, actor, goal, status: other[1] as Goal['status'], journeys: [], reason: other[2] });
-      else if (list(target).every(j => /^J\d+$/.test(j))) spec.goals.push({ id, actor, goal, status: 'mapped', journeys: list(target) });
+      if (step && e) step.edges.push({ exit: e[1], to: e[2], when: e[3]?.trim() });
       else bad();
-    } else if (section === 'invariants' && (m = line.match(/^[-*]\s+(I\d+)\s*\(([^)]*)\):\s*(.+)$/))) spec.invariants.push({ id: m[1], basis: list(m[2]), rule: m[3] });
-    else if (section === 'observations' && (m = line.match(/^[-*]\s+(O\d+):\s*(.+)$/))) {
-      const [statement, ...sources] = m[2].split(/\s*Source:\s*/);
-      spec.observations.push({ id: m[1], statement: statement.trim(), sources: sources.map(s => {
+      continue;
+    }
+    if (!/^[-*]\s/.test(line)) continue;
+    const actor = section === 'actors' && line.match(/^[-*]\s+([\w-]+):\s*(.+)$/);
+    const goal = section === 'goals' && line.match(/^[-*]\s+(C\d+)\s+([\w-]+):\s*(.+?)\s*(?:→|->)\s*(.+)$/);
+    const invariant = section === 'invariants' && line.match(/^[-*]\s+(I\d+)\s*\(([^)]*)\):\s*(.+)$/);
+    const observation = section === 'observations' && line.match(/^[-*]\s+(O\d+):\s*(.+)$/);
+    const check = journey && !step && inChecks && line.match(/^[-*]\s+([\w/-]+):\s*(.*)$/);
+    const criterion = step && line.match(/^[-*]\s+(c\d+):\s*(.+)$/);
+    if (actor) spec.actors.push({ id: actor[1], name: actor[2] });
+    else if (goal) {
+      const [, id, owner, text, target] = goal;
+      const excluded = target.match(/^excluded\s+(X\d+)$/), other = target.match(/^(unresolved|elsewhere)\b\s*(?:—|–|--?|:)?\s*(.*)$/);
+      if (excluded) spec.goals.push({ id, actor: owner, goal: text, status: 'excluded', journeys: [], decision: excluded[1] });
+      else if (other) spec.goals.push({ id, actor: owner, goal: text, status: other[1] as Goal['status'], journeys: [], reason: other[2] });
+      else if (list(target).every(j => /^J\d+$/.test(j))) spec.goals.push({ id, actor: owner, goal: text, status: 'mapped', journeys: list(target) });
+      else bad();
+    } else if (invariant) spec.invariants.push({ id: invariant[1], basis: list(invariant[2]), rule: invariant[3] });
+    else if (observation) {
+      const [statement, ...sources] = observation[2].split(/\s*Source:\s*/);
+      spec.observations.push({ id: observation[1], statement: statement.trim(), sources: sources.map(s => {
         const src = s.replace(/;\s*$/, '').match(/^(\S+)@(\S+)\s+(.+)$/);
         return src ? { ref: src[1], revision: src[2], locator: src[3] } : {};
       }) });
-    } else if (journey && !step && inChecks && (m = line.match(/^[-*]\s+([\w/-]+):\s*(.*)$/))) {
-      if (journey.checks[m[1]]) errors.push(`${journey.id}: duplicate ${m[1]} check`);
-      journey.checks[m[1]] = parseCheck(m[2].trim());
-    } else if (step && (m = line.match(/^[-*]\s+(c\d+):\s*(.+)$/))) step.criteria.push([m[1], m[2]]);
+    } else if (journey && check) {
+      if (journey.checks[check[1]]) errors.push(`${journey.id}: duplicate ${check[1]} check`);
+      journey.checks[check[1]] = parseCheck(check[2].trim());
+    } else if (step && criterion) step.criteria.push([criterion[1], criterion[2]]);
     else bad();
-  });
+  }
   return { spec, errors };
 }
 
@@ -207,7 +215,7 @@ function cited(spec: Spec, decisions: Map<string, Decision>) {
 // Covers the parsed structure and the text of every cited decision, so editing
 // policy or journeys invalidates an approval; editing prose does not.
 export function approvalHash(spec: Spec, decisions: Map<string, Decision>) {
-  const { approval, ...rest } = spec;
+  const rest = { ...spec, approval: undefined };
   const policy = cited(spec, decisions).map(id => { const d = decisions.get(id); return d ? [id, d.status, d.text] : [id]; });
   return new Bun.CryptoHasher('sha256').update(JSON.stringify([rest, policy])).digest('hex').slice(0, 8);
 }
@@ -319,13 +327,13 @@ export function validate(spec: Spec, decisions: Map<string, Decision>, ready = f
       if (!st.edges.length) err(`${st.id}: needs a "→ J<n>.S<n>" or "→ exit <name>" line`);
       for (const e of st.edges) {
         if (st.edges.length > 1 && !e.when) err(`${st.id}: each of several branches needs a when`);
-        if (e.to) { if (j.steps.some(s => s.id === e.to)) graph.get(st.id)!.push(e.to); else err(`${st.id}: missing target ${e.to}`); }
-        else if (!j.exits.includes(e.exit!)) err(`${st.id}: unknown exit ${e.exit}`);
+        if (e.to) { if (j.steps.some(s => s.id === e.to)) graph.get(st.id)?.push(e.to); else err(`${st.id}: missing target ${e.to}`); }
+        else if (!e.exit || !j.exits.includes(e.exit)) err(`${st.id}: unknown exit ${e.exit}`);
         else terminals.add(st.id);
       }
     }
     const reached = new Set<string>(), pending = [j.steps[0].id];
-    while (pending.length) { const id = pending.pop()!; if (reached.has(id)) continue; reached.add(id); pending.push(...(graph.get(id) ?? [])); }
+    for (let id = pending.pop(); id !== undefined; id = pending.pop()) { if (reached.has(id)) continue; reached.add(id); pending.push(...(graph.get(id) ?? [])); }
     for (const id of graph.keys()) if (!reached.has(id)) err(`${id}: unreachable from ${j.steps[0].id}`);
     const canExit = new Set(terminals);
     let changed = true;
@@ -358,7 +366,7 @@ export function validate(spec: Spec, decisions: Map<string, Decision>, ready = f
     if (g.status !== 'mapped' && g.status !== 'excluded' && !g.reason) err(`${g.id}: ${g.status} goal needs a reason`);
     if (g.status === 'unresolved') gate(`${g.id}: unresolved goal`);
     if (g.status === 'excluded') {
-      const d = decisions.get(g.decision!);
+      const d = g.decision ? decisions.get(g.decision) : undefined;
       if (!d || ['superseded', 'retired'].includes(d.status)) err(`${g.id}: exclusion must cite an active X decision`);
       else if (d.status !== 'accepted') gate(`${g.id}: exclusion ${g.decision} is not accepted`);
     }
@@ -367,7 +375,7 @@ export function validate(spec: Spec, decisions: Map<string, Decision>, ready = f
 
   // Listed first: an open owner decision matters more than any other warning.
   (ready ? errors : warnings).unshift(...[...unresolved].map(([id, owners]) =>
-    `${id} is ${decisions.get(id)!.status}; cited by ${owners.slice(0, 8).join(', ')}${owners.length > 8 ? ` and ${owners.length - 8} more` : ''}`));
+    `${id} is ${decisions.get(id)?.status}; cited by ${owners.slice(0, 8).join(', ')}${owners.length > 8 ? ` and ${owners.length - 8} more` : ''}`));
 
   if (new Set(spec.retired).size !== spec.retired.length) err('Duplicate retired IDs');
   for (const id of spec.retired) {
@@ -433,7 +441,7 @@ if (import.meta.main) {
       const errors = [...parseErrors, ...parsed.errors, ...result.errors];
       if (errors.length) throw Error(errors.join('\n'));
       const screens = [...result.screens].map(([screen, steps]) => `${screen} (${steps.join(', ')})`).join('; ');
-      console.log(`ok: ${ready ? 'ready' : 'draft'} check ${input}; ${result.rules.size} rules; ${result.warnings.length} warnings.${ready ? ` Approved by ${spec.approval!.id}.` : ''} Tests were not run.`);
+      console.log(`ok: ${ready ? 'ready' : 'draft'} check ${input}; ${result.rules.size} rules; ${result.warnings.length} warnings.${ready ? ` Approved by ${spec.approval?.id}.` : ''} Tests were not run.`);
       if (screens) console.log(`screens: ${screens}`);
     }
   } catch (e) {
