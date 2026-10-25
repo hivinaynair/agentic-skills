@@ -1,42 +1,53 @@
 ---
 name: journeys
-description: Map agreed requirements or existing behavior into actor paths, failure branches and testable criteria. Use to specify or review a feature's journeys; skip trivial edits and do not invent product policy.
+description: Map how people move through a feature, from goal to every outcome they can see, as screens, steps and testable criteria, ending in an owner-approved spec ready to build. Use after decisions exist, to map user journeys, check a spec is ready, or reconstruct a feature from existing code.
 ---
 
 # Journeys
 
-Input: agreed requirements or code to review; decide is optional. Output:
-`docs/journeys/<feature>.yaml` and generated adjacent Markdown. Respect project
-instructions and formats; incompatible formats require manual review or an
-explicit migration, not silent conversion.
+You map each person's path through a feature, from their goal to every outcome
+they can see. Write one Markdown file per feature, `docs/journeys/<feature>.md`,
+in the [journey format](references/format.md). Every step rests on owner decisions
+in the project's decision record. Ask missing product questions the decide way:
+one at a time, with a recommendation, recorded as a Q line.
 
-1. Inventory actors, goals and recovery entry points from the request and sources
-   **before** detailing journeys. Mark goals mapped, excluded or unresolved;
-   map only represented behavior; leave unknown goals unresolved. Exclusions need
-   accepted scope policy. Do not derive coverage only from the
-   graph already drawn. Keep scope bounded; reuse settled answers.
-2. Read the [schema](references/schema.md) when writing the spine. Identify the few
-   cross-path invariants. Ground behavior in accepted decisions, source-backed O
-   observations, or open Q references for drafts; never manufacture draft decisions
-   from code. Keep gaps as Qs/open coverage/reviews, never placeholder behavior;
-   block only affected paths.
-3. List journeys, then steps and labeled branches. Steps cite their policy/evidence
-   and invariants they could break. Human, system and external steps need a surface
-   only when one exists. Every branch reaches an outcome or reconnects.
-4. Apply the [branch review](references/branches.md). For existing-code or plan/code
-   comparison, also read [existing-project review](references/existing-projects.md).
-   Write one observable behavior per EARS-style criterion (Easy Approach to
-   Requirements Syntax): `WHEN … THE SYSTEM SHALL …`, `WHILE … THE SYSTEM SHALL …`,
-   or `IF … THE SYSTEM SHALL NOT …`. State forbidden effects for invariant risks;
-   use precise states and justified quantities, not invented limits or vague timing.
-5. Walk normal, incomplete and exception cases; compare inventory against source
-   goals/recovery paths and verify mappings. Report code/policy conflicts without
-   changing policy. Keep IDs permanent; retain removals in `retired`. Changed meaning
-   needs a new ID; wording fixes may keep it. Review downstream links after changes.
-6. With Bun, run the schema's bundled validate/render/check commands. `--coverage`
-   checks inventory independently; `--ready` also requires approved policy and branch
-   reviews. Observations alone cannot pass readiness. Without Bun, report manual
-   review; never claim automated checks ran or install tools implicitly.
+## Steps
 
-Separate reference checks, executed tests and assertion review. A linked test is
-not behavior proof. Preserve host testing conventions; do not rename unrelated tests.
+1. **Goals.** List every actor goal for this feature from the decisions and sources,
+   including recovery goals such as a link that stopped working. Mark each one mapped
+   to journeys, excluded by an accepted X, covered elsewhere (another spec), or
+   unresolved. Done when every goal of this feature has a line.
+
+2. **Journeys.** Write each path from the person's first action to every exit.
+   Person steps name the screen and what the person sees, including pending, empty
+   and error states. System steps hold the rules a person never sees directly.
+   Each step cites its Basis and has EARS criteria. Done when every step reaches an exit.
+
+3. **Invariants.** Write the few "never" rules that hold across paths, such as
+   "never two memberships per account". Races, duplicate events and crashes become
+   invariants; the builder decides how to hold them. Done when every money, access
+   and data-integrity effect has an invariant.
+
+4. **Outcome checks.** Answer [denied, invalid, failed and repeated](references/checks.md)
+   for each journey: cite criteria or decisions, mark n/a with a reason, or mark open
+   with the blocking Q. Done when every journey answers all four.
+
+5. **Check and review.** List the decisions this feature must honor on a `Scope:`
+   line. Run `bun <skill-dir>/scripts/journeys.ts check docs/journeys/<feature>.md`
+   and fix every error. Then run `check --review` and read each step beside the text
+   it rests on: every criterion follows from it, each criterion is one behavior, and
+   nothing contradicts another decision. Fix the spec or ask. Done when both pass.
+
+6. **Ready.** When `check --ready` fails only on approval, give the owner a short
+   Ready summary: goals covered, non-goals, screens, external systems involved
+   (payment, messaging, identity providers), builder work left, and other specs
+   that cite a decision this one supersedes. Ask "Approve for build?". On yes,
+   add `- D<n> accepted — Approved for build: <feature> J1–J<n>` to the decision
+   record and run `approve docs/journeys/<feature>.md D<n>`. Done when
+   `check --ready` passes.
+
+Changing the journeys or the decisions they cite makes the approval stale; repeat
+Ready. If the project keeps an index of journeys, add this file to it. For an
+existing feature, start with [existing code](references/existing-projects.md).
+Reply with what changed, open questions and the next step. An approved spec is
+complete enough to build; tests and running code prove the behavior.

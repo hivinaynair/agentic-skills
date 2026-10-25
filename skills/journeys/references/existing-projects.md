@@ -1,26 +1,20 @@
-# Reviewing existing behavior
+# Existing code
 
-Use for code reconstruction or plan/code comparison within the requested feature.
+Use this when mapping a feature that already exists.
 
-1. Inventory entry points, durable writes, external handoffs and final consumers,
-   including manual, automatic and scheduled recovery affecting the same state.
-   Record review boundaries separately from approved scope exclusions.
-2. Compare producer outputs with consumer interpretation: normal, null/empty,
-   partial and error results. HTTP/resolved-call success proves neither a durable
-   job identity nor a completed effect.
-3. Follow representative values through error producers, retry eligibility,
-   provider classifiers and UI. Label constructed probes; do not claim they occur
-   in production without an actual producer or runtime evidence.
-4. Track writes around external effects and failure-recording failures. Distinguish
-   stored identity, acknowledgment, completion and recovery. Label untested crash
-   or race outcomes as deductions.
-5. Inspect assertions: helper tests, source-text checks, mocked integration, real
-   integration or live observation. A test title proves nothing about execution.
-6. Report source path/revision, condition, consequence and evidence level. Run
-   bounded read-only probes when useful; do not install dependencies or start
-   services implicitly.
+1. **Entry points.** List every way into the feature: screens, endpoints, jobs and
+   retries that change the same state. Each becomes a goal; a goal another spec
+   already covers is `→ elsewhere: <spec>`.
+2. **Observations.** Record what the code does as O lines with a source:
+   `- O1: Retries reset the job before queueing it. Source: src/retry.ts@abc123 retryJob`.
+   Cite them in Basis. The owner decides which become accepted decisions.
+3. **Handoffs.** Where one component calls another, compare what the producer can
+   return (success, empty, partial, error) with what the consumer handles. Gaps are
+   open checks or questions.
+4. **Writes and effects.** Follow writes before and after external calls. Ask what
+   a crash between them leaves behind. Report it as a deduction unless a test exercises it.
+5. **Tests.** Read what each test asserts, beyond its title. Say whether evidence
+   is a unit test, a mocked integration, a real integration or a live observation.
 
-Use source-backed O observations for descriptions, never draft D transcriptions.
-Inventory from sources before graph mapping. Report coverage and branch-review
-results separately; the schema defines their gates. Observations never approve
-future policy, even when structural validation passes.
+A draft `check` passes on observations alone. `--ready` needs accepted decisions,
+because the owner, not the current code, sets policy.

@@ -1,33 +1,53 @@
 # Decision record
 
-Default: `docs/decisions.md`. Keep one authoritative record; downstream docs cite
-its IDs. For vague tickets, briefly state the users' problem, intended outcome and
-constraints with sources. Unknown or contradictory policy becomes Q rows, not
-invented requirements.
-Label alternatives rejected only when a source rules them out.
+One file, normally `docs/decisions.md`. Each item is one line:
+`- <ID> <status> — <text>`. The journeys checker reads these lines, and also table
+rows with `ID`, `Status` and `Decision` columns, so an existing table record works
+as it is. Keep each ID in one place. Everything else is free prose.
 
-The optional checker expects these columns. No literal pipes inside cells; ID,
-Status and Decision must be nonempty. Use actual conversation dates.
+```markdown
+# Invitations decisions
 
-| ID | Status | Decision | Why | Alternatives | Source | Date | Supersedes |
-|---|---|---|---|---|---|---|---|
-| D1 | accepted | Only admins can invite | Restrict membership changes | All members: rejected | Owner request | 2026-10-15 | |
-| X1 | accepted | No email delivery | Shareable links suffice | Send email: rejected | Owner request | 2026-10-15 | |
-| Q1 | open | Which role does acceptance grant? | PM answers; blocks new membership; recommend an existing default role if available | Fixed role; inviter selects | Unspecified in ticket | 2026-10-15 | |
+## Frame
+- D1 accepted — Problem: admins add teammates by sharing one login.
+- D2 accepted — Primary user: a workspace admin.
+- D3 accepted — First usable outcome: the admin shares a link and the teammate joins.
+- D4 accepted — Success signal: no shared logins a month after launch.
+- X1 accepted — Email delivery is out of scope.
 
-- **D**: decision. **X**: explicit scope exclusion. Status: `draft`, `accepted`,
-  `superseded` or `retired`. Only accepted D/X rows support readiness.
-- **Q**: question, with `open`, `resolved` or `retired` status. Include answer owner,
-  blocked work and recommendation in Why; label unknown ownership. Recommendations
-  from implementers without policy authority remain proposals.
-- When Q1 is answered, retain it as `resolved`, link the new accepted D ID in its
-  Decision cell, and update dependent journeys to cite D. Resolved Q rows are not policy.
-- When accepted D1 changes meaning, mark it `superseded`; add D2 with
-  `Supersedes: D1` and review affected references. Drafts may change in place;
-  rejected drafts become `retired`. Preserve history and never reuse IDs.
+## Decisions
+- D5 accepted — Only admins can invite. Why: membership is an admin power.
+- D6 superseded — Links expire after 48 hours.
+- D7 accepted — Links expire after 72 hours. Supersedes: D6
+- D8 accepted — Failure default: the person sees a retryable error and no partial change is kept.
+- D9 accepted — Accepted invites grant the member role.
+- D10 accepted — Approved for build: invitations J1–J3.
 
-Keep sourced observations and labeled assumptions in prose only when needed.
-Once a journey spine exists, observations live there as O IDs with source
-`ref`, `revision` and `locator`; link them instead of duplicating definitions.
-Never transcribe code into draft D rows merely to satisfy the checker. Observations
-and assumptions do not confer approval.
+## Questions
+- Q1 resolved — Which role does an accepted invite grant? Recommend: member. Answered by D9.
+- Q2 open — Can an admin revoke a used link? Recommend: no. Blocks: J2.S1. Owner: PM.
+- Q3 open — Show the inviter's name on the join page? Recommend: yes. Default.
+```
+
+| Prefix | Meaning | Statuses |
+|---|---|---|
+| D | owner decision | draft, accepted, superseded, retired |
+| X | non-goal or exclusion | draft, accepted, superseded, retired |
+| Q | open product question | open, deferred, resolved, retired |
+
+- **Frame** holds the five framing decisions for a new idea. Existing features skip it.
+- **Why** is optional; add it when the reason is not obvious.
+- **Questions** carry a recommendation, either `Blocks: <IDs>` (the answer changes
+  the slice) or `Default` (safe to accept as recommended), and who answers
+  (`Owner: PM`, or `Owner: unknown`). The owner can accept every default at once.
+- **Draft** lines are for text the owner asked you to write up for confirmation.
+- **Changing a decision:** end the new line with `Supersedes: D6`. While the new line
+  is a draft, D6 stays in force; on acceptance, mark D6 superseded. The checker then
+  flags every step still citing D6. To replace part of a decision, restate the part
+  that still holds in the new line.
+- **Resolving a question:** keep the question, mark it resolved and add
+  `Answered by D9`. Journeys that cite Q1 then rest on D9 without renumbering.
+- **IDs are permanent:** retire a line instead of deleting or reusing its ID.
+- **Approval** is the D line the owner accepts after the journeys Ready summary.
+- **Observations** (what code does today) live in the journey file as O lines; link
+  them from here if useful.
