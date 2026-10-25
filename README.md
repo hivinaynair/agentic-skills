@@ -17,7 +17,7 @@ you plainly when the spec is complete enough to build.
 
 | Skill | Use it when | You get |
 |---|---|---|
-| **decide** | You have an idea or a request and the rules are not settled | `docs/decisions.md`: your decisions, what is out of scope, and open questions |
+| **decide** | You have an idea, a request or a vague ticket, and the rules are not settled | `docs/decisions.md`: your decisions, what is out of scope, and open questions |
 | **journeys** | The decisions exist and you want to see how the feature behaves | `docs/journeys/<feature>.md`: each path a person takes, screen by screen, including errors |
 | **tasks** | The spec is approved and you are ready to build | `docs/tasks/<feature>.md`: the build broken into usable pieces, in order |
 
@@ -32,7 +32,9 @@ it is for, the first thing they should be able to do, what is out of scope and h
 you will know it worked. Then it asks the questions that block the work one at a
 time, each with a recommendation, such as *"How long should a reset link work? I
 suggest 30 minutes."* Safe defaults come as one batch you can accept together.
-Every answer becomes one line:
+Given a vague company ticket instead ("Add CSV export to reports"), it first works
+out who needs it and what outcome would satisfy it, and names who should answer each
+question, such as the PM, without contacting them for you. Every answer becomes one line:
 
 ```markdown
 - D6 accepted — A reset link works once and expires 30 minutes after it is sent.

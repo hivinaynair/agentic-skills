@@ -25,7 +25,7 @@ as it is. Keep each ID in one place. Everything else is free prose.
 
 ## Questions
 - Q1 resolved — Which role does an accepted invite grant? Recommend: member. Answered by D9.
-- Q2 open — Can an admin revoke a used link? Recommend: no. Blocks: J2.S1.
+- Q2 open — Can an admin revoke a used link? Recommend: no. Blocks: J2.S1. Owner: PM.
 - Q3 open — Show the inviter's name on the join page? Recommend: yes. Default.
 ```
 
@@ -37,9 +37,9 @@ as it is. Keep each ID in one place. Everything else is free prose.
 
 - **Frame** holds the five framing decisions for a new idea. Existing features skip it.
 - **Why** is optional; add it when the reason is not obvious.
-- **Questions** carry a recommendation and either `Blocks: <IDs>` (the answer changes
-  the slice) or `Default` (safe to accept as recommended). The owner can accept every
-  default at once.
+- **Questions** carry a recommendation, either `Blocks: <IDs>` (the answer changes
+  the slice) or `Default` (safe to accept as recommended), and who answers
+  (`Owner: PM`, or `Owner: unknown`). The owner can accept every default at once.
 - **Draft** lines are for text the owner asked you to write up for confirmation.
 - **Changing a decision:** end the new line with `Supersedes: D6`. While the new line
   is a draft, D6 stays in force; on acceptance, mark D6 superseded. The checker then
