@@ -6,7 +6,7 @@
   "scripts": {
     "test": "bun test",
     "check": "bun run scripts/check-skills.ts",
-    "check:example": "bun skills/journeys/scripts/journeys.ts check examples/team-invitations/journeys/invitations.md && bun skills/journeys/scripts/journeys.ts check examples/password-reset/journeys/password-reset.md --ready",
+    "check:example": "bun skills/journeys/scripts/journeys.ts check examples/team-invitations/journeys/invitations.md && bun skills/journeys/scripts/journeys.ts check examples/password-reset/journeys/password-reset.md --ready && bun skills/journeys/scripts/journeys.ts tasks examples/password-reset/tasks/password-reset.md",
     "verify": "bun run check && bun test && bun run check:example"
   },
   "engines": {

@@ -67,7 +67,9 @@ longer counts until you approve again.
 
 **4. tasks plans the build.** It splits the work into pieces a person can actually
 use, says which can be built in parallel, notes how to work with outside services
-such as payment providers, and gives each piece a way to verify it.
+such as payment providers, and names the test that will prove each rule. A piece
+counts as done only with evidence, and `journeys.ts tasks <plan> --status` shows
+which rules are built and proven.
 
 ## Who decides what
 
@@ -127,8 +129,12 @@ Run `bun run verify` to check the skills, tests and examples.
 In a small blind-judged trial (2026-10-25), agents using these skills invented no
 product rules and gave the clearest "ready or not" answer, with about half the text
 of agents without them. Agents without the skills went deeper on payment-provider
-details, which these skills leave to the task plan. One run per case, so treat it
-as a direction, not a measurement.
+details, which these skills leave to the task plan. A trial of the tasks skill on two real
+codebases first scored level with planning without it; after tightening the skill, a
+rerun on kubera scored 36 to 32, with a named test per rule, questions raised instead
+of decided, and the spec landed in the repo. Agents without the skill still read the
+code slightly more deeply. One run per case, so treat these as
+a direction, not a measurement.
 
 ## Background
 

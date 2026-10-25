@@ -400,14 +400,193 @@ export function validate(spec: Spec, decisions: Map<string, Decision>, ready = f
   return { errors, warnings, rules, screens };
 }
 
+// Task plans: "## T1 Title" sections with "Covers:" and "Needs:" lines, an optional
+// index table with a Needs column, and a Source line linking the journeys file with
+// the approval it was built on: "Source: [journeys](../journeys/x.md), approved by D11 b6fa08c8".
+export type TaskTest = { ids: string[]; path?: string; locator: string };
+export type Task = { id: string; covers: string[]; coversLine?: boolean; needs: string[]; indexNeeds?: string[]; section: boolean; verify: boolean; tests: TaskTest[]; evidence?: string; status?: string; parallel?: string };
+const taskId = /\bT(?:\d+|-[A-Za-z0-9][\w-]*)\b/g;
+const specRef = /\b(?:J\d+(?:\.S\d+[a-z]?(?:\.c\d+)?)?|I\d+)\b/g;
+// Parenthetical notes such as "I2 (issuing links)" or "(after T-REMINDERS)" are prose.
+const refsIn = (text: string, pattern: RegExp) => text.replace(/\([^)]*\)/g, '').match(pattern) ?? [];
+export function parseTasks(markdown: string) {
+  const tasks = new Map<string, Task>(), errors: string[] = [];
+  const source: { path?: string; approval?: string } = {};
+  const get = (id: string, section: boolean) => {
+    const existing = tasks.get(id);
+    if (existing && section && existing.section) errors.push(`Duplicate task ${id}`);
+    const task = existing ?? { id, covers: [], needs: [], section, verify: false, tests: [] };
+    task.section ||= section;
+    tasks.set(id, task);
+    return task;
+  };
+  // "- J1.S2.c1, J1.S2.c2: path/to/file.test.ts › test name" or "- J1.S2.c3: manual › what to do".
+  const addTest = (task: Task, text: string) => {
+    const m = text.match(/^([^:]+):\s*(.+)$/);
+    const ids = m ? refsIn(m[1], specRef) : [];
+    if (!m || !ids.length) { errors.push(`${task.id}: cannot read test "${text}"`); return; }
+    const [where, ...rest] = m[2].split(/\s+(?:›|>)\s+/);
+    const unquote = (v: string) => v.trim().replace(/^[`"']|[`"']$/g, '');
+    task.tests.push({ ids, path: /^manual$/i.test(where.trim()) ? undefined : unquote(where), locator: unquote(rest.join(' › ')) });
+  };
+  let current: Task | undefined, headers: string[] = [], block: 'verify' | 'tests' | undefined;
+  for (const raw of markdown.split('\n')) {
+    const line = raw.trim();
+    // "Verify:" and "Tests:" may introduce a list on the following lines.
+    if (current && block === 'tests' && /^[-*]\s/.test(line)) { addTest(current, line.replace(/^[-*]\s+/, '')); continue; }
+    if (current && block === 'verify' && line) current.verify ||= !/^[A-Z][a-z]+\b[^:]*:\s*$/.test(line) && !line.startsWith('#');
+    if (line) block = undefined;
+    const src = !current && line.match(/^Source:.*?\]\(([^)]+\.md)[^)]*\)(?:.*?\bapproved by D\d+\s+([0-9a-f]{8}))?/i);
+    if (src) { source.path = src[1]; source.approval = src[2]; continue; }
+    if (line.startsWith('|')) {
+      const cells = line.split('|').slice(1, -1).map(c => c.trim());
+      const cell = (h: string) => headers.includes(h) ? cells[headers.indexOf(h)] ?? '' : undefined;
+      if (cells[0] === 'ID') headers = cells;
+      else if (/^T(?:\d+|-[\w-]+)$/.test(cells[0] ?? '')) {
+        const task = get(cells[0], false);
+        const needs = cell('Needs');
+        if (needs !== undefined) task.indexNeeds = refsIn(needs, taskId);
+        task.status ??= cell('Status');
+        task.parallel ??= cell('Parallel');
+      }
+      continue;
+    }
+    const heading = line.match(/^## (T(?:\d+|-[\w-]+))\b/);
+    if (heading) { current = get(heading[1], true); continue; }
+    if (line.startsWith('## ')) { current = undefined; continue; }
+    const field = current && line.match(/^(Covers|Needs|Verify|Tests|Evidence|Status|Parallel)\b(?:\s*\([^)]*\))?:\s*(.*)$/);
+    if (current && field) {
+      if (field[1] === 'Covers') { current.covers.push(...refsIn(field[2], specRef)); current.coversLine = true; }
+      else if (field[1] === 'Needs') current.needs.push(...refsIn(field[2], taskId));
+      else if (field[1] === 'Verify') { current.verify ||= field[2].trim().length > 0; if (!field[2].trim()) block = 'verify'; }
+      else if (field[1] === 'Tests') { if (field[2].trim()) addTest(current, field[2].trim()); else block = 'tests'; }
+      else if (field[1] === 'Evidence') current.evidence = field[2].trim();
+      else if (field[1] === 'Status') current.status = field[2].trim();
+      else current.parallel = field[2].trim();
+    }
+  }
+  for (const t of tasks.values()) {
+    if (t.indexNeeds && t.section && t.needs.length && [...new Set(t.indexNeeds)].sort().join() !== [...new Set(t.needs)].sort().join())
+      errors.push(`${t.id}: index Needs (${t.indexNeeds.join(', ') || '—'}) and section Needs (${t.needs.join(', ')}) disagree`);
+    if (!t.needs.length) t.needs = t.indexNeeds ?? [];
+  }
+  return { tasks: [...tasks.values()], source, errors };
+}
+
+export function validateTasks(tasks: Task[], source: { approval?: string }, spec: Spec, decisions: Map<string, Decision>) {
+  const errors: string[] = [], warnings: string[] = [];
+  const journeys = new Map(spec.journeys.map(j => [j.id, j]));
+  const steps = new Map(spec.journeys.flatMap(j => j.steps.map(st => [st.id, st] as const)));
+  const targets = [...spec.journeys.flatMap(j => j.steps.flatMap(st => st.criteria.map(([k]) => `${st.id}.${k}`))), ...spec.invariants.map(i => i.id)];
+  const owners = new Map(targets.map(id => [id, [] as string[]]));
+  const ids = new Set(tasks.map(t => t.id));
+  const fileTests: { task: string; ids: string[]; path: string; locator: string }[] = [];
+  for (const t of tasks) {
+    if (!t.section) warnings.push(`${t.id}: listed in the index but has no "## ${t.id}" section`);
+    else if (!t.coversLine) errors.push(`${t.id}: needs a Covers line naming journeys, steps, criteria or invariants (or "none" for delivery work)`);
+    for (const ref of new Set(t.covers)) {
+      const covered = journeys.get(ref)?.steps.flatMap(st => st.criteria.map(([k]) => `${st.id}.${k}`))
+        ?? steps.get(ref)?.criteria.map(([k]) => `${ref}.${k}`)
+        ?? (owners.has(ref) ? [ref] : undefined);
+      if (!covered) errors.push(`${t.id}: covers unknown ${ref}`);
+      for (const id of covered ?? []) owners.get(id)?.push(t.id);
+    }
+    for (const need of new Set(t.needs)) {
+      if (need === t.id) errors.push(`${t.id}: needs itself`);
+      else if (!ids.has(need)) errors.push(`${t.id}: needs unknown task ${need}; name work outside this plan in its Blocked reason`);
+    }
+    if (t.section && !t.verify) errors.push(`${t.id}: needs a Verify line with a command or exact check`);
+    // Every criterion and invariant a task owns names the test that proves it.
+    const owned = new Set(t.covers.flatMap(ref => journeys.get(ref)?.steps.flatMap(st => st.criteria.map(([k]) => `${st.id}.${k}`))
+      ?? steps.get(ref)?.criteria.map(([k]) => `${ref}.${k}`) ?? (owners.has(ref) ? [ref] : [])));
+    const tested = new Set(t.tests.flatMap(test => test.ids));
+    for (const test of t.tests) {
+      if (!test.locator) errors.push(`${t.id}: test for ${test.ids.join(', ')} needs a name or manual step after "›"`);
+      for (const id of test.ids) if (!owned.has(id)) errors.push(`${t.id}: names a test for ${id}, which it does not cover`);
+    }
+    if (t.section && !/^blocked/i.test(t.status ?? '')) for (const id of owned) if (!tested.has(id)) errors.push(`${id}: ${t.id} names no test for it`);
+    if (/^done\b/i.test(t.status ?? '')) {
+      if (!t.evidence) errors.push(`${t.id}: Done needs an Evidence line with the command run and its result`);
+      else if (/\b[1-9]\d*\s+skip/i.test(t.evidence)) errors.push(`${t.id}: Evidence shows skipped tests; a skipped test proves nothing`);
+    }
+    // Done and Built both claim the code exists, so their named tests must exist too.
+    if (/^(done|built)\b/i.test(t.status ?? '')) for (const test of t.tests) if (test.path) fileTests.push({ task: t.id, ids: test.ids, path: test.path, locator: test.locator });
+    // A task blocked on a question needs that question to exist and still be open.
+    for (const q of /^blocked/i.test(t.status ?? '') ? (t.status ?? '').match(/\bQ\d+\b/g) ?? [] : []) {
+      const d = decisions.get(q);
+      if (!d) warnings.push(`${t.id}: blocked on ${q}, which is not in the decision record`);
+      else if (!['open', 'deferred'].includes(d.status)) warnings.push(`${t.id}: blocked on ${q}, which is ${d.status}; unblock the task`);
+    }
+    if (/^blocked\s*$/i.test(t.status ?? '')) warnings.push(`${t.id}: Blocked needs a reason, such as "Blocked (Q4)"`);
+    if (/^start now/i.test(t.parallel ?? '') && t.needs.length) warnings.push(`${t.id}: marked start now but needs ${t.needs.join(', ')}`);
+  }
+  const blocked = new Set(tasks.filter(t => /^blocked/i.test(t.status ?? '')).map(t => t.id));
+  const onlyBlocked = [...owners].filter(([, by]) => by.length && by.every(id => blocked.has(id))).map(([id]) => id);
+  if (onlyBlocked.length) warnings.push(`Owned only by blocked tasks: ${onlyBlocked.join(', ')}`);
+  for (const [id, by] of owners) {
+    if (!by.length) errors.push(`${id}: no task covers it`);
+    else if (new Set(by).size > 1 && !id.startsWith('I')) warnings.push(`${id}: covered by ${[...new Set(by)].join(' and ')}; give one task ownership`);
+  }
+  // Dependency cycles make the order impossible.
+  const state = new Map<string, 'open' | 'done'>(), byId = new Map(tasks.map(t => [t.id, t]));
+  const visit = (id: string, path: string[]) => {
+    if (state.get(id) === 'done') return;
+    if (state.get(id) === 'open') { errors.push(`Dependency cycle: ${[...path.slice(path.indexOf(id)), id].join(' → ')}`); return; }
+    state.set(id, 'open');
+    for (const need of byId.get(id)?.needs ?? []) if (byId.has(need)) visit(need, [...path, id]);
+    state.set(id, 'done');
+  };
+  for (const t of tasks) visit(t.id, []);
+  // The plan must be built on the journeys' current approval.
+  const current = approvalHash(spec, decisions);
+  if (!spec.approval) warnings.push('Journeys are not approved; plan only what the owner asks for');
+  else if (spec.approval.hash !== current) errors.push(`Journeys approval ${spec.approval.id} is stale; re-approve the journeys before planning`);
+  else if (!source.approval) warnings.push(`Stamp the approval in the Source line: "approved by ${spec.approval.id} ${spec.approval.hash}"`);
+  else if (source.approval !== spec.approval.hash) errors.push(`Plan was built on approval ${source.approval}; the journeys are now approved as ${spec.approval.hash}. Re-plan the affected tasks and update the Source line`);
+  // One row per criterion and invariant: who builds it, what proves it, where it stands.
+  const byTask = new Map(tasks.map(t => [t.id, t]));
+  const report = targets.map(id => {
+    const by = [...new Set(owners.get(id) ?? [])];
+    const tests = by.flatMap(owner => byTask.get(owner)?.tests.filter(x => x.ids.includes(id)) ?? []);
+    return { id, task: by.join(', ') || '—', test: tests.map(x => `${x.path ?? 'manual'} › ${x.locator}`).join('; ') || '—',
+      manual: tests.length > 0 && tests.every(x => !x.path), status: by.map(owner => byTask.get(owner)?.status || '—').join('; ') || '—' };
+  });
+  return { errors, warnings, fileTests, report, covered: targets.length - [...owners.values()].filter(by => !by.length).length, total: targets.length };
+}
+
 if (import.meta.main) {
   try {
-    const usage = 'Usage: bun journeys.ts check feature.md [--ready] [--verbose] [--review] | approve feature.md D<n>';
+    const usage = 'Usage: bun journeys.ts check feature.md [--ready] [--verbose] [--review] | approve feature.md D<n> | tasks tasks.md [--status]';
     const [cmd, input, ...rest] = process.argv.slice(2);
     if (['.yaml', '.yml'].includes(extname(input ?? ''))) throw Error(`${input} uses the retired YAML format; write the journeys as Markdown (see references/format.md)`);
-    if (!['check', 'approve'].includes(cmd) || !input || extname(input) !== '.md') throw Error(usage);
+    if (!['check', 'approve', 'tasks'].includes(cmd) || !input || extname(input) !== '.md') throw Error(usage);
     const snapshotRoot = process.env.JOURNEYS_SNAPSHOT_ROOT;
     const read = async (path: string) => Bun.file(await snapshotRead(path, snapshotRoot)).text();
+    if (cmd === 'tasks') {
+      const plan = parseTasks(await read(input));
+      if (!plan.source.path) throw Error('Add a Source line linking the journeys file: "Source: [journeys](../journeys/<feature>.md), approved by D<n> <hash>"');
+      const journeysPath = resolve(dirname(input), plan.source.path);
+      const parsedSpec = parseJourneys(await read(journeysPath));
+      const record = parsedSpec.spec.decisions ? parseDecisions(await read(resolve(dirname(journeysPath), parsedSpec.spec.decisions))) : { decisions: new Map<string, Decision>(), errors: [] };
+      for (const flag of rest) if (flag !== '--status') throw Error(`Unknown option ${flag}`);
+      const result = validateTasks(plan.tasks, plan.source, parsedSpec.spec, record.decisions);
+      // A Done task's named tests must exist. Paths are relative to where the check runs: the repository root.
+      for (const test of result.fileTests) {
+        const file = Bun.file(resolve(test.path));
+        if (!await file.exists()) result.errors.push(`${test.task}: test file ${test.path} for ${test.ids.join(', ')} does not exist`);
+        else if (!(await file.text()).includes(test.locator)) result.errors.push(`${test.task}: ${test.path} has no test "${test.locator}" for ${test.ids.join(', ')}`);
+      }
+      if (rest.includes('--status')) {
+        console.log('| Criterion | Task | Test | Status |\n|---|---|---|---|');
+        for (const row of result.report) console.log(`| ${row.id} | ${row.task} | ${row.test.replaceAll('|', '/')} | ${row.status} |`);
+      }
+      for (const w of result.warnings) console.error(`warn: ${w}`);
+      const errors = [...plan.errors, ...parsedSpec.errors.map(e => `journeys ${e}`), ...record.errors, ...result.errors];
+      if (errors.length) throw Error(errors.join('\n'));
+      const named = result.report.filter(row => row.test !== '—'), manual = named.filter(row => row.manual).length, done = result.report.filter(row => /^done\b/i.test(row.status)).length;
+      console.log(`ok: tasks ${input}; ${plan.tasks.length} tasks; ${result.covered} of ${result.total} criteria and invariants have an owner, ${named.length} a named test (${manual} manual only), ${done} done with evidence.${plan.source.approval ? ` Built on approval ${plan.source.approval}.` : ''} Tests were not run.`);
+      process.exit(0);
+    }
     const text = await read(input);
     const { spec, errors: parseErrors } = parseJourneys(text);
     const parsed = spec.decisions ? parseDecisions(await read(resolve(dirname(input), spec.decisions))) : { decisions: new Map<string, Decision>(), errors: [] };
