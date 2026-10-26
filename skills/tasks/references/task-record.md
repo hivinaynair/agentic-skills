@@ -18,14 +18,16 @@ Covers: J1, I1.
 Change: invite dialog, create endpoint, invites table (proposed paths).
 Provides: invite contract — token, workspace, expiry, revoked state.
 Builder notes:
-- I1: check admin role inside the same request that writes the invite.
-- Email provider: send after commit; dedupe by invite ID; a bounced send leaves the link valid; test with the provider's sandbox.
+- I1: check the admin role in the same request that writes the invite.
+- Email provider: send after commit, deduped by invite ID; test in its sandbox.
 Verify: `bun test invites` (0 skipped).
 Tests:
-- J1.S1.c1, J1.S1.c2: src/invites.test.ts › admin creates; non-admin is refused
-- J1.S1.c3: src/invites.test.ts › malformed email shows a field error
-- J1.S2.c1: manual › create an invite and copy the link with its expiry
-- I1: src/invites.test.ts › role is checked in the same request that writes
+- src/invites.test.ts
+  - J1.S1.c1: admin creates an invite
+  - J1.S1.c2: malformed email shows a field error
+  - I1: non-admin is refused
+- manual
+  - J1.S2.c1: copy the link and see its expiry
 ```
 
 - **Source** links the journeys file and copies its `Approved:` stamp. When the
@@ -36,17 +38,18 @@ Tests:
   owning task; a later task that changes it says so in its builder notes. When only
   part of a criterion can be built now, the task building that part owns it and notes
   the rest, and the owner is asked to split it. Delivery-only work uses `Covers: none`.
-- **Needs / Provides** name contracts between tasks and link the code that defines them.
-- **Needs** names tasks in this plan it depends on, in the index or a `Needs:` line;
-  both must agree. Work outside the plan goes in a Blocked reason.
-- **Parallel:** when it can start (now, after a task's contract, after a task) and, if
-  it shares files, schema or migrations, which task it merges after.
+- **Index table:** the one place for Needs, Parallel and Status. Needs names tasks in
+  this plan it depends on; work outside the plan goes in a Blocked reason. Parallel
+  says when a task can start (now, after a task's contract, after a task) and, if it
+  shares files, schema or migrations, which task it merges after. Without an index,
+  put these as lines in the task section.
+- **Provides** names the contract a task gives others and links the code that defines it.
 - **Builder notes** say how each invariant holds, plus integration notes for each
-  external system the task calls; a system it only reads needs one line. Mechanics
-  live here, not in decisions.
-- **Tests** maps each criterion and invariant the task owns to the test that proves
-  it: `- J1.S1.c1: path/to/file.test.ts › test name`, or `manual › what to do`. Paths
-  are from the repository root; run the check there.
+  external system the task calls, each under 25 words. Mechanics live here, not in
+  decisions.
+- **Tests** lists each test file once (`manual` for manual steps), with the criteria
+  and invariants each test proves nested under it. Test names stay under 10 words.
+  Paths are from the repository root; run the check there.
 - **Walkthrough** (last task of a slice): the journeys walked as the person would,
   e.g. `Walkthrough: J1 on My bookings: cancel one date, a closed date, a stranger's
   link, a repeated tap`, or `Blocked (reason)` when it cannot run yet.

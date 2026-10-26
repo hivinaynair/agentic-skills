@@ -75,11 +75,11 @@ test.each([
   ['unknown exit', ['→ exit created\n', '→ exit done\n'], 'unknown exit done'],
   ['unknown decision', ['Basis: D1 · Guards: I1', 'Basis: D9 · Guards: I1'], 'unknown decision D9'],
   ['missing basis', ['Basis: D1\n-', '\n-'], 'J1.S2: needs a Basis'],
-  ['missing forbidden effect', ['- c2: IF the requester is not an admin THE SYSTEM SHALL NOT create the invite\n', ''], 'forbidden-effect'],
   ['unknown invariant', ['Guards: I1', 'Guards: I9'], 'unknown invariant I9'],
   ['duplicate step', ['### J1.S2 Show', '### J1.S1 Show'], 'Duplicate ID J1.S1'],
   ['wrong prefix', ['### J1.S2 Show', '### J2.S2 Show'], 'wrong journey prefix'],
-  ['non-EARS criterion', ['THE SYSTEM SHALL show its link', 'show the link'], 'expected EARS'],
+  ['a criterion without a condition form', ['THE SYSTEM SHALL show its link', 'show the link'], 'expected "When <condition>: <behavior>"'],
+  ['a short criterion missing its colon', ['WHEN the invite is created THE SYSTEM SHALL show its link', 'When the invite is created show its link'], 'expected "When <condition>'],
   ['person step without screen', ['Screen: Members › Invite · Sees: invite form\n', ''], 'person step needs a Screen'],
   ['unparsed bullet', ['→ exit created\n', '- remember this\n→ exit created\n'], 'cannot parse "- remember this"'],
   ['malformed step heading', ['(person)', '(user)'], 'cannot parse "### J1.S1'],
@@ -487,7 +487,7 @@ test('CLI prints the review packet', async () => {
 const approvedSpec = () => parseJourneys(approve(base)).spec;
 const stamp = () => approvedSpec().approval!.hash;
 const plan = (body: string, approval = stamp()) => `# Invite tasks\n\nSource: [journeys](feature.md), approved by D3 ${approval} · Target: local\n\n| ID | Outcome | Needs | Parallel | Status |\n|---|---|---|---|---|\n| T1 | Create invite | — | Start now | Todo |\n| T2 | Show link | T1 | After T1 | Todo |\n\n${body}`;
-const fullPlan = '## T1 Create invite\nCovers: J1.S1, I1 (admin check).\nVerify: `bun test invite` — non-admin refused.\nTests:\n- J1.S1.c1, J1.S1.c2: invite.test.ts › admin creates, non-admin refused\n- J1.S1.c3: invite.test.ts › malformed email\n- I1: invite.test.ts › non-admin cannot create\n\n## T2 Show link\nCovers: J1.S2.c1.\nNeeds: T1 invite contract.\nVerify: `bun test link`.\nTests: J1.S2.c1: manual › create an invite and see its link\n';
+const fullPlan = '## T1 Create invite\nCovers: J1.S1, I1 (admin check).\nVerify: `bun test invite` — non-admin refused.\nTests:\n- J1.S1.c1, J1.S1.c2: invite.test.ts › admin creates, non-admin refused\n- J1.S1.c3: invite.test.ts › malformed email\n- I1: invite.test.ts › non-admin cannot create\n\n## T2 Show link\nCovers: J1.S2.c1.\nVerify: `bun test link`.\nTests: J1.S2.c1: manual › create an invite and see its link\n';
 function taskResult(md: string) {
   const p = parseTasks(md), d = parseDecisions(decisionsMd).decisions, r = validateTasks(p.tasks, p.source, approvedSpec(), d);
   return {errors: [...p.errors, ...r.errors].join('\n'), warnings: r.warnings, covered: r.covered, total: r.total};
@@ -501,12 +501,12 @@ test('a complete task plan covers every criterion and invariant on the current a
 test.each([
   ['an uncovered criterion', fullPlan.replace('Covers: J1.S2.c1.', 'Covers: I1.'), 'J1.S2.c1: no task covers it'],
   ['an unknown reference', fullPlan.replace('J1.S2.c1', 'J1.S9.c1'), 'T2: covers unknown J1.S9.c1'],
-  ['an unknown dependency', fullPlan.replace('Needs: T1', 'Needs: T7'), 'T2: needs unknown task T7'],
+  ['an unknown dependency', fullPlan + '\n## T3 Extra\nCovers: I1.\nNeeds: T7.\nVerify: manual.\n', 'T3: needs unknown task T7'],
   ['a dependency cycle', fullPlan.replace('Covers: J1.S1, I1', 'Covers: J1.S1, I1\nNeeds: T2'), 'Dependency cycle: T1 → T2 → T1'],
   ['a task without Covers', fullPlan.replace('Covers: J1.S2.c1.\n', ''), 'T2: needs a Covers line'],
   ['a duplicate task section', fullPlan + '\n## T2 Again\nCovers: J1.S2.c1.\n', 'Duplicate task T2'],
   ['a task without Verify', fullPlan.replace('Verify: `bun test link`.\n', ''), 'T2: needs a Verify line'],
-  ['index and section Needs that disagree', fullPlan.replace('Needs: T1 invite contract.', 'Needs: T1, T3.\n\n## T3 Extra\nCovers: I1.\nVerify: manual.'), 'T2: index Needs (T1) and section Needs (T1, T3) disagree'],
+  ['index and section Needs that disagree', fullPlan.replace('Verify: `bun test link`.', 'Needs: T1, T3.\nVerify: `bun test link`.') + '\n## T3 Extra\nCovers: I1.\nVerify: manual.\n', 'T2: index Needs (T1) and section Needs (T1, T3) disagree'],
 ])('task check rejects %s', (_, body, message) => {
   expect(taskResult(plan(body)).errors).toContain(message);
 });
@@ -611,4 +611,66 @@ test('status report lists every owner of a shared invariant', () => {
   const p = parseTasks(plan(fullPlan.replace('Covers: J1.S2.c1.', 'Covers: J1.S2.c1, I1.').replace('Tests: J1.S2.c1: manual › create an invite and see its link', 'Tests:\n- J1.S2.c1: manual › create an invite and see its link\n- I1: link.test.ts › link hidden from non-admins')));
   const r = validateTasks(p.tasks, p.source, approvedSpec(), parseDecisions(decisionsMd).decisions);
   expect(r.report.find(row => row.id === 'I1')).toMatchObject({task: 'T1, T2', test: 'invite.test.ts › non-admin cannot create; link.test.ts › link hidden from non-admins'});
+});
+
+test('short criteria, guards without restated invariants, and ID ranges', () => {
+  const short = base
+    .replace('- c1: WHEN an admin submits a valid email THE SYSTEM SHALL create the invite', '- c1: When an admin submits a valid email: the invite is created.')
+    .replace('- c2: IF the requester is not an admin THE SYSTEM SHALL NOT create the invite\n', '')
+    .replace('- c3: IF the email is malformed THE SYSTEM SHALL show a field error', '- c3: If the email is malformed: a field error shows.')
+    .replace('- denied: J1.S1.c2', '- denied: I1')
+    .replace('- I1 (D1): THE SYSTEM SHALL NOT let non-admins create invites', '- I1 (D1–D2): Never: a non-admin creates an invite.')
+    .replace('Guards: I1', 'Guards: I1–I1');
+  const r = result(short);
+  expect(r).toMatchObject({errors: '', warnings: []});
+  expect(parseJourneys(short).spec.invariants[0].basis).toEqual(['D1', 'D2']);
+});
+
+test('journey Basis and header Checks are inherited; a journey check overrides', () => {
+  const inherited = base
+    .replace('Actor: admin · Exits: created, denied', 'Actor: admin · Exits: created, denied\nBasis: D1')
+    .replace('Basis: D1\n-', '-')
+    .replace('Decisions: decisions.md\n', 'Decisions: decisions.md\n\nChecks:\n- failed: D2\n- repeated: n/a — each request creates a separate invite\n')
+    .replace('- failed: D2\n- repeated: n/a — each request creates a separate invite\n\n###', '\n###');
+  const p = parseJourneys(inherited);
+  expect(p.spec.journeys[0].basis).toEqual(['D1']);
+  expect(Object.keys(p.spec.checks)).toEqual(['failed', 'repeated']);
+  expect(result(inherited)).toMatchObject({errors: '', warnings: []});
+  expect(reviewPacket(p.spec, parseDecisions(decisionsMd).decisions)).toContain('### J1.S2 Show the link (system)\nRests on:\n- D1 (accepted)');
+  const overridden = inherited.replace('- invalid: J1.S1.c3', '- invalid: J1.S1.c3\n- failed: open — Q1');
+  expect(result(overridden).warnings).toContain('J1/failed: check is open');
+});
+
+test('length budgets warn once per kind', () => {
+  const long = base
+    .replace('THE SYSTEM SHALL show its link', 'THE SYSTEM SHALL show its link with its expiry, the workspace name, the inviter, the role granted and a copy button the admin can use')
+    .replace('Sees: invite form', 'Sees: invite form with an email field, a role picker, a note field and a send button below');
+  const d = decisionsMd.replace('Only admins can invite.', 'Only admins can invite, and only for the workspaces they administer, and only while their own admin role is active and their account is in good standing with no pending review.');
+  const r = result(long, false, d);
+  expect(r.warnings).toContain('Over 20 words, split or shorten: J1.S2.c1');
+  expect(r.warnings).toContain('Sees over 12 words: J1.S1');
+  expect(r.warnings).toContain('Cited decisions over 30 words (questions over 40): D1');
+});
+
+test('tests can be grouped under their file; manual steps under "manual"', () => {
+  const grouped = fullPlan.replace(/Tests:\n- J1\.S1\.c1[\s\S]*?non-admin cannot create\n/, 'Tests:\n- invite.test.ts\n  - J1.S1.c1, J1.S1.c2: admin creates, non-admin refused\n  - J1.S1.c3: malformed email\n  - I1: non-admin cannot create\n')
+    .replace('Tests: J1.S2.c1: manual › create an invite and see its link', 'Tests:\n- manual\n  - J1.S2.c1: create an invite and see its link');
+  expect(grouped).not.toBe(fullPlan);
+  const p = parseTasks(plan(grouped));
+  expect(p.tasks[0].tests).toEqual([
+    {ids: ['J1.S1.c1', 'J1.S1.c2'], path: 'invite.test.ts', locator: 'admin creates, non-admin refused'},
+    {ids: ['J1.S1.c3'], path: 'invite.test.ts', locator: 'malformed email'},
+    {ids: ['I1'], path: 'invite.test.ts', locator: 'non-admin cannot create'},
+  ]);
+  expect(p.tasks[1].tests).toEqual([{ids: ['J1.S2.c1'], path: undefined, locator: 'create an invite and see its link'}]);
+  expect(taskResult(plan(grouped))).toMatchObject({errors: '', warnings: []});
+});
+
+test('task budgets and facts repeated from the index warn', () => {
+  const md = plan(fullPlan.replace('- J1.S1.c3: invite.test.ts › malformed email', '- J1.S1.c3: invite.test.ts › a malformed email address shows a field error under the email box at once')
+    .replace('Verify: `bun test link`.', 'Needs: T1.\nBuilder notes:\n- I1: check the admin role inside the same database transaction that writes the invite row so that a demotion racing the request can never let a former admin create one.\nVerify: `bun test link`.'));
+  const r = taskResult(md);
+  expect(r.warnings).toContain('Test names over 10 words: T1');
+  expect(r.warnings).toContain('Builder notes over 25 words: T2');
+  expect(r.warnings).toContain('Repeated from the index; keep them only there: T2 (Needs)');
 });

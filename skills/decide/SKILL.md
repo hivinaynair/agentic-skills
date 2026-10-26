@@ -31,19 +31,20 @@ If the project already keeps a decision record, add to it in its own format.
    too ("Replace D52 with …?"). Then find the missing rules that change what a person
    can do or see in the first slice, including who can see shared data, existing
    data, and changes made outside the app. Everything the owner has not said becomes
-   a Q line with your recommendation, tagged `Blocks: <IDs>` when the answer changes
-   the slice, or `Default` when your recommendation is safe to accept as is, and
-   naming who answers (`Owner: PM`, or `Owner: unknown`). Your own preference stays a
-   recommendation until that person accepts it; prepare questions for them rather
-   than contacting them yourself. Reuse an
-   existing **failure default** if the record has one; otherwise ask for one as a
-   `Default` ("when an action fails or its result is unknown, the person sees a
+   a short Q line: the question and your recommendation, no background, tagged
+   `Blocks: <IDs>` when the answer changes the slice or `Default` when your
+   recommendation is safe to accept, and naming who answers (`Owner: PM`, or
+   `Owner: unknown`). Your preference stays a recommendation until that person
+   accepts it; prepare questions for them rather than contacting them yourself.
+   Reuse an existing **failure default** if the record has one; otherwise ask for one
+   as a `Default` ("when an action fails or its result is unknown, the person sees a
    retryable error and no partial change is kept"). Ask the highest-impact blocking
-   question first; offer the defaults as one batch the owner can accept together.
-   Done when no open question blocks the first slice.
+   question first and offer the defaults as one batch. Done when no open question
+   blocks the first slice.
 
-4. **Record.** Write each answer as an accepted D line with a one-line why, and mark
-   the question resolved with `Answered by D<n>`. When an answer replaces an accepted
+4. **Record.** Write each answer as an accepted D line: one rule, under 30 words,
+   with a why only when it is not obvious. Mark the question resolved with just
+   `Answered by D<n>`; the decision holds the content. When an answer replaces an accepted
    decision, end the new line with `Supersedes: D<n>`, mark the old one superseded and
    restate any part that still holds. What the code does today is an observation:
    once a journey file exists, record it there as an O line. Done when every answer

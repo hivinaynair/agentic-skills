@@ -21,7 +21,11 @@ one at a time, with a recommendation, recorded as a Q line.
 2. **Journeys.** Write each path from the person's first action to every exit.
    Person steps name the screen and what the person sees, including pending, empty
    and error states. System steps hold the rules a person never sees directly.
-   Each step cites its Basis and has EARS criteria. Done when every step reaches an exit.
+   Criteria are short: `When <condition>: <behavior>.` One fact lives in one place:
+   decisions every step shares go on the journey's `Basis:`, outcomes every journey
+   shares in the header's `Checks:`, and a "never" rule in an invariant that steps
+   name in `Guards:` rather than restate. Done when every step reaches an exit and
+   the checker reports no over-long lines.
 
 3. **Invariants.** Write the few "never" rules that hold across paths, such as
    "never two memberships per account". Races, duplicate events and crashes become
