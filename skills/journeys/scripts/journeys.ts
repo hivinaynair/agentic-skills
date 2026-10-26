@@ -4,8 +4,11 @@ import { realpath } from 'node:fs/promises';
 
 // Deliberately dependency-free. Parsing and validation are exported for tests.
 export const checkNames = ['denied', 'invalid', 'failed', 'repeated'];
-const ears = /^(?:(?:WHEN|IF|WHILE) .+ )?THE SYSTEM SHALL(?: NOT)? .+/;
-const forbidden = /^IF .+ THE SYSTEM SHALL NOT .+/;
+// Criteria: "When X: Y", "If X: never Y", "While X: Y", "Always: Y" or "Never: Y";
+// the longer EARS form "WHEN X THE SYSTEM SHALL Y" also works.
+const ears = /^(?:(?:(?:WHEN|IF|WHILE) .+ )?THE SYSTEM SHALL(?: NOT)? .+|(?:When|If|While) [^:]+: \S.*|(?:Always|Never):? \S.*)$/;
+const boilerplate = /\bTHE SYSTEM SHALL(?: NOT)?\b|^(?:WHEN|IF|WHILE|When|If|While|Always:?|Never:?)\s/g;
+const words = (text: string) => text.split(/\s+/).filter(Boolean).length;
 const separator = /\s+(?:—|–|--?)\s+/;
 const keys = ['Decisions', 'Approved', 'Retired', 'Scope', 'Actor', 'Exits', 'Checks', 'Screen', 'Sees', 'Basis', 'Guards'];
 const list = (v: string) => v.split(',').map(x => x.trim()).filter(x => x && !/^(—|-|none)$/i.test(x));
@@ -14,11 +17,11 @@ export type Decision = { id: string; status: string; text: string; supersedes: s
 export type Edge = { to?: string; exit?: string; when?: string };
 export type Step = { id: string; title: string; kind: string; screen?: string; sees?: string; basis: string[]; guards: string[]; criteria: [string, string][]; edges: Edge[] };
 export type Check = { status: 'covered' | 'n/a' | 'open'; refs: string[]; reason: string };
-export type Journey = { id: string; title: string; actor?: string; exits: string[]; checks: Record<string, Check>; steps: Step[] };
+export type Journey = { id: string; title: string; actor?: string; exits: string[]; basis: string[]; checks: Record<string, Check>; steps: Step[] };
 export type Goal = { id: string; actor: string; goal: string; status: 'mapped' | 'excluded' | 'unresolved' | 'elsewhere'; journeys: string[]; decision?: string; reason?: string };
 export type Source = { ref?: string; revision?: string; locator?: string };
 export type Spec = {
-  feature: string; decisions?: string; approval?: { id: string; hash: string }; retired: string[]; scope: string[];
+  feature: string; decisions?: string; approval?: { id: string; hash: string }; retired: string[]; scope: string[]; checks: Record<string, Check>;
   actors: { id: string; name: string }[]; goals: Goal[];
   invariants: { id: string; rule: string; basis: string[] }[];
   observations: { id: string; statement: string; sources: Source[] }[];
@@ -85,17 +88,17 @@ function parseCheck(value: string): Check {
   return { status: 'covered', refs: list(refs), reason: note.join(' ') };
 }
 
-// "D117–D125, X6–X8, D130" lists the decisions this spec must cover.
+// "D117–D125, X6–X8, I1–I4, D130": ranges expand to each ID.
 function expandScope(value: string) {
   return list(value).flatMap(part => {
-    const m = part.match(/^([DX])(\d+)\s*(?:–|-)\s*\1?(\d+)$/);
+    const m = part.match(/^([DXI])(\d+)\s*(?:–|-)\s*\1?(\d+)$/);
     if (!m) return [part];
     return Array.from({ length: Math.max(0, Number(m[3]) - Number(m[2]) + 1) }, (_, i) => `${m[1]}${Number(m[2]) + i}`);
   });
 }
 
 export function parseJourneys(markdown: string) {
-  const spec: Spec = { feature: '', retired: [], scope: [], actors: [], goals: [], invariants: [], observations: [], journeys: [] };
+  const spec: Spec = { feature: '', retired: [], scope: [], checks: {}, actors: [], goals: [], invariants: [], observations: [], journeys: [] };
   const errors: string[] = [];
   let section = 'header', inChecks = false;
   let journey: Journey | undefined, step: Step | undefined;
@@ -104,6 +107,7 @@ export function parseJourneys(markdown: string) {
       if (key === 'Decisions') spec.decisions = value;
       else if (key === 'Retired') spec.retired = list(value);
       else if (key === 'Scope') spec.scope = expandScope(value);
+      else if (key === 'Checks' && !value) inChecks = true;
       else if (key === 'Approved') {
         const m = value.match(/^(D\d+)\s+([0-9a-f]{8})$/);
         if (!m) return false;
@@ -113,12 +117,13 @@ export function parseJourneys(markdown: string) {
       if (key === 'Actor') journey.actor = value;
       else if (key === 'Exits') journey.exits = list(value);
       else if (key === 'Checks' && !value) inChecks = true;
+      else if (key === 'Basis') journey.basis = expandScope(value);
       else return false;
     } else if (step) {
       if (key === 'Screen') step.screen = value;
       else if (key === 'Sees') step.sees = value;
-      else if (key === 'Basis') step.basis = list(value);
-      else if (key === 'Guards') step.guards = list(value);
+      else if (key === 'Basis') step.basis = expandScope(value);
+      else if (key === 'Guards') step.guards = expandScope(value);
       else return false;
     } else return false;
     return true;
@@ -133,7 +138,7 @@ export function parseJourneys(markdown: string) {
     if (heading) {
       journey = step = undefined; inChecks = false;
       const name = heading[1].trim(), j = name.match(/^(J\d+):\s*(.+)$/);
-      if (j) { journey = { id: j[1], title: j[2], exits: [], checks: {}, steps: [] }; spec.journeys.push(journey); section = 'journey'; }
+      if (j) { journey = { id: j[1], title: j[2], exits: [], basis: [], checks: {}, steps: [] }; spec.journeys.push(journey); section = 'journey'; }
       else section = ['Actors', 'Goals', 'Invariants', 'Observations'].includes(name) ? name.toLowerCase() : 'prose';
       continue;
     }
@@ -168,7 +173,7 @@ export function parseJourneys(markdown: string) {
     const goal = section === 'goals' && line.match(/^[-*]\s+(C\d+)\s+([\w-]+):\s*(.+?)\s*(?:→|->)\s*(.+)$/);
     const invariant = section === 'invariants' && line.match(/^[-*]\s+(I\d+)\s*\(([^)]*)\):\s*(.+)$/);
     const observation = section === 'observations' && line.match(/^[-*]\s+(O\d+):\s*(.+)$/);
-    const check = journey && !step && inChecks && line.match(/^[-*]\s+([\w/-]+):\s*(.*)$/);
+    const check = !step && inChecks && line.match(/^[-*]\s+([\w/-]+):\s*(.*)$/);
     const criterion = step && line.match(/^[-*]\s+(c\d+):\s*(.+)$/);
     if (actor) spec.actors.push({ id: actor[1], name: actor[2] });
     else if (goal) {
@@ -178,16 +183,18 @@ export function parseJourneys(markdown: string) {
       else if (other) spec.goals.push({ id, actor: owner, goal: text, status: other[1] as Goal['status'], journeys: [], reason: other[2] });
       else if (list(target).every(j => /^J\d+$/.test(j))) spec.goals.push({ id, actor: owner, goal: text, status: 'mapped', journeys: list(target) });
       else bad();
-    } else if (invariant) spec.invariants.push({ id: invariant[1], basis: list(invariant[2]), rule: invariant[3] });
+    } else if (invariant) spec.invariants.push({ id: invariant[1], basis: expandScope(invariant[2]), rule: invariant[3] });
     else if (observation) {
       const [statement, ...sources] = observation[2].split(/\s*Source:\s*/);
       spec.observations.push({ id: observation[1], statement: statement.trim(), sources: sources.map(s => {
         const src = s.replace(/;\s*$/, '').match(/^(\S+)@(\S+)\s+(.+)$/);
         return src ? { ref: src[1], revision: src[2], locator: src[3] } : {};
       }) });
-    } else if (journey && check) {
-      if (journey.checks[check[1]]) errors.push(`${journey.id}: duplicate ${check[1]} check`);
-      journey.checks[check[1]] = parseCheck(check[2].trim());
+    } else if (check) {
+      // Checks in the header are defaults for every journey; a journey's own check overrides.
+      const target = journey ? journey.checks : spec.checks;
+      if (target[check[1]]) errors.push(`${journey?.id ?? 'Header'}: duplicate ${check[1]} check`);
+      target[check[1]] = parseCheck(check[2].trim());
     } else if (step && criterion) step.criteria.push([criterion[1], criterion[2]]);
     else bad();
   }
@@ -205,9 +212,11 @@ function cited(spec: Spec, decisions: Map<string, Decision>) {
   };
   for (const inv of spec.invariants) inv.basis.forEach(visit);
   for (const j of spec.journeys) {
+    j.basis.forEach(visit);
     for (const st of j.steps) st.basis.forEach(visit);
     for (const c of Object.values(j.checks)) c.refs.forEach(visit);
   }
+  for (const c of Object.values(spec.checks)) c.refs.forEach(visit);
   for (const g of spec.goals) if (g.decision) visit(g.decision);
   return [...ids].sort();
 }
@@ -242,13 +251,13 @@ export function reviewPacket(spec: Spec, decisions: Map<string, Decision>) {
   for (const j of spec.journeys) {
     out.push(`## ${j.id}: ${j.title}`, '');
     for (const st of j.steps) {
-      out.push(`### ${st.id} ${st.title} (${st.kind})`, 'Rests on:', ...st.basis.map(b => `- ${describe(b)}`));
+      out.push(`### ${st.id} ${st.title} (${st.kind})`, 'Rests on:', ...[...new Set([...j.basis, ...st.basis])].map(b => `- ${describe(b)}`));
       if (st.guards.length) out.push('Guards:', ...st.guards.map(g => `- ${describe(g)}`));
       out.push('Criteria:', ...st.criteria.map(([k, v]) => `- ${st.id}.${k}: ${v}`), '');
     }
     out.push('Checks:');
     for (const name of checkNames) {
-      const c = j.checks[name];
+      const c = j.checks[name] ?? spec.checks[name];
       out.push(`- ${name}: ${!c ? 'missing' : c.status === 'covered' ? '' : `${c.status} — ${c.reason}`}`);
       for (const ref of c?.refs ?? []) out.push(`  - ${describe(ref)}`);
     }
@@ -264,9 +273,12 @@ export function validate(spec: Spec, decisions: Map<string, Decision>, ready = f
   const gate = (m: string) => (ready ? errors : warnings).push(m);
   const ids = new Set<string>();
   const add = (id: string) => { if (ids.has(id)) err(`Duplicate ID ${id}`); ids.add(id); };
+  // Length budgets keep each line to one short fact; reported once per kind.
+  const long = { criteria: [] as string[], sees: [] as string[] };
   const rule = (text: string, id: string) => {
     add(id); rules.add(id);
-    if (!ears.test(text)) err(`${id}: expected EARS behavior (WHEN/IF/WHILE ... THE SYSTEM SHALL ...)`);
+    if (!ears.test(text)) err(`${id}: expected "When <condition>: <behavior>", "If <condition>: never <effect>", "Always: …" or "Never: …"`);
+    else if (words(text.replace(boilerplate, ' ')) > 20) long.criteria.push(id);
     else if ((text.match(/\bSHALL\b/g) ?? []).length > 1) warnings.push(`${id}: more than one SHALL; split it into one behavior per criterion`);
     else if (/\b(promptly|as needed|quickly|appropriately|properly|gracefully)\b/i.test(text.replace(/"[^"]*"|`[^`]*`/g, ''))) warnings.push(`${id}: vague requirement; name an observable outcome`);
   };
@@ -319,11 +331,11 @@ export function validate(spec: Spec, decisions: Map<string, Decision>, ready = f
       if (!st.id.startsWith(`${j.id}.`)) err(`${st.id}: wrong journey prefix`);
       if (st.kind === 'person' && !st.screen) err(`${st.id}: person step needs a Screen`);
       for (const screen of st.screen?.split(/\s*;\s*/) ?? []) screens.set(screen, [...(screens.get(screen) ?? []), st.id]);
-      basis(st.basis, st.id);
+      basis([...new Set([...j.basis, ...st.basis])], st.id);
+      if (st.sees && words(st.sees) > 12) long.sees.push(st.id);
       for (const inv of st.guards) if (!invariantIds.has(inv)) err(`${st.id}: unknown invariant ${inv}`);
       if (!st.criteria.length) err(`${st.id}: needs criteria ("- c1: WHEN ... THE SYSTEM SHALL ...")`);
       for (const [key, text] of st.criteria) rule(text, `${st.id}.${key}`);
-      if (st.guards.length && !st.criteria.some(([, text]) => forbidden.test(text))) err(`${st.id}: guarded step needs a forbidden-effect criterion (IF ... THE SYSTEM SHALL NOT ...)`);
       if (!st.edges.length) err(`${st.id}: needs a "→ J<n>.S<n>" or "→ exit <name>" line`);
       for (const e of st.edges) {
         if (st.edges.length > 1 && !e.when) err(`${st.id}: each of several branches needs a when`);
@@ -342,10 +354,11 @@ export function validate(spec: Spec, decisions: Map<string, Decision>, ready = f
   }
 
   // Owner outcome checks. Refs may cite any step, criterion, invariant or decision.
+  for (const name of Object.keys(spec.checks)) if (!checkNames.includes(name)) err(`Header: unknown check ${name}`);
   for (const j of spec.journeys) {
     for (const name of Object.keys(j.checks)) if (!checkNames.includes(name)) err(`${j.id}: unknown check ${name}`);
     for (const name of checkNames) {
-      const c = j.checks[name];
+      const c = j.checks[name] ?? spec.checks[name];
       if (!c) { gate(`${j.id}: missing ${name} check`); continue; }
       if (c.status !== 'covered' && !c.reason) err(`${j.id}/${name}: ${c.status} needs a reason`);
       if (c.status === 'open') gate(`${j.id}/${name}: check is open`);
@@ -385,6 +398,14 @@ export function validate(spec: Spec, decisions: Map<string, Decision>, ready = f
 
   // Every accepted decision in Scope must be cited somewhere, so a decided rule cannot go unmapped.
   const citedIds = new Set(cited(spec, decisions));
+  const longDecisions = [...citedIds].filter(id => {
+    const text = decisions.get(id)?.text ?? '';
+    return id.startsWith('Q') ? words(text) > 40 : words(text.replace(/\bWhy:.*$/, '').replace(/\bSupersedes:.*$/, '')) > 30;
+  });
+  const listed = (ids: string[]) => ids.slice(0, 8).join(', ') + (ids.length > 8 ? ` and ${ids.length - 8} more` : '');
+  if (long.criteria.length) warnings.push(`Over 20 words, split or shorten: ${listed(long.criteria)}`);
+  if (long.sees.length) warnings.push(`Sees over 12 words: ${listed(long.sees)}`);
+  if (longDecisions.length) warnings.push(`Cited decisions over 30 words (questions over 40): ${listed(longDecisions)}`);
   for (const id of spec.scope) {
     const d = decisions.get(id);
     if (!/^[DX]\d+$/.test(id) || !d) err(`Scope: unknown decision ${id}`);
@@ -404,7 +425,7 @@ export function validate(spec: Spec, decisions: Map<string, Decision>, ready = f
 // index table with a Needs column, and a Source line linking the journeys file with
 // the approval it was built on: "Source: [journeys](../journeys/x.md), approved by D11 b6fa08c8".
 export type TaskTest = { ids: string[]; path?: string; locator: string };
-export type Task = { id: string; covers: string[]; coversLine?: boolean; needs: string[]; indexNeeds?: string[]; section: boolean; verify: boolean; tests: TaskTest[]; evidence?: string; status?: string; parallel?: string };
+export type Task = { id: string; covers: string[]; coversLine?: boolean; needs: string[]; indexNeeds?: string[]; indexed?: boolean; repeated: string[]; section: boolean; verify: boolean; tests: TaskTest[]; notes: string[]; evidence?: string; status?: string; parallel?: string };
 const taskId = /\bT(?:\d+|-[A-Za-z0-9][\w-]*)\b/g;
 const specRef = /\b(?:J\d+(?:\.S\d+[a-z]?(?:\.c\d+)?)?|I\d+)\b/g;
 // Parenthetical notes such as "I2 (issuing links)" or "(after T-REMINDERS)" are prose.
@@ -415,7 +436,7 @@ export function parseTasks(markdown: string) {
   const get = (id: string, section: boolean) => {
     const existing = tasks.get(id);
     if (existing && section && existing.section) errors.push(`Duplicate task ${id}`);
-    const task = existing ?? { id, covers: [], needs: [], section, verify: false, tests: [] };
+    const task = existing ?? { id, covers: [], needs: [], repeated: [], section, verify: false, tests: [], notes: [] };
     task.section ||= section;
     tasks.set(id, task);
     return task;
@@ -429,11 +450,19 @@ export function parseTasks(markdown: string) {
     const unquote = (v: string) => v.trim().replace(/^[`"']|[`"']$/g, '');
     task.tests.push({ ids, path: /^manual$/i.test(where.trim()) ? undefined : unquote(where), locator: unquote(rest.join(' › ')) });
   };
-  let current: Task | undefined, headers: string[] = [], block: 'verify' | 'tests' | undefined;
+  let current: Task | undefined, headers: string[] = [], block: 'verify' | 'tests' | 'notes' | undefined, group: string | undefined;
   for (const raw of markdown.split('\n')) {
     const line = raw.trim();
-    // "Verify:" and "Tests:" may introduce a list on the following lines.
-    if (current && block === 'tests' && /^[-*]\s/.test(line)) { addTest(current, line.replace(/^[-*]\s+/, '')); continue; }
+    // "Verify:", "Tests:" and "Builder notes:" may introduce a list on the following lines.
+    // Tests group under a file bullet: "- path/to/file.test.ts" then "  - J1.S1.c1: test name".
+    if (current && block === 'tests' && /^[-*]\s/.test(line)) {
+      const item = line.replace(/^[-*]\s+/, ''), nested = /^\s+[-*]\s/.test(raw);
+      if (nested && group !== undefined) addTest(current, `${item.replace(/:/, `: ${group} ›`)}`);
+      else if (/^[^:]+:\s/.test(item) && refsIn(item.split(':')[0], specRef).length) addTest(current, item);
+      else group = item.replace(/^[`"']|[`"':]+$/g, '');
+      continue;
+    }
+    if (current && block === 'notes' && /^[-*]\s/.test(line)) { current.notes.push(line.replace(/^[-*]\s+/, '')); continue; }
     if (current && block === 'verify' && line) current.verify ||= !/^[A-Z][a-z]+\b[^:]*:\s*$/.test(line) && !line.startsWith('#');
     if (line) block = undefined;
     const src = !current && line.match(/^Source:.*?\]\(([^)]+\.md)[^)]*\)(?:.*?\bapproved by D\d+\s+([0-9a-f]{8}))?/i);
@@ -444,6 +473,7 @@ export function parseTasks(markdown: string) {
       if (cells[0] === 'ID') headers = cells;
       else if (/^T(?:\d+|-[\w-]+)$/.test(cells[0] ?? '')) {
         const task = get(cells[0], false);
+        task.indexed = true;
         const needs = cell('Needs');
         if (needs !== undefined) task.indexNeeds = refsIn(needs, taskId);
         task.status ??= cell('Status');
@@ -454,15 +484,16 @@ export function parseTasks(markdown: string) {
     const heading = line.match(/^## (T(?:\d+|-[\w-]+))\b/);
     if (heading) { current = get(heading[1], true); continue; }
     if (line.startsWith('## ')) { current = undefined; continue; }
-    const field = current && line.match(/^(Covers|Needs|Verify|Tests|Evidence|Status|Parallel)\b(?:\s*\([^)]*\))?:\s*(.*)$/);
+    const field = current && line.match(/^(Covers|Needs|Verify|Tests|Evidence|Status|Parallel|Builder notes)\b(?:\s*\([^)]*\))?:\s*(.*)$/);
     if (current && field) {
       if (field[1] === 'Covers') { current.covers.push(...refsIn(field[2], specRef)); current.coversLine = true; }
-      else if (field[1] === 'Needs') current.needs.push(...refsIn(field[2], taskId));
+      else if (field[1] === 'Needs') { current.needs.push(...refsIn(field[2], taskId)); if (current.indexed) current.repeated.push('Needs'); }
       else if (field[1] === 'Verify') { current.verify ||= field[2].trim().length > 0; if (!field[2].trim()) block = 'verify'; }
-      else if (field[1] === 'Tests') { if (field[2].trim()) addTest(current, field[2].trim()); else block = 'tests'; }
+      else if (field[1] === 'Tests') { group = undefined; if (field[2].trim()) addTest(current, field[2].trim()); else block = 'tests'; }
+      else if (field[1] === 'Builder notes') { if (field[2].trim()) current.notes.push(field[2].trim()); else block = 'notes'; }
       else if (field[1] === 'Evidence') current.evidence = field[2].trim();
-      else if (field[1] === 'Status') current.status = field[2].trim();
-      else current.parallel = field[2].trim();
+      else if (field[1] === 'Status') { current.status = field[2].trim(); if (current.indexed) current.repeated.push('Status'); }
+      else { current.parallel = field[2].trim(); if (current.indexed) current.repeated.push('Parallel'); }
     }
   }
   for (const t of tasks.values()) {
@@ -520,6 +551,13 @@ export function validateTasks(tasks: Task[], source: { approval?: string }, spec
     if (/^blocked\s*$/i.test(t.status ?? '')) warnings.push(`${t.id}: Blocked needs a reason, such as "Blocked (Q4)"`);
     if (/^start now/i.test(t.parallel ?? '') && t.needs.length) warnings.push(`${t.id}: marked start now but needs ${t.needs.join(', ')}`);
   }
+  // Say each fact once: Needs, Parallel and Status live in the index when there is one.
+  const repeats = tasks.filter(t => t.repeated.length).map(t => `${t.id} (${[...new Set(t.repeated)].join(', ')})`);
+  if (repeats.length) warnings.push(`Repeated from the index; keep them only there: ${repeats.join(', ')}`);
+  const longNames = tasks.flatMap(t => t.tests.filter(x => words(x.locator) > 10).map(() => t.id));
+  const longNotes = tasks.flatMap(t => t.notes.filter(n => words(n) > 25).map(() => t.id));
+  if (longNames.length) warnings.push(`Test names over 10 words: ${[...new Set(longNames)].join(', ')}`);
+  if (longNotes.length) warnings.push(`Builder notes over 25 words: ${[...new Set(longNotes)].join(', ')}`);
   const blocked = new Set(tasks.filter(t => /^blocked/i.test(t.status ?? '')).map(t => t.id));
   const onlyBlocked = [...owners].filter(([, by]) => by.length && by.every(id => blocked.has(id))).map(([id]) => id);
   if (onlyBlocked.length) warnings.push(`Owned only by blocked tasks: ${onlyBlocked.join(', ')}`);

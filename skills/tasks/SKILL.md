@@ -38,8 +38,8 @@ tracker if it has one; otherwise write `docs/tasks/<feature>.md` in the
    the calls, idempotency, webhooks, reconciling drift and how to test it. Done when
    every invariant and external system has a note.
 
-5. **Verify.** Under `Tests:`, name the test proving each criterion and invariant the
-   task owns: a file and test name, or a manual step. Give each task a command with
+5. **Verify.** Under `Tests:`, list each test file once and nest the tests under it,
+   naming which criteria and invariants each proves; use `manual` for manual steps. Give each task a command with
    its setup, and end each slice with a `Walkthrough:` of its journeys, including the
    denied, invalid, failed and repeated cases. A skipped test verifies nothing. Done
    when every owned criterion has a named test.
@@ -61,6 +61,7 @@ a question; never change behavior quietly. `tasks <file> --status` shows each
 criterion's task, test and status.
 
 Detail every task that can start now; later ones get a short entry that still names
-its tests. Link criterion IDs rather than copying their text. Stop when the next
+its tests. Say each fact once: dependencies, order and status in the index, the rest
+in the task section; test names under 10 words, builder notes under 25. Link criterion IDs rather than copying their text. Stop when the next
 slice is actionable, and reply with the next work, what runs in parallel and
 blockers. Implementing, committing and dispatching agents wait for the user.

@@ -24,7 +24,7 @@ as it is. Keep each ID in one place. Everything else is free prose.
 - D10 accepted — Approved for build: invitations J1–J3.
 
 ## Questions
-- Q1 resolved — Which role does an accepted invite grant? Recommend: member. Answered by D9.
+- Q1 resolved — Answered by D9.
 - Q2 open — Can an admin revoke a used link? Recommend: no. Blocks: J2.S1. Owner: PM.
 - Q3 open — Show the inviter's name on the join page? Recommend: yes. Default.
 ```
@@ -36,7 +36,8 @@ as it is. Keep each ID in one place. Everything else is free prose.
 | Q | open product question | open, deferred, resolved, retired |
 
 - **Frame** holds the five framing decisions for a new idea. Existing features skip it.
-- **Why** is optional; add it when the reason is not obvious.
+- **One rule per line**, under 30 words; a question under 40. **Why** is optional,
+  a few words, only when the reason is not obvious. Link a ticket or doc for more.
 - **Questions** carry a recommendation, either `Blocks: <IDs>` (the answer changes
   the slice) or `Default` (safe to accept as recommended), and who answers
   (`Owner: PM`, or `Owner: unknown`). The owner can accept every default at once.
@@ -45,8 +46,9 @@ as it is. Keep each ID in one place. Everything else is free prose.
   is a draft, D6 stays in force; on acceptance, mark D6 superseded. The checker then
   flags every step still citing D6. To replace part of a decision, restate the part
   that still holds in the new line.
-- **Resolving a question:** keep the question, mark it resolved and add
-  `Answered by D9`. Journeys that cite Q1 then rest on D9 without renumbering.
+- **Resolving a question:** shorten it to `- Q1 resolved — Answered by D9.`; the
+  decision holds the content and git keeps the history. Journeys that cite Q1 then
+  rest on D9 without renumbering.
 - **IDs are permanent:** retire a line instead of deleting or reusing its ID.
 - **Approval** is the D line the owner accepts after the journeys Ready summary.
 - **Observations** (what code does today) live in the journey file as O lines; link

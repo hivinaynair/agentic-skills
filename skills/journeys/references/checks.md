@@ -9,7 +9,8 @@ Every journey answers four checks from the owner's side: what the person sees.
 | failed | What does the person see when it fails or the result is unknown? |
 | repeated | What do a double submit, a retry or a repeat of a finished action do? |
 
-Answer each one in the journey's `Checks:` list:
+Answer each one in the journey's `Checks:` list, or once in the file header when
+the answer holds for every journey (usually `failed`); a journey's own answer wins:
 
 - `- denied: J1.S1.c2` names the criteria, steps, invariants or decisions that cover it.
 - `- failed: D8` usually cites the feature's failure default.
