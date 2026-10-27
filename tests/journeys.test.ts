@@ -447,7 +447,7 @@ test('tables without a Status column are prose; answer tables resolve questions'
   const extra = '\n| ID | Note |\n|---|---|\n| D1 | crosswalk row |\n\n| ID | Status | Answer |\n|---|---|---|\n| Q7 | resolved | D1: only admins invite |\n';
   const d = parseDecisions(decisionsMd + extra);
   expect(d.errors).toEqual([]);
-  expect(d.decisions.get('Q7')).toMatchObject({status: 'resolved', answer: 'D1'});
+  expect(d.decisions.get('Q7')).toMatchObject({status: 'resolved', answers: ['D1']});
 });
 
 test('Scope requires every accepted decision in it to be cited; ranges expand', () => {
@@ -636,7 +636,7 @@ test('journey Basis and header Checks are inherited; a journey check overrides',
   expect(p.spec.journeys[0].basis).toEqual(['D1']);
   expect(Object.keys(p.spec.checks)).toEqual(['failed', 'repeated']);
   expect(result(inherited)).toMatchObject({errors: '', warnings: []});
-  expect(reviewPacket(p.spec, parseDecisions(decisionsMd).decisions)).toContain('### J1.S2 Show the link (system)\nRests on:\n- D1 (accepted)');
+  expect(reviewPacket(p.spec, parseDecisions(decisionsMd).decisions)).toContain('Every step rests on:\n- D1 (accepted)');
   const overridden = inherited.replace('- invalid: J1.S1.c3', '- invalid: J1.S1.c3\n- failed: open — Q1');
   expect(result(overridden).warnings).toContain('J1/failed: check is open');
 });
@@ -649,7 +649,7 @@ test('length budgets warn once per kind', () => {
   const r = result(long, false, d);
   expect(r.warnings).toContain('Over 20 words, split or shorten: J1.S2.c1');
   expect(r.warnings).toContain('Sees over 12 words: J1.S1');
-  expect(r.warnings).toContain('Cited decisions over 30 words (questions over 40): D1');
+  expect(r.warnings).toContain('Cited decisions over 30 words (questions over 60): D1');
 });
 
 test('tests can be grouped under their file; manual steps under "manual"', () => {
@@ -673,4 +673,68 @@ test('task budgets and facts repeated from the index warn', () => {
   expect(r.warnings).toContain('Test names over 10 words: T1');
   expect(r.warnings).toContain('Builder notes over 25 words: T2');
   expect(r.warnings).toContain('Repeated from the index; keep them only there: T2 (Needs)');
+});
+
+test('one answer may be several decisions, and every one is followed', () => {
+  const md = decisionsMd.replace('- Q1 open — Which role does an accepted invite grant?', '- D4 accepted — Invites grant the member role.\n- D5 accepted — Members can see the invite list.\n- Q1 resolved — Answered by D4–D5 and X1.');
+  const d = parseDecisions(md);
+  expect(d.errors).toEqual([]);
+  expect(d.decisions.get('Q1')?.answers).toEqual(['D4', 'D5', 'X1']);
+  const cited = base.replace('Basis: D1\n-', 'Basis: D1, Q1\n-');
+  expect(result(cited, false, md)).toMatchObject({errors: '', warnings: []});
+  expect(reviewPacket(parseJourneys(cited).spec, d.decisions)).toContain('Q1 (resolved): Answered by D4–D5 and X1.\n  - D4 (accepted): Invites grant the member role.\n  - D5 (accepted)');
+  expect(parseDecisions(md.replace('D4–D5 and X1', 'D4, D8')).errors).toContain('Q1: answered by unknown decision D8');
+});
+
+test('open questions and drafts in Scope block ready even when nothing cites them', () => {
+  const drafted = decisionsMd + '- D4 draft — Assumed: the link copies with one click.\n';
+  const scoped = approve(base.replace('Decisions: decisions.md\n', 'Decisions: decisions.md\nScope: D1–D2, D4, Q1, X1\n'), 'D3', drafted);
+  expect(result(scoped, false, drafted).warnings).toEqual(expect.arrayContaining(['Scope: D4 is draft', 'Scope: Q1 is open']));
+  expect(result(scoped, true, drafted).errors).toContain('Scope: Q1 is open');
+});
+
+test('checks may cite observations; bullets in header and journey prose are prose', () => {
+  const md = base
+    .replace('## Actors', 'Notes for the owner:\n- the link is the only invite channel\n\n## Observations\n- O1: Members page lists invites. Source: src/members.tsx@abc123 InviteList\n\n## Actors')
+    .replace('Actor: admin · Exits: created, denied\n', 'Actor: admin · Exits: created, denied\nWhat stays the same:\n- existing members keep their role\n')
+    .replace('- invalid: J1.S1.c3', '- invalid: J1.S1.c3, O1');
+  expect(result(md)).toMatchObject({errors: '', warnings: []});
+  expect(result(md.replace('J1.S1.c3, O1', 'J1.S1.c3, O9')).errors).toContain('J1/invalid: unknown observation O9');
+  expect(result(base.replace('### J1.S2 Show the link (system)\nBasis: D1\n', '### J1.S2 Show the link (system)\nBasis: D1\n- not a criterion\n')).errors).toContain('cannot parse');
+});
+
+test('approve stamps the task plans built on the journeys', async () => {
+  const dir = await project('journeys-stamp-');
+  try {
+    await writeFile(join(dir, 'tasks.md'), plan(fullPlan, '00000000'));
+    await writeFile(join(dir, 'other.md'), '# Other\n\nSource: [journeys](elsewhere.md)\n');
+    expect(run(dir, 'bun', cli, 'approve', 'feature.md', 'D3', 'other.md').stderr.toString()).toContain('other.md: its Source line does not link feature.md');
+    expect(await Bun.file(join(dir, 'feature.md')).text()).not.toContain('Approved:');
+    const ok = run(dir, 'bun', cli, 'approve', 'feature.md', 'D3', 'tasks.md');
+    expect(ok.stdout.toString()).toContain('stamped tasks.md');
+    expect(await Bun.file(join(dir, 'tasks.md')).text()).toContain(`approved by D3 ${stamp()} · Target: local`);
+    expect(run(dir, 'bun', cli, 'tasks', 'tasks.md').exitCode).toBe(0);
+  } finally { await rm(dir, {recursive: true, force: true}); }
+});
+
+test('planned tests point at existing files unless marked (new)', async () => {
+  const dir = await project('journeys-planned-');
+  try {
+    await writeFile(join(dir, 'feature.md'), approve(base));
+    await writeFile(join(dir, 'tasks.md'), plan(fullPlan));
+    expect(run(dir, 'bun', cli, 'tasks', 'tasks.md').stderr.toString()).toContain('Test files not found; fix the path or mark the file "(new)": invite.test.ts (T1)');
+    await writeFile(join(dir, 'tasks.md'), plan(fullPlan.replaceAll('invite.test.ts ›', 'invite.test.ts (new) ›')));
+    const marked = run(dir, 'bun', cli, 'tasks', 'tasks.md');
+    expect(marked.exitCode).toBe(0);
+    expect(marked.stderr.toString()).not.toContain('Test files not found');
+    expect(parseTasks(plan(fullPlan.replace('Tests:\n- J1.S1.c1', 'Tests:\n- invite.test.ts (new)\n  - J1.S1.c1').replace(/- J1\.S1\.c1, J1\.S1\.c2: invite\.test\.ts › /, '- J1.S1.c1, J1.S1.c2: '))).tasks[0].tests[0]).toMatchObject({path: 'invite.test.ts', isNew: true});
+  } finally { await rm(dir, {recursive: true, force: true}); }
+});
+
+test('an indented line continues the decision above it', () => {
+  const d = parseDecisions('- Q2 open — Can an admin revoke a used link?\n  Options: no; yes. Recommend: no.\n- Q3 resolved — Answered\n  by D1.\n- D1 accepted — Only admins invite.\n\n  A paragraph after a blank line is prose.\n');
+  expect(d.errors).toEqual([]);
+  expect(d.decisions.get('Q2')?.text).toBe('Can an admin revoke a used link? Options: no; yes. Recommend: no.');
+  expect(d.decisions.get('Q3')?.answers).toEqual(['D1']);
+  expect(d.decisions.get('D1')?.text).toBe('Only admins invite.');
 });

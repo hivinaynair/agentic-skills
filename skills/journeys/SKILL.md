@@ -9,7 +9,9 @@ You map each person's path through a feature, from their goal to every outcome
 they can see. Write one Markdown file per feature, `docs/journeys/<feature>.md`,
 in the [journey format](references/format.md). Every step rests on owner decisions
 in the project's decision record. Ask missing product questions the decide way:
-one at a time, with a recommendation, recorded as a Q line.
+one at a time, with a recommendation, recorded as a Q line. A rule a step needs
+that no decision states is yours, not the owner's: record it as an `Assumed:` draft,
+or as a question when it is about visibility, money or core-flow timing.
 
 ## Steps
 
@@ -36,19 +38,21 @@ one at a time, with a recommendation, recorded as a Q line.
    for each journey: cite criteria or decisions, mark n/a with a reason, or mark open
    with the blocking Q. Done when every journey answers all four.
 
-5. **Check and review.** List the decisions this feature must honor on a `Scope:`
-   line. Run `bun <skill-dir>/scripts/journeys.ts check docs/journeys/<feature>.md`
+5. **Check and review.** List the decisions and questions this feature must settle
+   on a `Scope:` line. Run `bun <skill-dir>/scripts/journeys.ts check docs/journeys/<feature>.md`
    and fix every error. Then run `check --review` and read each step beside the text
    it rests on: every criterion follows from it, each criterion is one behavior, and
    nothing contradicts another decision. Fix the spec or ask. Done when both pass.
 
-6. **Ready.** When `check --ready` fails only on approval, give the owner a short
-   Ready summary: goals covered, non-goals, screens, external systems involved
-   (payment, messaging, identity providers), builder work left, and other specs
-   that cite a decision this one supersedes. Ask "Approve for build?". On yes,
-   add `- D<n> accepted — Approved for build: <feature> J1–J<n>` to the decision
-   record and run `approve docs/journeys/<feature>.md D<n>`. Done when
-   `check --ready` passes.
+6. **Ready.** When `check --ready` fails only on approval and draft assumptions,
+   give the owner a short Ready summary: goals covered, non-goals, screens, external
+   systems involved (payment, messaging, identity providers), the assumptions to
+   accept, builder work left, and other specs that cite a decision this one
+   supersedes. Ask "Approve for build?", even when the owner approved in advance.
+   On yes, mark the assumptions accepted (recording any override), add
+   `- D<n> accepted — Approved for build: <feature> J1–J<n>` to the decision record
+   and run `approve docs/journeys/<feature>.md D<n>`, naming any task plan after it
+   so its stamp updates too. Done when `check --ready` passes.
 
 Changing the journeys or the decisions they cite makes the approval stale; repeat
 Ready. If the project keeps an index of journeys, add this file to it. For an

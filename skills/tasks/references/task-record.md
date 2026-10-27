@@ -22,7 +22,7 @@ Builder notes:
 - Email provider: send after commit, deduped by invite ID; test in its sandbox.
 Verify: `bun test invites` (0 skipped).
 Tests:
-- src/invites.test.ts
+- src/invites.test.ts (new)
   - J1.S1.c1: admin creates an invite
   - J1.S1.c2: malformed email shows a field error
   - I1: non-admin is refused
@@ -30,8 +30,9 @@ Tests:
   - J1.S2.c1: copy the link and see its expiry
 ```
 
-- **Source** links the journeys file and copies its `Approved:` stamp. When the
-  journeys are re-approved, the `tasks` check reports the plan as stale.
+- **Source** links the journeys file and carries its `Approved:` stamp; `approve`
+  updates it when given the plan. When the journeys change, the `tasks` check reports
+  the plan as stale.
 - **Target** is where the slice must work to count as done: local, deployed or a pilot.
 - **Covers** names journeys, steps, criterion IDs or invariants; a journey or step
   means all of its criteria. Notes in parentheses are ignored. Each criterion has one
@@ -49,8 +50,11 @@ Tests:
   decisions.
 - **Tests** lists each test file once (`manual` for manual steps), with the criteria
   and invariants each test proves nested under it. Test names stay under 10 words.
-  Paths are from the repository root; run the check there.
+  Paths are from the repository root; run the check there. Mark a file the task
+  creates `(new)`; the check warns about any other path that does not exist.
 - **Walkthrough** (last task of a slice): the journeys walked as the person would,
+  through the real flow rather than a shortcut the spec treats differently (a test
+  payment, a seeded account),
   e.g. `Walkthrough: J1 on My bookings: cancel one date, a closed date, a stranger's
   link, a repeated tap`, or `Blocked (reason)` when it cannot run yet.
 - **Status:** Todo, Built (this journey's own path already works in code; its named

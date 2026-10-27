@@ -1,6 +1,9 @@
 # Existing code
 
-Use this when mapping a feature that already exists.
+Use this when mapping a feature that already exists, or a new one built on existing
+code. Read code at the revision you cite: if the working tree has uncommitted changes,
+read with `git show <revision>:<path>` or say the source is the working tree, so
+observations, file paths and commands match one version.
 
 1. **Entry points.** List every way into the feature: screens, endpoints, jobs and
    retries that change the same state. Each becomes a goal; a goal another spec

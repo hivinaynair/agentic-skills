@@ -22,29 +22,37 @@ If the project already keeps a decision record, add to it in its own format.
    things: problem, primary user, first usable outcome, non-goals and success signal.
    For a ticket, take what the ticket and project already establish, and separate
    firm requirements from suggested solutions, assumptions and contradictions; ask
-   only for what is missing, and leave a success signal open rather than invent one.
-   Done when each is an accepted line under `## Frame`; non-goals are X lines. A
-   specified feature goes straight to Ask.
+   only for what is missing. Propose a missing success signal or an obvious non-goal
+   as a draft line rather than a question; neither blocks the build. Done when each
+   is a line under `## Frame`; non-goals are X lines. A specified feature goes
+   straight to Ask.
 
 3. **Ask.** First compare the request with known facts and accepted decisions, and
    name every conflict; a request that changes an accepted decision is a question
    too ("Replace D52 with …?"). Then find the missing rules that change what a person
    can do or see in the first slice, including who can see shared data, existing
-   data, and changes made outside the app. Everything the owner has not said becomes
-   a short Q line: the question and your recommendation, no background, tagged
-   `Blocks: <IDs>` when the answer changes the slice or `Default` when your
-   recommendation is safe to accept, and naming who answers (`Owner: PM`, or
-   `Owner: unknown`). Your preference stays a recommendation until that person
-   accepts it; prepare questions for them rather than contacting them yourself.
-   Reuse an existing **failure default** if the record has one; otherwise ask for one
-   as a `Default` ("when an action fails or its result is unknown, the person sees a
-   retryable error and no partial change is kept"). Ask the highest-impact blocking
-   question first and offer the defaults as one batch. Done when no open question
-   blocks the first slice.
+   data, and changes made outside the app. Sort each gap:
+   - **Question**, when the answer changes what gets built and you cannot pick
+     safely. Write it for someone who has not read your docs: the context they need,
+     the options, your recommendation, and who answers (`Owner: PM`, or
+     `Owner: unknown`).
+   - **Assumption**, when your choice is low-stakes and easy to change: a `draft`
+     D line starting `Assumed:`. The owner accepts or overrides all of them at once
+     in the journeys Ready summary. Who can see or share what, money, and the
+     timing of the core flow are never low-stakes: always ask.
 
-4. **Record.** Write each answer as an accepted D line: one rule, under 30 words,
-   with a why only when it is not obvious. Mark the question resolved with just
-   `Answered by D<n>`; the decision holds the content. When an answer replaces an accepted
+   Both stay proposals until the owner accepts them; prepare questions for them
+   rather than contacting them yourself. Reuse an existing **failure default** if
+   the record has one; otherwise assume one ("when an action fails or its result is
+   unknown, the person sees a retryable error and no partial change is kept"). Ask
+   the highest-impact question first. Done when no open question blocks the first
+   slice.
+
+4. **Record.** Write each answer, and each rule the owner volunteers, as an accepted
+   D line: one rule, under 30 words, with a why only when it is not obvious. A rule
+   you infer from an answer but the owner did not state is an `Assumed:` draft. Mark
+   the question resolved with just `Answered by` and every line it produced
+   (`Answered by D21–D24, X3`); the decisions hold the content. When an answer replaces an accepted
    decision, end the new line with `Supersedes: D<n>`, mark the old one superseded and
    restate any part that still holds. What the code does today is an observation:
    once a journey file exists, record it there as an O line. Done when every answer

@@ -1,7 +1,8 @@
 # Journey format
 
 One Markdown file per feature. Headings, bullets, `→` lines and `Key:` lines are
-structure the checker reads; any other paragraph is free prose for context.
+structure the checker reads; any other paragraph, or a bullet list outside a step,
+is free prose for context.
 
 ```markdown
 # Invitations
@@ -52,15 +53,18 @@ Basis: D3, D7
 ## Rules
 
 - **Header:** `Decisions:` is the decision record's path relative to this file; list
-  lines and table rows both work. `Scope:` lists the decisions this spec must cover;
-  each accepted one must be cited somewhere. `Checks:` here are defaults every
-  journey inherits. `approve` adds `Approved: D<n> <hash>`; `Retired:` lists removed IDs.
+  lines and table rows both work. `Scope:` lists the decisions and questions this spec
+  must settle; each accepted decision must be cited somewhere, and `--ready` fails while
+  a listed question is open or a listed line is a draft. `Checks:` here are defaults
+  every journey inherits. `approve` adds `Approved: D<n> <hash>`; `Retired:` lists
+  removed IDs.
 - **Goals:** `→ J1, J2` (mapped), `→ excluded X<n>` (accepted non-goal),
   `→ elsewhere: <spec>` (covered by another spec) or `→ unresolved: reason`.
   Every journey appears in at least one goal.
 - **Invariants:** `- I<n> (basis): Never: …` (or `Always: …`).
 - **Journeys:** `## J<n>: Title`, then `Actor:` and `Exits:`. A journey `Basis:` applies
-  to every step; its `Checks:` override the header's. The first step is the entry.
+  to every step; its `Checks:` override the header's. The first step is the entry;
+  name other ways in as prose.
 - **Steps:** `### J<n>.S<n> Title (person|system|external)`. Person steps need
   `Screen:` (separate several with `;`); `Sees:` names what the person sees. A step
   `Basis:` adds decisions to the journey's; a resolved Q counts as its answer.
@@ -71,7 +75,8 @@ Basis: D3, D7
   Every step must be reachable and reach an exit; loops are fine.
 - **Observations** (existing code): `## Observations` with
   `- O1: statement. Source: path@revision locator`. Cite them in Basis.
-- **IDs are permanent.** A changed meaning gets a new ID; move the old one to `Retired:`.
+- **IDs are permanent once the spec is first approved.** Then a changed meaning gets a
+  new ID and the old one moves to `Retired:`. Before that, renumber freely.
   Ranges such as `D5–D9` or `I1–I4` work in Scope, Basis and Guards.
 
 **Keep it short.** A criterion or invariant is at most 20 words, a `Sees:` at most 12;

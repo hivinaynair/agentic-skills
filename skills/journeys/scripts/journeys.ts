@@ -13,7 +13,7 @@ const separator = /\s+(?:—|–|--?)\s+/;
 const keys = ['Decisions', 'Approved', 'Retired', 'Scope', 'Actor', 'Exits', 'Checks', 'Screen', 'Sees', 'Basis', 'Guards'];
 const list = (v: string) => v.split(',').map(x => x.trim()).filter(x => x && !/^(—|-|none)$/i.test(x));
 
-export type Decision = { id: string; status: string; text: string; supersedes: string[]; answer?: string };
+export type Decision = { id: string; status: string; text: string; supersedes: string[]; answers: string[] };
 export type Edge = { to?: string; exit?: string; when?: string };
 export type Step = { id: string; title: string; kind: string; screen?: string; sees?: string; basis: string[]; guards: string[]; criteria: [string, string][]; edges: Edge[] };
 export type Check = { status: 'covered' | 'n/a' | 'open'; refs: string[]; reason: string };
@@ -47,12 +47,14 @@ export function parseDecisions(markdown: string) {
     const valid = id.startsWith('Q') ? ['open', 'deferred', 'resolved', 'retired'] : ['draft', 'accepted', 'superseded', 'retired'];
     if (!valid.includes(status)) errors.push(`${where}: ${id} has invalid status ${status}`);
     if (!text) errors.push(`${where}: ${id} has no text`);
-    const answer = id.startsWith('Q') ? text.match(/\b(?:answered|resolved) by\s+(D\d+)|^(D\d+):/i)?.slice(1).find(Boolean) : undefined;
-    decisions.set(id, { id, status, text, supersedes: list(supersedes), answer });
+    decisions.set(id, { id, status, text, supersedes: list(supersedes), answers: [] });
   };
-  let headers: string[] = [];
+  let headers: string[] = [], last: Decision | undefined;
   markdown.split('\n').forEach((raw, i) => {
     const line = raw.trim(), where = `decisions line ${i + 1}`;
+    // An indented line continues the item above it: "- Q2 open — Question?\n  Options: …".
+    if (last && /^\s+\S/.test(raw) && !/^[-*|]/.test(line)) { last.text += ` ${line}`; return; }
+    last = undefined;
     if (line.startsWith('|')) {
       const cells = line.split('|').slice(1, -1).map(c => c.trim());
       if (cells[0] === 'ID') { headers = cells; return; }
@@ -67,16 +69,22 @@ export function parseDecisions(markdown: string) {
     }
     // "- D1 accepted — Text": an ID, a status word, then a dash. Bullets that merely start with an ID are prose.
     const m = line.match(/^[-*]\s+([DXQ]\d+)\s+([a-z]+)\s+(?:—|–|-)\s+(.*)$/);
-    if (m) add(m[1], m[2], m[3].trim(), m[3].match(/\bSupersedes:\s*([DX]\d+(?:\s*,\s*[DX]\d+)*)/)?.[1] ?? '', where);
+    if (m) { add(m[1], m[2], m[3].trim(), '', where); last = decisions.get(m[1]); }
   });
   if (!decisions.size) errors.push('No decisions found: use "- D1 accepted — ..." lines or a table with ID, Status and Decision columns');
+  for (const d of decisions.values()) {
+    // Read after continuation lines are joined. "Answered by D9", "D21–D24" or "D9, X1".
+    if (!d.supersedes.length) d.supersedes = list(d.text.match(/\bSupersedes:\s*([DX]\d+(?:\s*,\s*[DX]\d+)*)/)?.[1] ?? '');
+    const by = d.id.startsWith('Q') ? d.text.match(/\b(?:answered|resolved) by\s+([DX]\d+(?:\s*(?:,|–|-|and)\s*[DX]?\d+)*)|^(D\d+):/i)?.slice(1).find(Boolean) : undefined;
+    if (by) d.answers = expandScope(by.replace(/\s+and\s+/g, ', '));
+  }
   for (const d of decisions.values()) {
     for (const old of d.supersedes) {
       if (old === d.id || !decisions.has(old)) errors.push(`${d.id}: supersedes unknown decision ${old}`);
       // A draft replacement leaves the old decision in force until the owner accepts it.
       else if (d.status === 'accepted' && decisions.get(old)?.status !== 'superseded') errors.push(`${old}: mark replaced decision superseded`);
     }
-    if (d.answer && !decisions.has(d.answer)) errors.push(`${d.id}: answered by unknown decision ${d.answer}`);
+    for (const a of d.answers) if (!decisions.has(a)) errors.push(`${d.id}: answered by unknown decision ${a}`);
   }
   return { decisions, errors };
 }
@@ -91,7 +99,7 @@ function parseCheck(value: string): Check {
 // "D117–D125, X6–X8, I1–I4, D130": ranges expand to each ID.
 function expandScope(value: string) {
   return list(value).flatMap(part => {
-    const m = part.match(/^([DXI])(\d+)\s*(?:–|-)\s*\1?(\d+)$/);
+    const m = part.match(/^([DXIQ])(\d+)\s*(?:–|-)\s*\1?(\d+)$/);
     if (!m) return [part];
     return Array.from({ length: Math.max(0, Number(m[3]) - Number(m[2]) + 1) }, (_, i) => `${m[1]}${Number(m[2]) + i}`);
   });
@@ -169,6 +177,7 @@ export function parseJourneys(markdown: string) {
       continue;
     }
     if (!/^[-*]\s/.test(line)) continue;
+    if (!step && !inChecks && (section === 'header' || journey)) continue;
     const actor = section === 'actors' && line.match(/^[-*]\s+([\w-]+):\s*(.+)$/);
     const goal = section === 'goals' && line.match(/^[-*]\s+(C\d+)\s+([\w-]+):\s*(.+?)\s*(?:→|->)\s*(.+)$/);
     const invariant = section === 'invariants' && line.match(/^[-*]\s+(I\d+)\s*\(([^)]*)\):\s*(.+)$/);
@@ -207,8 +216,7 @@ function cited(spec: Spec, decisions: Map<string, Decision>) {
   const visit = (id: string) => {
     if (!/^[DXQ]\d+$/.test(id) || ids.has(id)) return;
     ids.add(id);
-    const answer = decisions.get(id)?.answer;
-    if (answer) visit(answer);
+    for (const answer of decisions.get(id)?.answers ?? []) visit(answer);
   };
   for (const inv of spec.invariants) inv.basis.forEach(visit);
   for (const j of spec.journeys) {
@@ -241,7 +249,7 @@ export function reviewPacket(spec: Spec, decisions: Map<string, Decision>) {
     if (criteria.has(id)) return `${id}: ${criteria.get(id)}`;
     const d = decisions.get(id);
     if (!d) return `${id}: step or unknown reference`;
-    return `${id} (${d.status}): ${d.text}${d.answer ? `\n  - ${describe(d.answer)}` : ''}`;
+    return `${id} (${d.status}): ${d.text}${d.answers.map(a => `\n  - ${describe(a)}`).join('')}`;
   };
   const out = [`# Review: ${spec.feature}`, '',
     'For each step: does every criterion follow from what it rests on, is each criterion one behavior,',
@@ -250,8 +258,12 @@ export function reviewPacket(spec: Spec, decisions: Map<string, Decision>) {
   for (const i of spec.invariants) out.push(`### ${i.id}: ${i.rule}`, ...i.basis.map(b => `- ${describe(b)}`), '');
   for (const j of spec.journeys) {
     out.push(`## ${j.id}: ${j.title}`, '');
+    // Journey basis is shown once; each step lists only what it adds.
+    if (j.basis.length) out.push('Every step rests on:', ...j.basis.map(b => `- ${describe(b)}`), '');
     for (const st of j.steps) {
-      out.push(`### ${st.id} ${st.title} (${st.kind})`, 'Rests on:', ...[...new Set([...j.basis, ...st.basis])].map(b => `- ${describe(b)}`));
+      const own = st.basis.filter(b => !j.basis.includes(b));
+      out.push(`### ${st.id} ${st.title} (${st.kind})`);
+      if (own.length) out.push(j.basis.length ? 'Also rests on:' : 'Rests on:', ...own.map(b => `- ${describe(b)}`));
       if (st.guards.length) out.push('Guards:', ...st.guards.map(g => `- ${describe(g)}`));
       out.push('Criteria:', ...st.criteria.map(([k, v]) => `- ${st.id}.${k}: ${v}`), '');
     }
@@ -287,7 +299,7 @@ export function validate(spec: Spec, decisions: Map<string, Decision>, ready = f
   const policy = (id: string, owner: string) => {
     const d = decisions.get(id);
     if (!d) err(`${owner}: unknown decision ${id}`);
-    else if (d.status === 'resolved' && d.answer) policy(d.answer, owner);
+    else if (d.status === 'resolved' && d.answers.length) for (const a of d.answers) policy(a, owner);
     else if (d.status === 'resolved') err(`${owner}: ${id} is resolved; add "Answered by D<n>" to it`);
     else if (['superseded', 'retired'].includes(d.status)) err(`${owner}: inactive decision ${id}`);
     else if (d.status !== 'accepted') unresolved.set(id, [...(unresolved.get(id) ?? []), owner]);
@@ -300,7 +312,7 @@ export function validate(spec: Spec, decisions: Map<string, Decision>, ready = f
       else if (/^[DXQ]\d+$/.test(ref)) policy(ref, owner);
       else err(`${owner}: invalid basis ${ref}`);
     }
-    if (ready && !refs.some(r => /^[DX]\d+$/.test(r) || decisions.get(r)?.answer)) err(refs.some(r => r.startsWith('O'))
+    if (ready && !refs.some(r => /^[DX]\d+$/.test(r) || decisions.get(r)?.answers.length)) err(refs.some(r => r.startsWith('O'))
       ? `${owner}: observations are not approved policy; cite an accepted decision`
       : `${owner}: needs an accepted decision in Basis`);
   };
@@ -353,7 +365,7 @@ export function validate(spec: Spec, decisions: Map<string, Decision>, ready = f
     for (const id of graph.keys()) if (!canExit.has(id)) err(`${id}: no path to an exit`);
   }
 
-  // Owner outcome checks. Refs may cite any step, criterion, invariant or decision.
+  // Owner outcome checks. Refs may cite any step, criterion, invariant, observation or decision.
   for (const name of Object.keys(spec.checks)) if (!checkNames.includes(name)) err(`Header: unknown check ${name}`);
   for (const j of spec.journeys) {
     for (const name of Object.keys(j.checks)) if (!checkNames.includes(name)) err(`${j.id}: unknown check ${name}`);
@@ -365,6 +377,7 @@ export function validate(spec: Spec, decisions: Map<string, Decision>, ready = f
       if (c.status === 'covered' && !c.refs.length) err(`${j.id}/${name}: needs refs, n/a — reason, or open — reason`);
       for (const ref of c.refs) {
         if (/^[DXQ]\d+$/.test(ref)) policy(ref, `${j.id}/${name}`);
+        else if (/^O\d+$/.test(ref)) { if (!observationIds.has(ref)) err(`${j.id}/${name}: unknown observation ${ref}`); }
         else if (!rules.has(ref) && !stepIds.has(ref)) err(`${j.id}/${name}: unknown check ref ${ref}`);
       }
     }
@@ -400,16 +413,17 @@ export function validate(spec: Spec, decisions: Map<string, Decision>, ready = f
   const citedIds = new Set(cited(spec, decisions));
   const longDecisions = [...citedIds].filter(id => {
     const text = decisions.get(id)?.text ?? '';
-    return id.startsWith('Q') ? words(text) > 40 : words(text.replace(/\bWhy:.*$/, '').replace(/\bSupersedes:.*$/, '')) > 30;
+    return id.startsWith('Q') ? words(text) > 60 : words(text.replace(/\bWhy:.*$/, '').replace(/\bSupersedes:.*$/, '')) > 30;
   });
   const listed = (ids: string[]) => ids.slice(0, 8).join(', ') + (ids.length > 8 ? ` and ${ids.length - 8} more` : '');
   if (long.criteria.length) warnings.push(`Over 20 words, split or shorten: ${listed(long.criteria)}`);
   if (long.sees.length) warnings.push(`Sees over 12 words: ${listed(long.sees)}`);
-  if (longDecisions.length) warnings.push(`Cited decisions over 30 words (questions over 40): ${listed(longDecisions)}`);
+  if (longDecisions.length) warnings.push(`Cited decisions over 30 words (questions over 60): ${listed(longDecisions)}`);
   for (const id of spec.scope) {
     const d = decisions.get(id);
-    if (!/^[DX]\d+$/.test(id) || !d) err(`Scope: unknown decision ${id}`);
+    if (!/^[DXQ]\d+$/.test(id) || !d) err(`Scope: unknown decision ${id}`);
     else if (d.status === 'accepted' && id !== spec.approval?.id && !citedIds.has(id)) gate(`Scope: ${id} is accepted but no goal, step, invariant or check cites it`);
+    else if (['open', 'draft'].includes(d.status) && !unresolved.has(id)) gate(`Scope: ${id} is ${d.status}`);
   }
 
   if (!approving) {
@@ -424,7 +438,7 @@ export function validate(spec: Spec, decisions: Map<string, Decision>, ready = f
 // Task plans: "## T1 Title" sections with "Covers:" and "Needs:" lines, an optional
 // index table with a Needs column, and a Source line linking the journeys file with
 // the approval it was built on: "Source: [journeys](../journeys/x.md), approved by D11 b6fa08c8".
-export type TaskTest = { ids: string[]; path?: string; locator: string };
+export type TaskTest = { ids: string[]; path?: string; isNew?: boolean; locator: string };
 export type Task = { id: string; covers: string[]; coversLine?: boolean; needs: string[]; indexNeeds?: string[]; indexed?: boolean; repeated: string[]; section: boolean; verify: boolean; tests: TaskTest[]; notes: string[]; evidence?: string; status?: string; parallel?: string };
 const taskId = /\bT(?:\d+|-[A-Za-z0-9][\w-]*)\b/g;
 const specRef = /\b(?:J\d+(?:\.S\d+[a-z]?(?:\.c\d+)?)?|I\d+)\b/g;
@@ -448,7 +462,9 @@ export function parseTasks(markdown: string) {
     if (!m || !ids.length) { errors.push(`${task.id}: cannot read test "${text}"`); return; }
     const [where, ...rest] = m[2].split(/\s+(?:›|>)\s+/);
     const unquote = (v: string) => v.trim().replace(/^[`"']|[`"']$/g, '');
-    task.tests.push({ ids, path: /^manual$/i.test(where.trim()) ? undefined : unquote(where), locator: unquote(rest.join(' › ')) });
+    // "path/to/file.test.ts (new)" is a file the task creates; any other path should exist already.
+    const isNew = /\s*\(new\)\s*$/i.test(where), path = unquote(where.replace(/\s*\(new\)\s*$/i, ''));
+    task.tests.push({ ids, path: /^manual$/i.test(path) ? undefined : path, ...(isNew && { isNew }), locator: unquote(rest.join(' › ')) });
   };
   let current: Task | undefined, headers: string[] = [], block: 'verify' | 'tests' | 'notes' | undefined, group: string | undefined;
   for (const raw of markdown.split('\n')) {
@@ -512,6 +528,7 @@ export function validateTasks(tasks: Task[], source: { approval?: string }, spec
   const owners = new Map(targets.map(id => [id, [] as string[]]));
   const ids = new Set(tasks.map(t => t.id));
   const fileTests: { task: string; ids: string[]; path: string; locator: string }[] = [];
+  const plannedFiles: { task: string; path: string }[] = [];
   for (const t of tasks) {
     if (!t.section) warnings.push(`${t.id}: listed in the index but has no "## ${t.id}" section`);
     else if (!t.coversLine) errors.push(`${t.id}: needs a Covers line naming journeys, steps, criteria or invariants (or "none" for delivery work)`);
@@ -541,7 +558,9 @@ export function validateTasks(tasks: Task[], source: { approval?: string }, spec
       else if (/\b[1-9]\d*\s+skip/i.test(t.evidence)) errors.push(`${t.id}: Evidence shows skipped tests; a skipped test proves nothing`);
     }
     // Done and Built both claim the code exists, so their named tests must exist too.
-    if (/^(done|built)\b/i.test(t.status ?? '')) for (const test of t.tests) if (test.path) fileTests.push({ task: t.id, ids: test.ids, path: test.path, locator: test.locator });
+    if (/^(done|built)\b/i.test(t.status ?? '')) {
+      for (const test of t.tests) if (test.path) fileTests.push({ task: t.id, ids: test.ids, path: test.path, locator: test.locator });
+    } else for (const test of t.tests) if (test.path && !test.isNew && !plannedFiles.some(f => f.path === test.path)) plannedFiles.push({ task: t.id, path: test.path });
     // A task blocked on a question needs that question to exist and still be open.
     for (const q of /^blocked/i.test(t.status ?? '') ? (t.status ?? '').match(/\bQ\d+\b/g) ?? [] : []) {
       const d = decisions.get(q);
@@ -589,12 +608,12 @@ export function validateTasks(tasks: Task[], source: { approval?: string }, spec
     return { id, task: by.join(', ') || '—', test: tests.map(x => `${x.path ?? 'manual'} › ${x.locator}`).join('; ') || '—',
       manual: tests.length > 0 && tests.every(x => !x.path), status: by.map(owner => byTask.get(owner)?.status || '—').join('; ') || '—' };
   });
-  return { errors, warnings, fileTests, report, covered: targets.length - [...owners.values()].filter(by => !by.length).length, total: targets.length };
+  return { errors, warnings, fileTests, plannedFiles, report, covered: targets.length - [...owners.values()].filter(by => !by.length).length, total: targets.length };
 }
 
 if (import.meta.main) {
   try {
-    const usage = 'Usage: bun journeys.ts check feature.md [--ready] [--verbose] [--review] | approve feature.md D<n> | tasks tasks.md [--status]';
+    const usage = 'Usage: bun journeys.ts check feature.md [--ready] [--verbose] [--review] | approve feature.md D<n> [tasks.md ...] | tasks tasks.md [--status]';
     const [cmd, input, ...rest] = process.argv.slice(2);
     if (['.yaml', '.yml'].includes(extname(input ?? ''))) throw Error(`${input} uses the retired YAML format; write the journeys as Markdown (see references/format.md)`);
     if (!['check', 'approve', 'tasks'].includes(cmd) || !input || extname(input) !== '.md') throw Error(usage);
@@ -614,6 +633,10 @@ if (import.meta.main) {
         if (!await file.exists()) result.errors.push(`${test.task}: test file ${test.path} for ${test.ids.join(', ')} does not exist`);
         else if (!(await file.text()).includes(test.locator)) result.errors.push(`${test.task}: ${test.path} has no test "${test.locator}" for ${test.ids.join(', ')}`);
       }
+      // A planned test in an existing file must point at a real file; new files say "(new)".
+      const missing = [];
+      for (const f of result.plannedFiles) if (!await Bun.file(resolve(f.path)).exists()) missing.push(`${f.path} (${f.task})`);
+      if (missing.length) result.warnings.push(`Test files not found; fix the path or mark the file "(new)": ${missing.slice(0, 8).join(', ')}${missing.length > 8 ? ` and ${missing.length - 8} more` : ''}`);
       if (rest.includes('--status')) {
         console.log('| Criterion | Task | Test | Status |\n|---|---|---|---|');
         for (const row of result.report) console.log(`| ${row.id} | ${row.task} | ${row.test.replaceAll('|', '/')} | ${row.status} |`);
@@ -629,12 +652,12 @@ if (import.meta.main) {
     const { spec, errors: parseErrors } = parseJourneys(text);
     const parsed = spec.decisions ? parseDecisions(await read(resolve(dirname(input), spec.decisions))) : { decisions: new Map<string, Decision>(), errors: [] };
     if (cmd === 'approve') {
-      const id = rest[0];
-      if (!/^D\d+$/.test(id ?? '') || rest.length !== 1) throw Error(usage);
+      const [id, ...plans] = rest;
+      if (!/^D\d+$/.test(id ?? '') || plans.some(p => extname(p) !== '.md')) throw Error(usage);
       const errors = [...parseErrors, ...parsed.errors, ...validate(spec, parsed.decisions, true, true).errors];
       if (parsed.decisions.get(id)?.status !== 'accepted') errors.push(`${id}: record the owner's sign-off as an accepted decision first`);
       if (errors.length) throw Error(errors.join('\n'));
-      const stamp = `Approved: ${id} ${approvalHash(spec, parsed.decisions)}`, lines = text.split('\n');
+      const hash = approvalHash(spec, parsed.decisions), stamp = `Approved: ${id} ${hash}`, lines = text.split('\n');
       const existing = lines.findIndex(l => /^Approved:/.test(l.trim()));
       if (existing >= 0) lines[existing] = stamp;
       else {
@@ -642,8 +665,18 @@ if (import.meta.main) {
         if (decisionsLine >= 0) lines.splice(decisionsLine + 1, 0, stamp);
         else lines.splice(lines.findIndex(l => /^# /.test(l)) + 1, 0, '', stamp);
       }
+      // Task plans built on these journeys carry the same stamp on their Source line.
+      const planTexts: string[] = [];
+      for (const plan of plans) {
+        const planText = await Bun.file(plan).text(), source = parseTasks(planText).source;
+        if (!source.path || resolve(dirname(plan), source.path) !== resolve(input)) throw Error(`${plan}: its Source line does not link ${input}`);
+        planTexts.push(planText.split('\n').map(l => !/^Source:/.test(l.trim()) ? l
+          : /\bapproved by D\d+\s+[0-9a-f]{8}/i.test(l) ? l.replace(/\bapproved by D\d+\s+[0-9a-f]{8}/i, `approved by ${id} ${hash}`)
+          : l.replace(/(\]\([^)]+\))/, `$1, approved by ${id} ${hash}`)).join('\n'));
+      }
       await Bun.write(input, lines.join('\n'));
-      console.log(`ok: ${input} approved by ${id}. Changing the journeys or the decisions they cite makes this approval stale.`);
+      for (const [i, plan] of plans.entries()) await Bun.write(plan, planTexts[i]);
+      console.log(`ok: ${input} approved by ${id}${plans.length ? `; stamped ${plans.join(', ')}` : ''}. Changing the journeys or the decisions they cite makes this approval stale.`);
     } else {
       for (const flag of rest) if (!['--ready', '--verbose', '--review'].includes(flag)) throw Error(`Unknown option ${flag}`);
       if (rest.includes('--review')) {
