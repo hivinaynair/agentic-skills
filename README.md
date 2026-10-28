@@ -31,7 +31,10 @@ Say you ask: *"Use decide to plan password reset."*
 it is for, the first thing they should be able to do, what is out of scope and how
 you will know it worked. Then it asks the questions that block the work one at a
 time, each with a recommendation, such as *"How long should a reset link work? I
-suggest 30 minutes."* Safe defaults come as one batch you can accept together.
+suggest 30 minutes."* Low-stakes defaults come as one batch of `Assumed:` lines you
+can accept together; anything about who can see what, money or the timing of the
+core flow is always asked. Rules the agent infers from your answers stay marked
+`Assumed:` until you accept them.
 Given a vague company ticket instead ("Add CSV export to reports"), it first works
 out who needs it and what outcome would satisfy it, and names who should answer each
 question, such as the PM, without contacting them for you. Every answer becomes one line:
@@ -49,8 +52,8 @@ person sees, and the rules as testable sentences:
 ### J2.S1 Open the reset link (person)
 Screen: Reset password · Sees: new password form, or "This link no longer works"
 Basis: D6
-- c1: WHEN the person opens a usable link THE SYSTEM SHALL show the new password form
-- c2: IF the link is expired or used THE SYSTEM SHALL NOT show the form
+- c1: When the link is usable: show the new password form.
+- c2: When the link is expired or used: show "This link no longer works", no form.
 → J2.S2 when the link is usable
 → exit link-unusable when the link is expired or used
 ```
@@ -61,7 +64,8 @@ Those are where most bugs hide. Before asking for approval, the agent reads each
 step beside the decisions it rests on, to catch steps that do not follow from them.
 
 **3. You approve.** When nothing is missing, the agent shows a short summary and
-asks *"Approve for build?"*. Your yes is recorded and stamped into the file. If
+asks *"Approve for build?"*. Your yes is recorded and stamped into the journeys
+file and any task plan built on it. If
 someone later changes the journeys or the decisions they rely on, the approval no
 longer counts until you approve again.
 
@@ -133,8 +137,14 @@ details, which these skills leave to the task plan. A trial of the tasks skill o
 codebases first scored level with planning without it; after tightening the skill, a
 rerun on kubera scored 36 to 32, with a named test per rule, questions raised instead
 of decided, and the spec landed in the repo. Agents without the skill still read the
-code slightly more deeply. One run per case, so treat these as
-a direction, not a measurement.
+code slightly more deeply.
+
+A full idea-to-plan run on PrimeChat (a streaming donation app, 2026-10-27), with a
+simulated owner and a blind judge, scored 44 to 47 against agents without the skills,
+up from 39 before the latest fixes. The skills matched the owner's policy better,
+traced every rule to a test, and used about two thirds of the words. The agents
+without them read the code more deeply and found more failure cases and code traps.
+One run per case, so treat these as a direction, not a measurement.
 
 ## Background
 
