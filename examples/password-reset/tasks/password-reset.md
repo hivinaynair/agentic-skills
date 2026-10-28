@@ -19,7 +19,7 @@ Builder notes:
 Verify: `bun test reset-request` (0 skipped).
 Walkthrough: J1 on Forgot password with a known, an unknown and a malformed email, then a second request.
 Tests:
-- reset-request.test.ts
+- reset-request.test.ts (new)
   - J1.S1.c1, J1.S1.c2: accepts well-formed, rejects malformed email
   - J1.S2.c1: emails a single-use 30-minute link
   - J1.S2.c2, I2: a new link invalidates unused ones
@@ -34,7 +34,7 @@ Builder notes:
 Verify: `bun test reset-password` (0 skipped).
 Walkthrough: J2 on Reset password with a usable, an expired and a reused link, and a weak password.
 Tests:
-- reset-password.test.ts
+- reset-password.test.ts (new)
   - J2.S1.c1, J2.S1.c2, J2.S1.c3: form only for a usable link
   - J2.S2.c1, J2.S2.c2: enforces the sign-up password rules
   - J2.S3.c1: saves, uses the link, ends sessions, signs in

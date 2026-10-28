@@ -12,7 +12,8 @@ Every journey answers four checks from the owner's side: what the person sees.
 Answer each one in the journey's `Checks:` list, or once in the file header when
 the answer holds for every journey (usually `failed`); a journey's own answer wins:
 
-- `- denied: J1.S1.c2` names the criteria, steps, invariants or decisions that cover it.
+- `- denied: J1.S1.c2` names the criteria, steps, invariants, observations or decisions
+  that cover it; cite an observation when today's code already handles the case.
 - `- failed: D8` usually cites the feature's failure default.
 - `- repeated: n/a — read-only page` gives a concrete reason it cannot happen.
 - `- invalid: open — Q2` waits for an owner answer.

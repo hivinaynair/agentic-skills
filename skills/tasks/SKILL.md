@@ -32,28 +32,33 @@ tracker if it has one; otherwise write `docs/tasks/<feature>.md` in the
    Done when every task has a start and a merge order.
 
 4. **Builder notes.** For each invariant, say how the builder holds it: transactions,
-   idempotency, retries, ordering. Find the existing constraints, unique indexes and
-   validators the new behavior will hit, and put access checks before anything that
-   replays or reveals stored state. For each external system the task calls, note
+   idempotency, retries, ordering. A "same transaction" claim names how the project's
+   data access does it (a stored function, a transaction helper). Trace each change
+   through the existing code it passes: allowlists, validators, serializers, payload
+   builders, constraints and unique indexes that would drop or reject it. Put access
+   checks before anything that replays or reveals stored state. For each external system the task calls, note
    the calls, idempotency, webhooks, reconciling drift and how to test it. Done when
    every invariant and external system has a note.
 
 5. **Verify.** Under `Tests:`, list each test file once and nest the tests under it,
-   naming which criteria and invariants each proves; use `manual` for manual steps. Give each task a command with
-   its setup, and end each slice with a `Walkthrough:` of its journeys, including the
+   naming which criteria and invariants each proves; use `manual` for manual steps
+   and mark files the task creates `(new)`. Put each test in a file that runs the
+   layer it proves; a test that mocks that layer proves nothing. Give each task a command with its setup,
+   using the project's own scripts and package manager at the revision you planned
+   against, and end each slice with a `Walkthrough:` of its journeys, including the
    denied, invalid, failed and repeated cases. A skipped test verifies nothing. Done
    when every owned criterion has a named test.
 
-6. **Check.** Stamp the journeys' approval in the Source line and run
+6. **Check.** Stamp the journeys' approval in the Source line (journeys `approve`
+   does this when given the plan) and run
    `journeys.ts tasks docs/tasks/<feature>.md` from the repository root. Done when it
    passes. It checks structure, so review the slices, notes and tests yourself.
 
 ## Questions and the build
 
 A product choice the spec leaves open (a status, a label, an edge case) becomes a Q
-line in the decision record, never a builder note. A `Blocks:` question marks the
-tasks that depend on it Blocked (Q<n>); split a task so only those criteria wait. A
-`Default` question blocks nothing.
+line in the decision record, never a builder note. An open question marks the tasks
+that depend on it Blocked (Q<n>); split a task so only those criteria wait.
 
 During the build, a task is Done only with `Evidence:`: the command run and its
 result, nothing skipped. If a criterion proves wrong or impossible, stop it and raise
