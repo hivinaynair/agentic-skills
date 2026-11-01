@@ -47,7 +47,7 @@ Chrome or Chromium. For the full command reference matching that version, read
 3. **Check every criterion.** Give every path as an absolute path (see Known
    issues).
    ```sh
-   ab="agent-browser --session verify"
+   ab="agent-browser --session verify-<branch>"   # unique per branch (see Known issues)
    out="$PWD/.verify/<branch>"; mkdir -p "$out"
    $ab open <url>
    $ab snapshot -i                      # elements by ref, e.g. @e3
@@ -106,5 +106,9 @@ Check these again when moving to a newer version.
 
 - A path starting with `.` (such as `.verify/…`) is read as a CSS selector, so the
   screenshot silently lands in agent-browser's temporary folder. Use absolute paths.
+- Sessions are shared by name across every agent on the machine. Two agents both
+  using `--session verify` drive the same browser: commands interleave, recordings
+  land in the other's folder and one `close` ends both. Name the session after the
+  branch, and `close` only your own.
 - The contact sheet keeps only a few frames and can skip a short-lived state such as
   an error message. Take a screenshot of every state instead.
