@@ -43,7 +43,7 @@ e2e/report/
 
 Set the repository variables `E2E_START_COMMAND` (how CI starts the app; default
 `npm run dev`) or `E2E_BASE_URL` (a deployed preview to test instead). The demo skill
-needs `ffmpeg` and runs `agent-browser` through `npx`, pinned to 0.39.1.
+needs `ffmpeg` and runs `agent-browser` through `npx`, pinned to 0.41.0.
 
 ## What it deliberately leaves out
 

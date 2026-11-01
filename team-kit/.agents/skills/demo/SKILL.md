@@ -10,8 +10,8 @@ flow with a visible cursor, and a screenshot of each state it reaches. The revie
 should see the main path **and** what happens when it goes wrong.
 
 Use [agent-browser](https://github.com/vercel-labs/agent-browser), pinned:
-`npx agent-browser@0.39.1`. Recording needs `ffmpeg`. If no browser is installed,
-run `npx agent-browser@0.39.1 install`, or point
+`npx agent-browser@0.41.0`. Recording needs `ffmpeg`. If no browser is installed,
+run `npx agent-browser@0.41.0 install`, or point
 `AGENT_BROWSER_EXECUTABLE_PATH` at an existing Chrome or Chromium.
 
 ## Steps
@@ -34,7 +34,7 @@ run `npx agent-browser@0.39.1 install`, or point
    committed. Give every path as an absolute path: a path starting with `.` is
    read as a CSS selector, and the file silently lands elsewhere.
    ```sh
-   ab="npx agent-browser@0.39.1 --session demo"
+   ab="npx agent-browser@0.41.0 --session demo"
    out="$PWD/.demo/<branch>"; mkdir -p "$out"
    $ab open <url>
    $ab screenshot "$out/01-start.png"
