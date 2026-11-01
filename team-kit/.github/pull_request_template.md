@@ -14,8 +14,8 @@
 
 ## Walkthrough
 
-<UI changes: one line per state with its screenshot, and the video. The demo skill
-writes this section. Write "no UI change" otherwise.>
+<UI changes: the video, then one line per success criterion with its result and
+screenshot. The verify skill writes this section. Write "no UI change" otherwise.>
 
 ## Evidence
 

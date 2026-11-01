@@ -12,7 +12,7 @@ for name in decide journeys tasks; do
   rm -rf ".agents/skills/$name"
   cp -R "$tmp/src/skills/$name" ".agents/skills/$name"
 done
-# Link every skill in .agents/skills, including the kit's own (demo).
+# Link every skill in .agents/skills, including the kit's own (verify).
 for dir in .agents/skills/*/; do
   name=$(basename "$dir")
   for tool in .claude .cursor; do

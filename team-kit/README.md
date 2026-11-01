@@ -11,7 +11,7 @@ placeholders, and the team has one way of working with agents.
 | `docs/ai-workflow.md` | The team guide: the five layers and which changes take which path. |
 | `.github/pull_request_template.md` | Every PR says how it was routed, what rules it implements and its evidence. |
 | `.github/workflows/specs.yml` | Checks specs on PRs that change them. |
-| `.agents/skills/demo/` | A skill that records a video walkthrough of a UI change, with a screenshot of every state, for the PR. |
+| `.agents/skills/verify/` | A skill that checks a change in a browser against its success criteria, fixes and re-checks until all pass, then records a walkthrough for the PR. |
 | `e2e/playwright.config.ts` | Journey tests that record video and a step-by-step trace of every run. |
 | `.github/workflows/journeys.yml` | Runs the journey tests on every PR and posts a comment: each journey, its result, and its recordings. |
 | `scripts/journey-report.mjs` | Builds that comment from Playwright's results. |
@@ -37,13 +37,13 @@ For recordings, add Playwright to the project (`npm i -D @playwright/test`), put
 journey tests in `e2e/journeys/`, and add these lines to `.gitignore`:
 
 ```
-.demo/
+.verify/
 e2e/report/
 ```
 
 Set the repository variables `E2E_START_COMMAND` (how CI starts the app; default
-`npm run dev`) or `E2E_BASE_URL` (a deployed preview to test instead). The demo skill
-needs `ffmpeg` and runs `agent-browser` through `npx`, pinned to 0.41.0.
+`npm run dev`) or `E2E_BASE_URL` (a deployed preview to test instead). The verify skill
+needs `ffmpeg` and agent-browser 0.41.0 (`npm i -g agent-browser@0.41.0`).
 
 ## What it deliberately leaves out
 
