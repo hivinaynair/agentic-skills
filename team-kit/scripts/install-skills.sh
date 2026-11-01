@@ -11,6 +11,7 @@ mkdir -p .agents/skills .claude/skills .cursor/skills
 for name in decide journeys tasks build; do
   rm -rf ".agents/skills/$name"
   cp -R "$tmp/src/skills/$name" ".agents/skills/$name"
+  rm -rf ".agents/skills/$name/evals" # the skills' own test cases stay in agentic-skills
 done
 # Link every skill in .agents/skills, including the kit's own (verify).
 for dir in .agents/skills/*/; do

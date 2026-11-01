@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: decide-conflicting-change
+expected_outcome: |
+  The change is recognised as replacing accepted decision D5, its impact on the approved journeys and tasks is reported (steps, criteria, tests, the approval going stale), the new question it raises (taking coins back on returns) is surfaced, and if anything is recorded it supersedes D5 instead of editing it.
+context:
+  scaffold_script: place-files.sh

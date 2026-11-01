@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: build-task-t1
+expected_outcome: |
+  T1 implemented in src/coins.ts with the five planned tests created under exactly their planned names in src/coins.test.ts, all passing with nothing skipped, the plan updated to Done with an evidence line, and the spec, decisions and T2 left untouched.
+context:
+  scaffold_script: place-files.sh
