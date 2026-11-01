@@ -829,9 +829,12 @@ export function summary(spec: Spec, decisions: Map<string, Decision>, options: C
   if (spec.goals.length) {
     out.push('## What people can do', '');
     for (const g of spec.goals) {
-      // A journey titled like its goal needs no arrow: "Revoke an invitation → Revoke an invitation".
-      const target = g.status === 'mapped' ? g.journeys.map(j => titles.get(j) ?? j).filter(t => t.toLowerCase() !== g.goal.toLowerCase()).join('; ')
-        : g.status === 'excluded' ? (g.decision && /out of scope/i.test(text(g.decision)) ? text(g.decision) : `out of scope${g.decision ? `: ${text(g.decision)}` : ''}`)
+      // A journey titled like its goal needs no arrow: "Find a devotee → Find a devotee".
+      const same = (title: string) => g.goal.toLowerCase().startsWith(title.toLowerCase()) || title.toLowerCase().startsWith(g.goal.toLowerCase());
+      // An exclusion may be a non-goal or work deferred to a later slice; its own text says which.
+      const excluded = g.decision ? text(g.decision) : '';
+      const target = g.status === 'mapped' ? g.journeys.map(j => titles.get(j) ?? j).filter(t => !same(t)).join('; ')
+        : g.status === 'excluded' ? (/out of scope|not in|later|next slice/i.test(excluded) ? excluded : `not in this spec${excluded ? `: ${excluded}` : ''}`)
         : g.status === 'elsewhere' ? `covered elsewhere: ${g.reason}` : `not decided: ${g.reason}`;
       out.push(`- ${actors.get(g.actor) ?? g.actor}: ${g.goal}${target ? ` → ${target}` : ''}`);
     }
@@ -955,7 +958,18 @@ if (import.meta.main) {
       if (/^## Specs\s*$/m.test(text)) {
         const root = dirname(resolve(input));
         for (const e of parseIndex(text).index.specs) if (e.path) await add(resolve(root, e.path), e.tasks.map(t => resolve(root, t)));
-      } else await add(resolve(input), []);
+      } else {
+        // Without an index, task plans are found where the skills write them: beside
+        // the spec or in ../tasks, linked back to it by their Source line.
+        const spec = resolve(input), plans: string[] = [];
+        for (const dir of [dirname(spec), resolve(dirname(spec), '..', 'tasks')]) {
+          for (const name of (await readdir(dir).catch(() => [] as string[])).filter(n => extname(n) === '.md').sort()) {
+            const path = resolve(dir, name), source = path === spec ? undefined : parseTasks(await read(path)).source.path;
+            if (source && resolve(dir, source) === spec) plans.push(path);
+          }
+        }
+        await add(spec, plans);
+      }
       for (const id of ids) if (![...records.values()].some(r => r.has(id))) errors.push(`${id} is not in any decision record`);
       if (errors.length) throw Error(errors.join('\n'));
       const results = targets.map(t => ({ spec: t.path, ...impactOf(t.spec, (t.record && records.get(t.record)) || new Map(), ids, t.plans) }));

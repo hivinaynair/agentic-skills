@@ -955,3 +955,28 @@ test('check reads any file: journeys, task plan or index; --impact works on jour
     expect(run(dir, 'bun', cli, 'impact', 'feature.md', 'D1').exitCode).toBe(0);
   } finally { await rm(dir, {recursive: true, force: true}); }
 });
+
+test('impact on one spec finds its task plans beside it or in ../tasks', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'journeys-impact-plans-'));
+  try {
+    await mkdir(join(dir, 'journeys')); await mkdir(join(dir, 'tasks'));
+    await writeFile(join(dir, 'decisions.md'), decisionsMd);
+    await writeFile(join(dir, 'journeys', 'feature.md'), approve(base).replace('Decisions: decisions.md', 'Decisions: ../decisions.md'));
+    await writeFile(join(dir, 'tasks', 'feature.md'), plan(fullPlan).replace('[journeys](feature.md)', '[journeys](../journeys/feature.md)'));
+    await writeFile(join(dir, 'tasks', 'other.md'), '# Other\n\nSource: [journeys](../journeys/other.md)\n\n## T1 X\nCovers: J1.\n');
+    const out = run(dir, 'bun', cli, 'check', 'journeys/feature.md', '--impact', 'D1').stdout.toString();
+    expect(out).toContain('  - T1 (Todo) in tasks/feature.md: J1.S1.c1, J1.S1.c2, J1.S1.c3, I1');
+    expect(out).toContain('2 tasks, 1 approval to renew');
+    expect(out).not.toContain('other.md');
+  } finally { await rm(dir, {recursive: true, force: true}); }
+});
+
+test('summary: no arrow when the journey restates the goal; deferred work is not called out of scope', () => {
+  const md = base.replace('- C1 admin: Invite a member → J1', '- C1 admin: Invite a teammate and share the link → J1');
+  const later = parseDecisions(decisionsMd.replace('- X1 accepted — Email delivery is out of scope.', '- X1 accepted — Email delivery is the next slice.')).decisions;
+  const page = summary(parseJourneys(md).spec, later);
+  expect(page).toContain('- Workspace admin: Invite a teammate and share the link\n');
+  expect(page).toContain('- Workspace admin: Email the invite → Email delivery is the next slice.');
+  const plain = parseDecisions(decisionsMd.replace('- X1 accepted — Email delivery is out of scope.', '- X1 accepted — No email delivery.')).decisions;
+  expect(summary(parseJourneys(md).spec, plain)).toContain('→ not in this spec: No email delivery.');
+});
