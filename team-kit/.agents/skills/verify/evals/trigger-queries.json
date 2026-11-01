@@ -1,0 +1,82 @@
+[
+ {
+  "query": "I've built COIN-12. Before I open the PR, check it against the acceptance criteria in the browser and give me evidence.",
+  "should_trigger": true
+ },
+ {
+  "query": "Can you QA the new checkout page? Make sure each acceptance criterion in the ticket actually works, and record a video for the reviewers.",
+  "should_trigger": true
+ },
+ {
+  "query": "prove the gift card redemption works, screenshots for each criterion please, and fix it if something's broken",
+  "should_trigger": true
+ },
+ {
+  "query": "Before the PR goes up, demo the wishlist sharing feature with a recording I can paste into the PR",
+  "should_trigger": true
+ },
+ {
+  "query": "test the coins payment flow in a real browser, including what happens with too many coins and an empty field",
+  "should_trigger": true
+ },
+ {
+  "query": "I changed the account page. Verify it against the spec criteria on the preview deploy (behind Vercel login) and attach evidence.",
+  "should_trigger": true
+ },
+ {
+  "query": "Make sure the returns form behaves as the ticket says. If something fails, fix it and check everything again.",
+  "should_trigger": true
+ },
+ {
+  "query": "Record a walkthrough of the new subscription pause flow for the PR, and confirm each acceptance criterion passes.",
+  "should_trigger": true
+ },
+ {
+  "query": "the PM wants to see the feature working before she approves the merge, can you show it working end to end?",
+  "should_trigger": true
+ },
+ {
+  "query": "Run a browser check of the store credit feature before I open the PR. It's risky (money), so explore around it for bugs too.",
+  "should_trigger": true
+ },
+ {
+  "query": "Write Playwright tests for the checkout flow that run in CI",
+  "should_trigger": false
+ },
+ {
+  "query": "Take a screenshot of google.com",
+  "should_trigger": false
+ },
+ {
+  "query": "Scrape product prices from our competitor's website",
+  "should_trigger": false
+ },
+ {
+  "query": "Why is the checkout page slow to load? Profile it.",
+  "should_trigger": false
+ },
+ {
+  "query": "Map the journeys for gift card redemption",
+  "should_trigger": false
+ },
+ {
+  "query": "Fix the bug where the balance doesn't update after paying",
+  "should_trigger": false
+ },
+ {
+  "query": "Make a marketing demo video of our app with voiceover for the homepage",
+  "should_trigger": false
+ },
+ {
+  "query": "Check if our site meets WCAG accessibility standards",
+  "should_trigger": false
+ },
+ {
+  "query": "Implement T1 from the coins plan",
+  "should_trigger": false
+ },
+ {
+  "query": "Can you load-test the checkout endpoint with 500 concurrent users?",
+  "should_trigger": false
+ }
+]

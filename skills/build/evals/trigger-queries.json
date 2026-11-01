@@ -1,0 +1,82 @@
+[
+ {
+  "query": "Build T1 from docs/tasks/coins.md",
+  "should_trigger": true
+ },
+ {
+  "query": "implement the next task in the gift card plan, tests first",
+  "should_trigger": true
+ },
+ {
+  "query": "pick up T3 from docs/tasks/returns.md and open a PR when it's done",
+  "should_trigger": true
+ },
+ {
+  "query": "Bug: customers can pay with more coins than the order total, which breaks J3.S2.c4 in our spec. Fix it.",
+  "should_trigger": true
+ },
+ {
+  "query": "Work TDD on the store credit task. Write the planned tests first, make them pass, record the evidence in the plan.",
+  "should_trigger": true
+ },
+ {
+  "query": "The approved spec says refunds return coins as coins (J4.S1.c2) but the code refunds them as money. Fix this properly.",
+  "should_trigger": true
+ },
+ {
+  "query": "code the next slice of the subscriptions plan, the approval is current",
+  "should_trigger": true
+ },
+ {
+  "query": "Implement T2 (show balance and credits). Only write the tests the plan names, I don't want 50 tests.",
+  "should_trigger": true
+ },
+ {
+  "query": "Can you build the task that adds the account balance page? It's T2 in the coins task plan.",
+  "should_trigger": true
+ },
+ {
+  "query": "start on the first task that can start now in docs/tasks/wishlist.md",
+  "should_trigger": true
+ },
+ {
+  "query": "fix the typo in the README",
+  "should_trigger": false
+ },
+ {
+  "query": "Write tests for the legacy pricing module, it has zero coverage",
+  "should_trigger": false
+ },
+ {
+  "query": "Plan the tasks for the approved gift card journeys",
+  "should_trigger": false
+ },
+ {
+  "query": "We need to decide whether gift cards expire. What should I ask the PM?",
+  "should_trigger": false
+ },
+ {
+  "query": "Bump the Medusa version to the latest minor and fix whatever breaks",
+  "should_trigger": false
+ },
+ {
+  "query": "Explain what this function does: src/coins.ts creditClosedOrder",
+  "should_trigger": false
+ },
+ {
+  "query": "Write a quick script to export all orders from last month to CSV",
+  "should_trigger": false
+ },
+ {
+  "query": "Review my PR, it implements T1 of the coins plan",
+  "should_trigger": false
+ },
+ {
+  "query": "Set up Prettier and ESLint for the repo",
+  "should_trigger": false
+ },
+ {
+  "query": "Check in the browser that the checkout page works after my change",
+  "should_trigger": false
+ }
+]
