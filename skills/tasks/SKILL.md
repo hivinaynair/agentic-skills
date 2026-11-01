@@ -1,6 +1,7 @@
 ---
 name: tasks
-description: Plan implementation from an approved journey spec or other agreed spec, as usable slices with dependencies, safe parallel work, builder notes and a named test for every criterion. Use for new apps or existing code before building; skip trivial edits.
+description: "Plans how to build an approved spec: slices a person can use, in a working order, with what can run in parallel, builder notes for each invariant and external system, and a named test for every criterion. Use when asked to plan the implementation, break a feature into tasks or tickets, or sequence the build of an approved journey spec, in a new or existing codebase. Skip for trivial edits."
+compatibility: "Needs the journeys skill installed beside it (its scripts/journeys.ts checker) and Bun 1.4 or later."
 ---
 
 # Tasks

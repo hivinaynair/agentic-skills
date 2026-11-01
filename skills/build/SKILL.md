@@ -1,6 +1,7 @@
 ---
 name: build
-description: Implement one planned task, or fix one bug against a broken rule, so that the code, its tests, the task plan and the pull request stay tied to the approved spec. Use when asked to build a task from a task plan, implement the next slice, or fix a bug that breaks a criterion.
+description: "Implements one planned task, or fixes one bug against an approved criterion, keeping code, tests, task plan and pull request tied to the spec: tests first under their planned names, evidence recorded, criteria never changed to make code pass. Use when asked to build, implement or code the next task or slice from a task plan, pick up a ticket that has an approved spec, or fix a bug that breaks a criterion in the spec."
+compatibility: "Needs the journeys skill installed beside it (its scripts/journeys.ts checker) and Bun 1.4 or later."
 ---
 
 # Build
@@ -19,7 +20,8 @@ beside this skill's folder.
 
 - The spec is fixed. Never change a criterion, a decision, a planned test name or
   the spec to make code pass. If a criterion proves wrong or impossible, stop and
-  raise a Q line for the owner (the decide way); the task waits, Blocked (Q<n>).
+  raise a Q line for the owner, with a recommendation, as the decide skill does; the
+  task waits, Blocked (Q<n>).
 - One task per pull request. Build only the criteria and invariants the task owns;
   anything else you notice becomes a note in the PR, not a change.
 - Done needs evidence: the command run and its result, nothing skipped.

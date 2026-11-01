@@ -1,6 +1,6 @@
 ---
 name: decide
-description: Settle what to build before code. Frames a raw idea or vague ticket, records the owner's decisions and non-goals, and asks the next blocking product question. Use when an idea or ticket needs sharpening, requirements are uncertain, or decisions need a handoff.
+description: "Settles what to build before any code: frames a raw idea or vague ticket, asks the product questions that block the first slice (each with a recommendation, sent as one list when a PM, client or committee owns the answers), records each answer as a one-line decision, and gets the decisions approved for build. Use whenever someone shares a ticket, PRD, feature request or idea whose rules are not settled, asks to plan or scope a feature or write requirements, or wants to change an approved decision, even if they never say \"decide\". Not for one-line fixes or purely technical choices."
 ---
 
 # Decide
@@ -45,7 +45,9 @@ If the project already keeps a decision record, add to it in its own format.
    - **Assumption**, when your choice is low-stakes and easy to change: a `draft`
      D line starting `Assumed:`. The owner accepts or overrides all of them at once
      when approving the decisions (step 5). Who can see or share what, money, and
-     the timing of the core flow are never low-stakes: always ask.
+     the timing of the core flow are never low-stakes: always ask. That includes who
+     may see a person's own data (a balance, a history, a profile), even when the
+     answer looks obvious: privacy is the owner's call, and a wrong guess is costly.
 
    Both stay proposals until the owner accepts them; prepare questions for them
    rather than contacting them yourself. Reuse an existing **failure default** if

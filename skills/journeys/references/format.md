@@ -1,5 +1,8 @@
 # Journey format
 
+Contents: [example](#journey-format) · [rules](#rules) · [commands](#commands) ·
+[when your project grows](#when-your-project-grows)
+
 One Markdown file per feature. Headings, bullets, `→` lines and `Key:` lines are
 structure the checker reads; any other paragraph, or a bullet list outside a step,
 is free prose for context.

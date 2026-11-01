@@ -1,6 +1,8 @@
 ---
 name: verify
-description: Checks a change in a real browser against its success criteria, fixes and re-checks until every criterion passes (at most three rounds), explores around risky changes for unplanned bugs, then records a video walkthrough with a screenshot of every state for the pull request. Use after building a change people can see, before opening its PR, or when asked to verify or demo a feature.
+description: "Checks a change in a real browser against its success criteria, fixes the product code and re-checks until every criterion passes (at most three rounds), explores around risky changes for unplanned bugs, then records a video walkthrough with a screenshot per criterion for the pull request. Use after building anything people can see, before opening its PR, or when asked to verify, QA, test in the browser, demo or prove that a feature works."
+compatibility: "Needs agent-browser 0.41.0 (npm i -g agent-browser@0.41.0), ffmpeg and a Chrome or Chromium."
+allowed-tools: Bash(agent-browser:*)
 ---
 
 # Verify
@@ -39,8 +41,8 @@ Chrome or Chromium. For the full command reference matching that version, read
    protected-vercel-deployments`). Otherwise start the app as `AGENTS.md` says.
    Done when the first screen loads.
 
-3. **Check every criterion.** Give every path as an absolute path: a path starting
-   with `.` is read as a CSS selector and the file lands elsewhere.
+3. **Check every criterion.** Give every path as an absolute path (see Known
+   issues).
    ```sh
    ab="agent-browser --session verify"
    out="$PWD/.verify/<branch>"; mkdir -p "$out"
@@ -81,8 +83,8 @@ Chrome or Chromium. For the full command reference matching that version, read
    # …the same actions as step 3, screenshot after each state…
    $ab record stop; $ab close
    ```
-   Do not rely on the contact sheet alone: it keeps only some frames and can skip
-   a short-lived error. Keep the video under a minute.
+   Rely on the screenshots, not the contact sheet (see Known issues). Keep the video
+   under a minute.
 
 7. **Hand it over.** Fill the PR's **Walkthrough** section: the video, then one
    line per criterion with its result and screenshot. For a risky change, fill
@@ -90,4 +92,16 @@ Chrome or Chromium. For the full command reference matching that version, read
    team keeps PR media (see `docs/ai-workflow.md`); if you cannot upload, give the
    person the file paths and the finished section to paste.
 
-The journey tests in CI then prove the same rules on every push.
+In your reply, say plainly what you changed in the code to make a criterion pass:
+the person asked for a check and should not discover a fix in the diff.
+
+The journey tests in CI then prove the same criteria on every push.
+
+## Known issues in agent-browser 0.41.0
+
+Check these again when moving to a newer version.
+
+- A path starting with `.` (such as `.verify/…`) is read as a CSS selector, so the
+  screenshot silently lands in agent-browser's temporary folder. Use absolute paths.
+- The contact sheet keeps only a few frames and can skip a short-lived state such as
+  an error message. Take a screenshot of every state instead.

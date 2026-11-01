@@ -1,6 +1,7 @@
 ---
 name: journeys
-description: Map how people move through a feature, from goal to every outcome they can see, as screens, steps and testable criteria, checked by an independent review against the owner's approved decisions and ready to build. Use after decisions exist, to map user journeys, check a spec is ready, or reconstruct a feature from existing code.
+description: "Maps how people move through a feature as screens, steps and testable criteria that follow the owner's approved decisions, including what happens when someone is not allowed, enters bad input, hits a failure or repeats an action, then passes an independent review and a checker before build. Use after decisions exist, when asked to map user journeys or flows, write user stories or acceptance criteria, check a spec is ready to build, or reconstruct how an existing feature behaves from its code. Not for visual design or wireframes."
+compatibility: "Needs Bun 1.4 or later for the checker in scripts/journeys.ts."
 ---
 
 # Journeys
@@ -14,7 +15,8 @@ they can see. Write one Markdown file per feature, `docs/journeys/<feature>.md`,
 in the [journey format](references/format.md). Every step rests on owner decisions
 in the project's decision record. Never add a rule: when a step needs one that no
 accepted decision states, record it as a Q line or an `Assumed:` draft and send it
-to the owner the decide way. The spec is not ready until the owner has answered.
+to the owner as the decide skill does: one list of questions, each with a
+recommendation. The spec is not ready until the owner has answered.
 
 ## Steps
 

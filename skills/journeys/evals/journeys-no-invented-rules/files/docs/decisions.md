@@ -16,4 +16,3 @@ Acme Outdoor store. Owner of product decisions: Priya (PM). Finance owns tax.
 - D8 accepted — The account page shows the balance and each credit with its order number.
 - D9 accepted — Failure default: when crediting fails or its result is unknown, nothing is credited and it is retried later.
 - D10 accepted — Decisions approved for build: coins earning (D4–D9). Approved by Priya.
-- D11 accepted — Approved for build: coins J1–J2, independent review passed.
