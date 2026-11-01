@@ -26,6 +26,9 @@ Chrome or Chromium. For the full command reference matching that version, read
 - Preview or local only, with test data and test payment modes. Never production,
   real accounts or live payments.
 - At most three fix rounds. Then stop and report what still fails, with evidence.
+- Evidence shows only what a person could do. Never change the page with scripts,
+  injected styles or edited state to make a check pass or a recording look cleaner;
+  if a state is hard to show, start a fresh page instead.
 
 ## Steps
 
