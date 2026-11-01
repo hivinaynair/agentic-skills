@@ -58,9 +58,13 @@ Reviewers should see a change work before reading its code.
   (GitHub plays MP4 inline), or a shared bucket.> CI recordings stay in the run's
   artifacts for 14 days.
 
-- **Exploratory check, before a risky release.** Run agent-browser's bundled
-  `dogfood` skill (`agent-browser skills get dogfood`) on the preview. It explores
-  like a user and reports bugs with repro videos, covering areas no journey maps.
+- **Exploratory check, for risky changes.** After the criteria pass, the verify skill
+  runs agent-browser's bundled `dogfood` skill on the changed area and the flows next
+  to it. It explores like a user and reports bugs with repro videos, covering what no
+  journey maps. The agent fixes only what its change caused, raises undecided
+  behavior as a question for the owner, and lists older bugs without fixing them.
+- **Before a release.** Someone runs `dogfood` across the whole app on staging and
+  turns its findings into tickets.
 
 Reviewers watch the walkthrough and check the journey table, then read the risky
 parts of the code: money, permissions, data, migrations.

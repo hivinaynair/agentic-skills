@@ -17,6 +17,12 @@
 <UI changes: the video, then one line per success criterion with its result and
 screenshot. The verify skill writes this section. Write "no UI change" otherwise.>
 
+## Exploratory check
+
+<Risky changes only: the dogfood report, then its findings sorted into fixed here,
+open questions for the owner, and found but not fixed (already there). Write
+"not risky" otherwise.>
+
 ## Evidence
 
 <Commands run and their output: tests, lint, types; screenshots for UI.>

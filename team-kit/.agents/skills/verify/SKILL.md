@@ -1,6 +1,6 @@
 ---
 name: verify
-description: Checks a change in a real browser against its success criteria, fixes and re-checks until every criterion passes (at most three rounds), then records a video walkthrough with a screenshot of every state for the pull request. Use after building a change people can see, before opening its PR, or when asked to verify or demo a feature.
+description: Checks a change in a real browser against its success criteria, fixes and re-checks until every criterion passes (at most three rounds), explores around risky changes for unplanned bugs, then records a video walkthrough with a screenshot of every state for the pull request. Use after building a change people can see, before opening its PR, or when asked to verify or demo a feature.
 ---
 
 # Verify
@@ -60,9 +60,22 @@ Chrome or Chromium. For the full command reference matching that version, read
    recording, and report each failing criterion with its screenshot and what you
    tried.
 
-5. **Record the walkthrough.** Once everything passes, record one clean take of
-   the main path and at least one failure case, with a screenshot after each
-   state; wait for each state to show before the screenshot.
+5. **Explore around it (risky changes only).** For money, permissions, customer
+   data or a change crossing features, run agent-browser's bundled `dogfood` skill
+   (`agent-browser skills get dogfood`) on the same app before recording, scoped
+   to the changed area and the flows next to it, with output in `"$out/dogfood"`.
+   Sort every finding:
+   - **Caused by this change:** fix it within the same three rounds, then check
+     every criterion again.
+   - **Behavior no criterion decides:** do not choose one; record it as an open
+     question for the owner.
+   - **There before this change:** do not fix it; list it as found, not fixed.
+   Done when every finding is sorted.
+
+6. **Record the walkthrough.** Once every criterion passes and every finding is
+   sorted, record one clean take of the main path and at least one failure case,
+   with a screenshot after each state; wait for each state to show before the
+   screenshot.
    ```sh
    $ab record start "$out/walkthrough.mp4" --cursor --contact-sheet
    # …the same actions as step 3, screenshot after each state…
@@ -71,8 +84,9 @@ Chrome or Chromium. For the full command reference matching that version, read
    Do not rely on the contact sheet alone: it keeps only some frames and can skip
    a short-lived error. Keep the video under a minute.
 
-6. **Hand it over.** Fill the PR's **Walkthrough** section: the video, then one
-   line per criterion with its result and screenshot. Attach the files where the
+7. **Hand it over.** Fill the PR's **Walkthrough** section: the video, then one
+   line per criterion with its result and screenshot. For a risky change, fill
+   **Exploratory check** with the dogfood report and the sorted findings. Attach the files where the
    team keeps PR media (see `docs/ai-workflow.md`); if you cannot upload, give the
    person the file paths and the finished section to paste.
 
