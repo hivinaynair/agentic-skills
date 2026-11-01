@@ -1,6 +1,6 @@
 ---
 name: build
-description: "Implements one planned task test-first, or fixes one bug against an approved criterion: one criterion at a time (failing test, least code, next), only the tests the plan names, evidence recorded, and a pull request naming the criteria it implements. Use when asked to build, implement or code the next task or slice from a task plan, work test-first or TDD on a spec'd feature, pick up a ticket that has an approved spec, or fix a bug that breaks a criterion in the spec."
+description: "Implements one planned task test-first (or a whole one-slice spec, writing its one-task plan itself), or fixes one bug against an approved criterion: one criterion at a time (failing test, least code, next), only the tests the plan names, evidence recorded, and a pull request naming the criteria it implements. Use when asked to build, implement or code the next task or slice from a task plan or a small approved spec, work test-first or TDD on a spec'd feature, pick up a ticket that has an approved spec, or fix a bug that breaks a criterion in the spec."
 compatibility: "Needs the journeys skill installed beside it (its scripts/journeys.ts checker) and Bun 1.4 or later."
 ---
 
@@ -29,7 +29,14 @@ beside this skill's folder.
 ## Steps
 
 1. **Pick and check.** Take the task you were given, or the next one the plan marks
-   ready to start. Run `journeys.ts check docs/tasks/<feature>.md`; if the
+   ready to start. With no task plan yet, check whether the approved journeys fit
+   one slice: one pull request, no shared schema or migration, and no external
+   system such as payments or email. If they do, write `docs/tasks/<feature>.md` in
+   the [task record](../tasks/references/task-record.md) format yourself: one task
+   covering every criterion and invariant, one planned test named after each, and
+   the project's test command as Verify; then stamp it with `journeys.ts approve
+   <journeys file> <approval ID> docs/tasks/<feature>.md`. If they do not, plan with
+   the tasks skill first. Run `journeys.ts check docs/tasks/<feature>.md`; if the
    journeys' approval is stale or the plan reports it built on an older approval,
    stop and say so. Read the task's Covers, Provides, builder notes and Tests, and
    the code they name. Mark it In progress in the plan's index. Done when you can

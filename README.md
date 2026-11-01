@@ -33,7 +33,8 @@ plainly when the spec is complete enough to build.
   rules exactly; if it needs a rule you have not decided, you get one more question.
 - **tasks** splits the build into pieces a person can use and names the test that
   proves each rule.
-- **build** implements one task at a time: the planned tests first, then the code,
+- **build** implements one task at a time (a small spec that fits one pull request
+  can skip tasks; build writes its one-task plan itself): the planned tests first, then the code,
   then the evidence, then a pull request naming the rules it implements. A bug that
   breaks an approved rule is fixed the same way.
 

@@ -1,6 +1,6 @@
 ---
 name: tasks
-description: "Plans how to build an approved spec: slices a person can use, in a working order, with what can run in parallel, builder notes for each invariant and external system, and a named test for every criterion. Use when asked to plan the implementation, break a feature into tasks or tickets, or sequence the build of an approved journey spec, in a new or existing codebase. Skip for trivial edits."
+description: "Plans how to build an approved spec: slices a person can use, in a working order, with what can run in parallel, builder notes for each invariant and external system, and a named test for every criterion. Use when asked to plan the implementation, break a feature into tasks or tickets, or sequence the build of an approved journey spec, in a new or existing codebase. Skip for trivial edits and for specs that fit one pull request, which the build skill plans itself."
 compatibility: "Needs the journeys skill installed beside it (its scripts/journeys.ts checker) and Bun 1.4 or later."
 ---
 
@@ -14,6 +14,11 @@ working order, with a named test proving every criterion. Follow the project's
 tracker if it has one; otherwise write `docs/tasks/<feature>.md` in the
 [task record](references/task-record.md) format. The checker is the journeys skill's
 `journeys/scripts/journeys.ts`, beside this skill's folder.
+
+Use this skill when planning pays off: several slices, work in parallel, shared
+schema or migrations, or an external system such as payments. A spec that fits one
+pull request with none of these needs no separate plan; the build skill writes its
+one-task plan itself.
 
 ## Steps
 

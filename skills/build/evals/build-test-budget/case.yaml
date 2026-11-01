@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: build-test-budget
+expected_outcome: |
+  formatCoins implemented with exactly the two planned tests (or any extra test justified in the PR), tests through the public function only, all passing, and T1 recorded Done with evidence.
+context:
+  scaffold_script: place-files.sh

@@ -35,7 +35,8 @@ When unsure, treat it as risky and ask in the PR.
    follows an approved decision and adds no rule; a rule nobody decided goes back to
    the owner as a question. Then the spec is stamped ready.
 4. **Tasks.** "Plan the tasks for <feature>." Every rule gets an owning task and a
-   named test.
+   named test. A feature that fits one pull request, with no migration and no
+   external system, skips this: the build skill writes its one-task plan itself.
 5. **Build.** "Build the next task for <feature>." The build skill writes the planned
    tests first, implements, runs the verify skill for visible changes, records the
    evidence in the task plan and opens the PR. A bug that breaks an approved rule
