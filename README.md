@@ -111,6 +111,13 @@ skill folder, point it at a skill's `SKILL.md` file directly. The checker needs
 - [Team invitations](examples/team-invitations/): a spec that is not ready, with
   four open questions, to show what blocked looks like.
 
+## For a team
+
+[team-kit](team-kit/) is a starter for a team using agents across Claude Code,
+Cursor and Copilot: one `AGENTS.md` every tool reads, a guide that routes each change
+by risk (only money, permissions, data and cross-feature work get a spec), a PR
+template, a CI check for specs and a script that installs these skills for every tool.
+
 ## Evidence so far
 
 Small trials with a blind judge, one run per case, so treat them as a direction, not
