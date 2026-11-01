@@ -36,8 +36,10 @@ When unsure, treat it as risky and ask in the PR.
    the owner as a question. Then the spec is stamped ready.
 4. **Tasks.** "Plan the tasks for <feature>." Every rule gets an owning task and a
    named test.
-5. **Build and verify.** Tests cite the rule IDs; the verify skill checks every rule
-   in the browser before the PR.
+5. **Build.** "Build the next task for <feature>." The build skill writes the planned
+   tests first, implements, runs the verify skill for visible changes, records the
+   evidence in the task plan and opens the PR. A bug that breaks an approved rule
+   goes the same way: a failing test named after the rule, then the fix.
 
 `check <journeys file> --summary` prints a plain page to share with the owner or the
 team. Any later change to an approved decision makes the journeys' approval stale

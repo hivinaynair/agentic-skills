@@ -73,4 +73,5 @@ Detail every task that can start now; later ones get a short entry that still na
 its tests. Say each fact once: dependencies, order and status in the index, the rest
 in the task section; test names under 10 words, builder notes under 25. Link criterion IDs rather than copying their text. Stop when the next
 slice is actionable, and reply with the next work, what runs in parallel and
-blockers. Implementing, committing and dispatching agents wait for the user.
+blockers. Implementing waits for the user; the build skill then builds one task at a
+time. Committing and dispatching agents wait for the user too.

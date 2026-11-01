@@ -14,8 +14,8 @@ Read [docs/ai-workflow.md](docs/ai-workflow.md). In short, route each change:
   with tests.
 - **Risky** (money, permissions, customer data, anything crossing features): plan
   with the decide skill and get the owner's approval of the decisions, map the
-  journeys and have them independently reviewed, then plan tasks and build. Do not
-  start code before both approvals.
+  journeys and have them independently reviewed, plan tasks, then build each task
+  with the build skill. Do not start code before both approvals.
 
 For a change people can see, run the verify skill before opening the PR: it checks
 every success criterion in a browser, fixes what fails, and records a walkthrough.

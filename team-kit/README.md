@@ -15,7 +15,7 @@ placeholders, and the team has one way of working with agents.
 | `e2e/playwright.config.ts` | Journey tests that record video and a step-by-step trace of every run. |
 | `.github/workflows/journeys.yml` | Runs the journey tests on every PR and posts a comment: each journey, its result, and its recordings. |
 | `scripts/journey-report.mjs` | Builds that comment from Playwright's results. |
-| `scripts/install-skills.sh` | Installs the planning skills (decide, journeys, tasks) and links every skill for each tool. |
+| `scripts/install-skills.sh` | Installs decide, journeys, tasks and build, and links every skill for each tool. |
 
 Claude Code (2.1.277 or later), Cursor and Codex read `AGENTS.md` directly; check
 that your versions do. Claude Code reads it only when there is no `CLAUDE.md`, so

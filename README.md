@@ -1,7 +1,8 @@
 # Agentic Skills
 
-Three planning skills for AI coding agents. Before any code is written, they turn
-your idea or ticket into a short spec you can read, check and approve.
+Four skills for AI coding agents. Before any code is written, they turn your idea
+or ticket into a short spec you approve; then they build it task by task, with a
+test proving every rule.
 
 ## The problem
 
@@ -22,7 +23,7 @@ plainly when the spec is complete enough to build.
       │
   3 tasks ─────► docs/tasks/<x>.md      how to build it   each rule gets a test
       │
-    build
+  4 build ─────► code + pull request    one task at a time  evidence for each rule
 ```
 
 - **decide** asks you questions, each with a recommendation, writes every answer
@@ -32,6 +33,9 @@ plainly when the spec is complete enough to build.
   rules exactly; if it needs a rule you have not decided, you get one more question.
 - **tasks** splits the build into pieces a person can use and names the test that
   proves each rule.
+- **build** implements one task at a time: the planned tests first, then the code,
+  then the evidence, then a pull request naming the rules it implements. A bug that
+  breaks an approved rule is fixed the same way.
 
 ## What you do
 
@@ -97,11 +101,11 @@ Code that is `.claude/skills/` in your project, or `~/.claude/skills/` for every
 ```sh
 git clone https://github.com/hivinaynair/agentic-skills.git
 mkdir -p .claude/skills
-cp -R agentic-skills/skills/decide agentic-skills/skills/journeys agentic-skills/skills/tasks .claude/skills/
+cp -R agentic-skills/skills/decide agentic-skills/skills/journeys agentic-skills/skills/tasks agentic-skills/skills/build .claude/skills/
 ```
 
 Then ask in plain words: *"Use decide to shape this idea"*, *"Map the journeys for
-password reset"*, *"Plan the tasks for the approved journeys"*. If your agent has no
+password reset"*, *"Plan the tasks for the approved journeys"*, *"Build the next task"*. If your agent has no
 skill folder, point it at a skill's `SKILL.md` file directly. The checker needs
 [Bun](https://bun.sh) 1.4+ and nothing else.
 
