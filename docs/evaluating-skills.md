@@ -58,7 +58,11 @@ project_root = isolated_root   # right after clean_name is set
 shutil.rmtree(isolated_root, ignore_errors=True)
 ```
 
-With the fix, the build description scored 20 of 20 on its prompts.
+With the fix (2026-11-01), every description triggered correctly on round one, so
+the optimizer kept them all: decide, journeys, tasks and verify 36/36 on training
+runs, build 35/36, and all five 8/8 on held-out prompts. Each skill was tested
+alone; whether the right one of our skills wins when all are installed together has
+not been measured yet.
 
 ## What the results so far say
 
