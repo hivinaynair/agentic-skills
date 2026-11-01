@@ -8,7 +8,7 @@ One way of working across Claude Code, Cursor and Copilot. Agents follow
 | Layer | Question | What we use |
 |---|---|---|
 | 1. Shared context | What does every agent need to know? | `AGENTS.md`, edited by the whole team |
-| 2. What to build | Are the product rules decided and approved? | decide and journeys skills, risky work only |
+| 2. What to build | Are the product rules decided and approved? | decide (owner approves) and journeys (independent review), risky work only |
 | 3. How to build | Does the agent build it the right way? | <framework skills, e.g. Medusa's `medusa-dev`>, tests first, small PRs |
 | 4. Verification | Does it work, and what else could it break? | Tests named after spec rules, <e2e tool>, the spec check, CI |
 | 5. Review | Can a person trust and explain it? | The PR template; a human reviews every PR |
@@ -25,16 +25,23 @@ When unsure, treat it as risky and ask in the PR.
 
 ## The spec workflow for risky changes
 
-1. **Decide.** Ask the agent: "Use decide to plan <feature>." When the PM owns the
-   answers, it gives you one list of questions to send, each with a recommendation.
-   Paste the answers back; it records each as one line.
-2. **Journeys.** "Map the journeys for <feature>." The agent writes what people see,
-   step by step, including errors, and checks it.
-3. **Approve.** Send the PM the summary page (`check <journeys file> --summary`). Their
-   yes is recorded; any later change to the rules makes it stale until they approve again.
+1. **Decide.** Ask the agent: "Use decide to plan <feature>." When someone else owns
+   the answers, it gives you one list of questions to send, each with a
+   recommendation. Paste the answers back; it records each as one line.
+2. **Owner approves the decisions.** The agent asks the owner to approve the rules
+   for the first slice, including its assumptions. This is the owner's only sign-off.
+3. **Journeys.** "Map the journeys for <feature>." The agent writes what people see,
+   step by step, including errors. A separate reviewer agent checks every step
+   follows an approved decision and adds no rule; a rule nobody decided goes back to
+   the owner as a question. Then the spec is stamped ready.
 4. **Tasks.** "Plan the tasks for <feature>." Every rule gets an owning task and a
    named test.
-5. **Build.** Tests cite the rule IDs; the PR names them and shows the test output.
+5. **Build and verify.** Tests cite the rule IDs; the verify skill checks every rule
+   in the browser before the PR.
+
+`check <journeys file> --summary` prints a plain page to share with the owner or the
+team. Any later change to an approved decision makes the journeys' approval stale
+until they are reviewed again.
 
 Before changing an approved rule, ask the agent for the impact
 (`check <journeys file> --impact D<n>`): which steps, tests and approvals it touches.

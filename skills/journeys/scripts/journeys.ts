@@ -452,9 +452,9 @@ export function validate(spec: Spec, decisions: Map<string, Decision>, ready = f
 
   if (!approving) {
     const a = spec.approval;
-    if (!a) { if (ready) err('Not approved: after owner sign-off, add an accepted D and run approve'); }
+    if (!a) { if (ready) err('Not approved: after the independent review passes, add an accepted D and run approve'); }
     else if (decisions.get(a.id)?.status !== 'accepted') gate(`Approval ${a.id} is not an accepted decision`);
-    else if (a.hash !== approvalHash(spec, decisions)) gate(`Approval ${a.id} is stale: the journeys or the decisions they cite changed since sign-off; re-approve`);
+    else if (a.hash !== approvalHash(spec, decisions)) gate(`Approval ${a.id} is stale: the journeys or the decisions they cite changed since approval; review and re-approve`);
   }
   return { errors, warnings, rules, screens };
 }
@@ -774,7 +774,7 @@ export async function checkProject(indexPath: string, read: (path: string) => Pr
   for (const [recordPath, decisions] of records) {
     const cites = used.get(recordPath) ?? new Set<string>();
     const unmapped = [...decisions.values()].filter(d => d.status === 'accepted' && /^[DX]/.test(d.id) && d.section !== 'Frame'
-      && !approvals.has(d.id) && !/^Approved for build\b/i.test(d.text) && !cites.has(d.id)).map(d => d.id).sort(byId);
+      && !approvals.has(d.id) && !/^(?:Decisions )?approved for build\b/i.test(d.text) && !cites.has(d.id)).map(d => d.id).sort(byId);
     if (unmapped.length) warnings.push(`${shown(recordPath)}: no listed spec cites ${listed(unmapped)}; map them or add the spec that will (planned is fine)`);
   }
   return { index, rows, errors, warnings };
@@ -816,10 +816,10 @@ export function summary(spec: Spec, decisions: Map<string, Decision>, options: C
   const rules = spec.invariants.length + spec.journeys.reduce((n, j) => n + j.steps.reduce((m, st) => m + st.criteria.length, 0), 0);
   const screens = new Set(spec.journeys.flatMap(j => j.steps.flatMap(st => st.screen?.split(/\s*;\s*/) ?? [])));
   const a = spec.approval, hash = approvalHash(spec, decisions);
-  const status = !a ? 'Not approved yet' : a.hash === hash ? `Approved by ${a.id}` : `Approval ${a.id} is out of date: the spec or its decisions changed since sign-off`;
+  const status = !a ? 'Not approved yet' : a.hash === hash ? `Approved by ${a.id}` : `Approval ${a.id} is out of date: the spec or its decisions changed since approval`;
   const out = [`# ${spec.feature}: summary`, '',
     `${status}. ${plural(spec.journeys.length, 'journey')}, ${plural(screens.size, 'screen')}, ${plural(rules, 'rule')}.`,
-    `Generated from the spec (${hash}); approving this page approves the spec.`, ''];
+    `Generated from the spec (${hash}), for information.`, ''];
   const open = openItems(spec, decisions);
   if (open.length) {
     out.push('## Needs your answer', '');
@@ -1092,7 +1092,7 @@ if (import.meta.main) {
       const [id, ...plans] = rest;
       if (!/^D\d+$/.test(id ?? '') || plans.some(p => extname(p) !== '.md')) throw Error(usage);
       const errors = [...parseErrors, ...parsed.errors, ...validate(spec, parsed.decisions, true, true, options).errors];
-      if (parsed.decisions.get(id)?.status !== 'accepted') errors.push(`${id}: record the owner's sign-off as an accepted decision first`);
+      if (parsed.decisions.get(id)?.status !== 'accepted') errors.push(`${id}: record the approval as an accepted decision first`);
       if (errors.length) throw Error(errors.join('\n'));
       const hash = approvalHash(spec, parsed.decisions), stamp = `Approved: ${id} ${hash}`, lines = text.split('\n');
       const existing = lines.findIndex(l => /^Approved:/.test(l.trim()));

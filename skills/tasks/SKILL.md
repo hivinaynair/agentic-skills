@@ -17,8 +17,8 @@ tracker if it has one; otherwise write `docs/tasks/<feature>.md` in the
 ## Steps
 
 1. **Read.** Read the spec, its decisions and the code it touches, and run
-   `journeys.ts check <journeys file> --ready`. If approval is missing or stale, tell
-   the owner and plan only what they ask for. Done when you know what exists and
+   `journeys.ts check <journeys file> --ready`. If approval is missing or stale, say
+   so and plan only what you are asked for. Done when you know what exists and
    what is missing.
 
 2. **Slice.** Group criteria into outcomes a person can use end to end, and give

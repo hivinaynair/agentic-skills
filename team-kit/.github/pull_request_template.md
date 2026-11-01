@@ -2,7 +2,7 @@
 
 - [ ] Small and precise
 - [ ] Normal feature (plan below)
-- [ ] Risky: spec approved by the PM (link the journeys file)
+- [ ] Risky: decisions approved by the owner, journeys independently reviewed (link the journeys file)
 
 ## What was asked
 

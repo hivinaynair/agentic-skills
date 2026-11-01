@@ -16,29 +16,29 @@ plainly when the spec is complete enough to build.
 ```
  idea or ticket
       │
-  1 decide ────► docs/decisions.md      the rules         you answer questions
+  1 decide ────► docs/decisions.md      the rules         you answer, then approve them
       │
-  2 journeys ──► docs/journeys/<x>.md   what people see   you read a summary, say yes
+  2 journeys ──► docs/journeys/<x>.md   what people see   checked against your rules
       │
   3 tasks ─────► docs/tasks/<x>.md      how to build it   each rule gets a test
       │
     build
 ```
 
-- **decide** asks you questions one at a time, each with a recommendation, and
-  writes every answer as a one-line rule.
+- **decide** asks you questions, each with a recommendation, writes every answer
+  as a one-line rule, and asks you to approve the rules for build.
 - **journeys** writes each path a person takes, screen by screen, including what
-  they see when something goes wrong. It shows you a plain summary and asks
-  "Approve for build?"
+  they see when something goes wrong. A separate review checks it follows your
+  rules exactly; if it needs a rule you have not decided, you get one more question.
 - **tasks** splits the build into pieces a person can use and names the test that
   proves each rule.
 
 ## What you do
 
-Three things: **answer questions, read the summary, say yes or no.** You never need
+Two things: **answer questions, then approve the rules.** You never need
 to run a command. The agent runs a small checker, a spell-check for specs: it
 catches missing cases and contradictions, and notices when a later change means
-your yes no longer applies.
+your approval no longer applies.
 
 ## Three ways to use it
 
@@ -70,7 +70,8 @@ Your answer becomes one line in `docs/decisions.md`:
 - D6 accepted — A reset link works once and expires 30 minutes after it is sent.
 ```
 
-Once the journeys are mapped, you read a summary like this and approve it:
+Once the journeys are mapped and reviewed, you can read them as a plain summary,
+to share or just to see what will be built:
 
 ```markdown
 ## Set a new password
@@ -153,12 +154,12 @@ Formats: [decision record](skills/decide/references/record-format.md),
 ### The checker
 
 Two commands. `check` reads whatever it is given: a journeys file, a task plan or a
-project index. `approve` records the owner's yes.
+project index. `approve` stamps a spec once its independent review passes.
 
 ```sh
 bun skills/journeys/scripts/journeys.ts check docs/journeys/password-reset.md            # while drafting
 bun skills/journeys/scripts/journeys.ts check docs/journeys/password-reset.md --ready    # before building
-bun skills/journeys/scripts/journeys.ts check docs/journeys/password-reset.md --summary  # the owner's page
+bun skills/journeys/scripts/journeys.ts check docs/journeys/password-reset.md --summary  # a plain page to share
 bun skills/journeys/scripts/journeys.ts check docs/journeys/password-reset.md --impact D6 # before changing D6
 bun skills/journeys/scripts/journeys.ts approve docs/journeys/password-reset.md D11      # record approval
 bun skills/journeys/scripts/journeys.ts check docs/tasks/password-reset.md --status      # build progress

@@ -50,7 +50,8 @@ as it is. Keep each ID in one place. Everything else is free prose.
 - **Draft** lines are proposals: your low-stakes assumptions and rules you inferred
   from an answer (`Assumed: …`), a
   proposed success signal or non-goal, or text the owner asked you to write up. They
-  block `--ready` until the owner accepts them, usually all at once at Ready.
+  block `--ready` until the owner accepts them, all at once when approving the
+  decisions for build.
 - **Changing a decision:** end the new line with `Supersedes: D6`. While the new line
   is a draft, D6 stays in force; on acceptance, mark D6 superseded. The checker then
   flags every step still citing D6. To replace part of a decision, restate the part
@@ -59,6 +60,8 @@ as it is. Keep each ID in one place. Everything else is free prose.
   every line the answer produced (`Answered by D21–D24, X3`); the decisions hold the
   content and git keeps the history. Journeys that cite Q1 then rest on all of them.
 - **IDs are permanent:** retire a line instead of deleting or reusing its ID.
-- **Approval** is the D line the owner accepts after the journeys Ready summary.
+- **Approval** comes twice. The owner approves the decisions for build
+  (`Decisions approved for build: …`). The journeys get their own approval line
+  after an independent review confirms they follow those decisions and add no rule.
 - **Observations** (what code does today) live in the journey file as O lines; link
   them from here if useful.

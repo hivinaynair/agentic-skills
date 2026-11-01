@@ -6,8 +6,8 @@ description: Settle what to build before code. Frames a raw idea or vague ticket
 # Decide
 
 **For the owner:** you are asked one question at a time, each with a recommendation,
-or sent one list when someone else answers. You get `docs/decisions.md`: one line per
-rule you settled. You run no commands.
+or sent one list when someone else answers, then approve the decisions once for build.
+You get `docs/decisions.md`: one line per rule you settled. You run no commands.
 
 You help the **owner** settle what to build. The owner decides product rules:
 who may do what, and what a person sees. The **builder** decides how to build them.
@@ -44,8 +44,8 @@ If the project already keeps a decision record, add to it in its own format.
      `Owner: unknown`).
    - **Assumption**, when your choice is low-stakes and easy to change: a `draft`
      D line starting `Assumed:`. The owner accepts or overrides all of them at once
-     in the journeys Ready summary. Who can see or share what, money, and the
-     timing of the core flow are never low-stakes: always ask.
+     when approving the decisions (step 5). Who can see or share what, money, and
+     the timing of the core flow are never low-stakes: always ask.
 
    Both stay proposals until the owner accepts them; prepare questions for them
    rather than contacting them yourself. Reuse an existing **failure default** if
@@ -67,7 +67,15 @@ If the project already keeps a decision record, add to it in its own format.
    once a journey file exists, record it there as an O line. Done when every answer
    from this session is a line.
 
-5. **Report.** Reply with the accepted scope, which paths are ready to map and which
+5. **Approve.** When no open question blocks the first slice, give the owner its
+   decisions as one list: the rules, the non-goals and every `Assumed:` line. Ask
+   "Approve these decisions for build?" On yes, mark the assumptions accepted
+   (recording any override) and add
+   `- D<n> accepted — Decisions approved for build: <feature> (D<a>–D<b>)`. This is
+   the owner's sign-off; the journeys are then checked against these decisions
+   without them. Done when no draft or open question is left in the slice.
+
+6. **Report.** Reply with the accepted scope, which paths are ready to map and which
    are blocked on named questions, and the next step, usually the journeys skill.
    When framing a whole product, propose its features as planned items in the
    journeys index (`docs/journeys/index.md`), first slice first.
