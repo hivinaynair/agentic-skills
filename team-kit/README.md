@@ -7,14 +7,16 @@ placeholders, and the team has one way of working with agents.
 | File | What it does |
 |---|---|
 | `AGENTS.md` | The one set of instructions every agent reads. Fill in the `<…>` parts. |
-| `CLAUDE.md` | Points Claude Code at `AGENTS.md`. |
+| `CLAUDE.md` | Imports `AGENTS.md` for Claude Code. Claude Code 2.1.277+ reads `AGENTS.md` on its own only when no `CLAUDE.md` exists, so this one line keeps both working. |
 | `.github/copilot-instructions.md` | Points Copilot at `AGENTS.md`. |
 | `docs/ai-workflow.md` | The team guide: the five layers and which changes take which path. |
 | `.github/pull_request_template.md` | Every PR says how it was routed, what rules it implements and its evidence. |
 | `.github/workflows/specs.yml` | Checks specs on PRs that change them. |
 | `scripts/install-skills.sh` | Installs the planning skills (decide, journeys, tasks) for every tool. |
 
-Cursor and Codex read `AGENTS.md` directly; check that your versions do.
+Cursor and Codex read `AGENTS.md` directly; check that your versions do. Keep
+`CLAUDE.md` as the single import line: a separate `CLAUDE.md` with its own content
+would make Claude Code ignore `AGENTS.md`.
 
 ## Install
 
