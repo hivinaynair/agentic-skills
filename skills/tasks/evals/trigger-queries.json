@@ -1,0 +1,82 @@
+[
+ {
+  "query": "The coins journeys are approved. Plan the implementation: slices a customer can actually use, what can run in parallel, and a named test for every criterion.",
+  "should_trigger": true
+ },
+ {
+  "query": "break the approved gift card spec into tickets for the team, in a sensible order, with dependencies",
+  "should_trigger": true
+ },
+ {
+  "query": "We have docs/journeys/returns.md approved. How should we sequence the build in our existing Medusa codebase? Which migrations go first?",
+  "should_trigger": true
+ },
+ {
+  "query": "Plan the tasks for the approved journeys. Note how to handle Stripe webhooks and idempotency for each task that touches payments.",
+  "should_trigger": true
+ },
+ {
+  "query": "turn this approved spec into an implementation plan with builder notes for each invariant, like 'never charge twice'",
+  "should_trigger": true
+ },
+ {
+  "query": "I need a build plan for subscriptions that two devs can work on at the same time without stepping on each other's migrations",
+  "should_trigger": true
+ },
+ {
+  "query": "Which tests prove each rule in the store credit spec? Make a plan that names one test per criterion and assigns each to a task.",
+  "should_trigger": true
+ },
+ {
+  "query": "The approval just went through. Plan the next slice of work from docs/journeys/wishlist.md.",
+  "should_trigger": true
+ },
+ {
+  "query": "Our spec for referrals is approved. Write the task record with verify commands using our bun scripts.",
+  "should_trigger": true
+ },
+ {
+  "query": "plan out how to implement the approved password reset journeys, existing auth code is in src/auth",
+  "should_trigger": true
+ },
+ {
+  "query": "Implement T2 from docs/tasks/coins.md",
+  "should_trigger": false
+ },
+ {
+  "query": "what should our sprint goals be this quarter?",
+  "should_trigger": false
+ },
+ {
+  "query": "Estimate how many story points the gift card feature is",
+  "should_trigger": false
+ },
+ {
+  "query": "Create a Jira epic for gift cards with a description",
+  "should_trigger": false
+ },
+ {
+  "query": "We haven't decided the refund rules yet. Help me list what product needs to answer.",
+  "should_trigger": false
+ },
+ {
+  "query": "Refactor the cart service to use dependency injection",
+  "should_trigger": false
+ },
+ {
+  "query": "Map the screens a customer goes through when redeeming a gift card",
+  "should_trigger": false
+ },
+ {
+  "query": "Write a project plan with milestones for the website redesign for the client deck",
+  "should_trigger": false
+ },
+ {
+  "query": "fix the failing test in src/coins.test.ts",
+  "should_trigger": false
+ },
+ {
+  "query": "Set up GitHub Actions to run our tests on every PR",
+  "should_trigger": false
+ }
+]

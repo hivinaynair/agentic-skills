@@ -63,7 +63,7 @@ Tests:
   giving the command run and its result. A Done task's named tests must exist.
 - Code done, integrated and deployed are separate evidence; record which one you have.
 
-`bun <journeys-skill-dir>/scripts/journeys.ts tasks <file>` checks ownership, named
+`bun <journeys-skill-dir>/scripts/journeys.ts check <file>` checks ownership, named
 tests, dependencies, cycles, Done evidence and the approval stamp; `--status` lists
 each criterion's task, test and status. It cannot judge whether the slices, builder
 notes or tests are good; review those.

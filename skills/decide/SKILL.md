@@ -1,9 +1,13 @@
 ---
 name: decide
-description: Settle what to build before code. Frames a raw idea or vague ticket, records the owner's decisions and non-goals, and asks the next blocking product question. Use when an idea or ticket needs sharpening, requirements are uncertain, or decisions need a handoff.
+description: "Settles what to build before any code: frames a raw idea or vague ticket, asks the product questions that block the first slice (each with a recommendation, sent as one list when a PM, client or committee owns the answers), records each answer as a one-line decision, and gets the decisions approved for build. Use whenever someone shares a ticket, PRD, feature request or idea whose rules are not settled, asks to plan or scope a feature or write requirements, or wants to change an approved decision, even if they never say \"decide\". Not for one-line fixes or purely technical choices."
 ---
 
 # Decide
+
+**For the owner:** you are asked one question at a time, each with a recommendation,
+or sent one list when someone else answers, then approve the decisions once for build.
+You get `docs/decisions.md`: one line per rule you settled. You run no commands.
 
 You help the **owner** settle what to build. The owner decides product rules:
 who may do what, and what a person sees. The **builder** decides how to build them.
@@ -29,8 +33,10 @@ If the project already keeps a decision record, add to it in its own format.
 
 3. **Ask.** First compare the request with known facts and accepted decisions, and
    name every conflict; a request that changes an accepted decision is a question
-   too ("Replace D52 with …?"). Then find the missing rules that change what a person
-   can do or see in the first slice, including who can see shared data, existing
+   too ("Replace D52 with …?"). When journeys exist, run the journeys checker's
+   `check <journeys file or index> --impact D52` and say in the question what the
+   change would reopen. Then find the missing rules that change what a person can do
+   or see in the first slice, including who can see shared data, existing
    data, and changes made outside the app. Sort each gap:
    - **Question**, when the answer changes what gets built and you cannot pick
      safely. Write it for someone who has not read your docs: the context they need,
@@ -38,15 +44,20 @@ If the project already keeps a decision record, add to it in its own format.
      `Owner: unknown`).
    - **Assumption**, when your choice is low-stakes and easy to change: a `draft`
      D line starting `Assumed:`. The owner accepts or overrides all of them at once
-     in the journeys Ready summary. Who can see or share what, money, and the
-     timing of the core flow are never low-stakes: always ask.
+     when approving the decisions (step 5). Who can see or share what, money, and
+     the timing of the core flow are never low-stakes: always ask. That includes who
+     may see a person's own data (a balance, a history, a profile), even when the
+     answer looks obvious: privacy is the owner's call, and a wrong guess is costly.
 
    Both stay proposals until the owner accepts them; prepare questions for them
    rather than contacting them yourself. Reuse an existing **failure default** if
    the record has one; otherwise assume one ("when an action fails or its result is
-   unknown, the person sees a retryable error and no partial change is kept"). Ask
-   the highest-impact question first. Done when no open question blocks the first
-   slice.
+   unknown, the person sees a retryable error and no partial change is kept").
+   When the person you work with is the owner, ask one question at a time, highest
+   impact first. When someone else owns the answers (a PM, client or committee),
+   write every blocking question as a Q line at once, then hand over the list from
+   the journeys checker's `check docs/decisions.md --questions` to send; record
+   answers as they come back. Done when no open question blocks the first slice.
 
 4. **Record.** Write each answer, and each rule the owner volunteers, as an accepted
    D line: one rule, under 30 words, with a why only when it is not obvious. A rule
@@ -58,8 +69,18 @@ If the project already keeps a decision record, add to it in its own format.
    once a journey file exists, record it there as an O line. Done when every answer
    from this session is a line.
 
-5. **Report.** Reply with the accepted scope, which paths are ready to map and which
+5. **Approve.** When no open question blocks the first slice, give the owner its
+   decisions as one list: the rules, the non-goals and every `Assumed:` line. Ask
+   "Approve these decisions for build?" On yes, mark the assumptions accepted
+   (recording any override) and add
+   `- D<n> accepted — Decisions approved for build: <feature> (D<a>–D<b>)`. This is
+   the owner's sign-off; the journeys are then checked against these decisions
+   without them. Done when no draft or open question is left in the slice.
+
+6. **Report.** Reply with the accepted scope, which paths are ready to map and which
    are blocked on named questions, and the next step, usually the journeys skill.
+   When framing a whole product, propose its features as planned items in the
+   journeys index (`docs/journeys/index.md`), first slice first.
 
 Retries, transactions, idempotency, timeouts, storage and naming are builder
 choices; they belong in tasks. One line per decision: link tickets, ADRs or docs

@@ -1,17 +1,22 @@
 ---
 name: journeys
-description: Map how people move through a feature, from goal to every outcome they can see, as screens, steps and testable criteria, ending in an owner-approved spec ready to build. Use after decisions exist, to map user journeys, check a spec is ready, or reconstruct a feature from existing code.
+description: "Maps how people move through a feature as screens, steps and testable criteria that follow the owner's approved decisions, including what happens when someone is not allowed, enters bad input, hits a failure or repeats an action, then passes an independent review and a checker before build. Use after decisions exist, when asked to map user journeys or flows, write user stories or acceptance criteria, check a spec is ready to build, or reconstruct how an existing feature behaves from its code. Not for visual design or wireframes."
+compatibility: "Needs Bun 1.4 or later for the checker in scripts/journeys.ts."
 ---
 
 # Journeys
 
+**For the owner:** you approve nothing here. The journeys must follow the decisions you
+approved; you are asked again only when they need a rule you have not decided. You get
+`docs/journeys/<feature>.md`. The agent runs the checker.
+
 You map each person's path through a feature, from their goal to every outcome
 they can see. Write one Markdown file per feature, `docs/journeys/<feature>.md`,
 in the [journey format](references/format.md). Every step rests on owner decisions
-in the project's decision record. Ask missing product questions the decide way:
-one at a time, with a recommendation, recorded as a Q line. A rule a step needs
-that no decision states is yours, not the owner's: record it as an `Assumed:` draft,
-or as a question when it is about visibility, money or core-flow timing.
+in the project's decision record. Never add a rule: when a step needs one that no
+accepted decision states, record it as a Q line or an `Assumed:` draft and send it
+to the owner as the decide skill does: one list of questions, each with a
+recommendation. The spec is not ready until the owner has answered.
 
 ## Steps
 
@@ -34,8 +39,8 @@ or as a question when it is about visibility, money or core-flow timing.
    invariants; the builder decides how to hold them. Done when every money, access
    and data-integrity effect has an invariant.
 
-4. **Outcome checks.** Answer [denied, invalid, failed and repeated](references/checks.md)
-   for each journey: cite criteria or decisions, mark n/a with a reason, or mark open
+4. **Outcome checks.** Answer [denied, invalid, failed and repeated](references/checks.md),
+   plus any check the project index requires, for each journey: cite criteria or decisions, mark n/a with a reason, or mark open
    with the blocking Q. Done when every journey answers all four.
 
 5. **Check and review.** List the decisions and questions this feature must settle
@@ -44,18 +49,22 @@ or as a question when it is about visibility, money or core-flow timing.
    it rests on: every criterion follows from it, each criterion is one behavior, and
    nothing contradicts another decision. Fix the spec or ask. Done when both pass.
 
-6. **Ready.** When `check --ready` fails only on approval and draft assumptions,
-   give the owner a short Ready summary: goals covered, non-goals, screens, external
-   systems involved (payment, messaging, identity providers), the assumptions to
-   accept, builder work left, and other specs that cite a decision this one
-   supersedes. Ask "Approve for build?", even when the owner approved in advance.
-   On yes, mark the assumptions accepted (recording any override), add
-   `- D<n> accepted — Approved for build: <feature> J1–J<n>` to the decision record
+6. **Independent review.** When `check --ready` fails only on approval, have the
+   spec checked by a reviewer that did not write it: a fresh subagent if you can
+   start one, given only the decision record, the journeys file and the
+   `check --review` output; otherwise reread it as a demanding outsider. It reports
+   every step that does not follow from what it cites, every rule no accepted
+   decision states, and every failure case left vague. Fix the spec, or send new
+   rules to the owner as questions. When the review passes, add
+   `- D<n> accepted — Approved for build: <feature> J1–J<n>, independent review passed`
    and run `approve docs/journeys/<feature>.md D<n>`, naming any task plan after it
-   so its stamp updates too. Done when `check --ready` passes.
+   so its stamp updates too. Done when `check --ready` passes. `check --summary`
+   gives a plain page to share with the owner or the team; it is information, not
+   a gate.
 
 Changing the journeys or the decisions they cite makes the approval stale; repeat
-Ready. If the project keeps an index of journeys, add this file to it. For an
-existing feature, start with [existing code](references/existing-projects.md).
+the review. When the project grows past one spec, list this file in the
+[project index](references/format.md#when-your-project-grows) and `check` the index too; fix
+its errors and any `elsewhere:` it flags. For an existing feature, start with [existing code](references/existing-projects.md).
 Reply with what changed, open questions and the next step. An approved spec is
 complete enough to build; tests and running code prove the behavior.

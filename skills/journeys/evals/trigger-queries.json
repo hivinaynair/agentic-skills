@@ -1,0 +1,82 @@
+[
+ {
+  "query": "The gift card decisions are approved by the PM (docs/decisions.md). Map every path a customer takes when redeeming a gift card, including invalid codes, already-used cards and network failures.",
+  "should_trigger": true
+ },
+ {
+  "query": "write user stories with acceptance criteria for the approved returns policy so the devs know exactly what to build",
+  "should_trigger": true
+ },
+ {
+  "query": "Can you reconstruct how our existing checkout actually behaves from the code? I need the steps, what the customer sees, and the error cases, before we change anything.",
+  "should_trigger": true
+ },
+ {
+  "query": "is this spec ready to build? docs/journeys/subscriptions.md, run whatever checks you have",
+  "should_trigger": true
+ },
+ {
+  "query": "We have the decisions for store credit. Now I need the user and system flow: what happens screen by screen, what the system does behind the scenes, and what happens when someone double-clicks pay.",
+  "should_trigger": true
+ },
+ {
+  "query": "map the journeys for coins earning, the decisions are in docs/decisions.md",
+  "should_trigger": true
+ },
+ {
+  "query": "Turn our approved loyalty decisions into testable criteria, one behavior each, covering not allowed, bad input, failure and repeat cases.",
+  "should_trigger": true
+ },
+ {
+  "query": "I need to document what an admin can do on the refunds page and what they see when the payment provider is down. Product rules are already agreed.",
+  "should_trigger": true
+ },
+ {
+  "query": "Write the acceptance criteria for password reset based on the decisions we recorded last week.",
+  "should_trigger": true
+ },
+ {
+  "query": "Before the build starts, check that every approved decision for subscriptions is covered by some step, and flag anything that isn't.",
+  "should_trigger": true
+ },
+ {
+  "query": "Design a nicer layout for the account page, it looks cluttered. Maybe a card layout?",
+  "should_trigger": false
+ },
+ {
+  "query": "Make a wireframe for the new checkout in Figma style",
+  "should_trigger": false
+ },
+ {
+  "query": "We don't know yet whether guests can earn coins. Help me figure out what to ask the PM.",
+  "should_trigger": false
+ },
+ {
+  "query": "Implement the next task from docs/tasks/coins.md",
+  "should_trigger": false
+ },
+ {
+  "query": "Add Google Analytics events to track how many people abandon the cart",
+  "should_trigger": false
+ },
+ {
+  "query": "Explain how Medusa workflows and compensation steps work",
+  "should_trigger": false
+ },
+ {
+  "query": "Create a customer journey map for our marketing persona workshop, with emotions at each stage",
+  "should_trigger": false
+ },
+ {
+  "query": "Write a Playwright test for the login page",
+  "should_trigger": false
+ },
+ {
+  "query": "Plan the build of the approved journeys into slices that can run in parallel",
+  "should_trigger": false
+ },
+ {
+  "query": "What's a good onboarding email sequence for new customers?",
+  "should_trigger": false
+ }
+]

@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: verify-catches-balance-bug
+expected_outcome: |
+  Each acceptance criterion is checked in a real browser; the bug where paying shows success but leaves the balance at 120 is found and fixed in app/index.html; every criterion is re-checked and passes; the ticket is unchanged; evidence includes a screenshot per criterion and a walkthrough video, reported per criterion.
+context:
+  scaffold_script: place-files.sh

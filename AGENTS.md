@@ -1,6 +1,6 @@
 # Agentic Skills
 
-This repository contains decide, journeys and tasks, plus the journeys checker,
+This repository contains decide, journeys, tasks and build, plus the journeys checker,
 tests and synthetic examples. Read README.md before changing the workflow.
 
 - Keep each skill self-contained, short and in plain prose; respect host-project conventions.

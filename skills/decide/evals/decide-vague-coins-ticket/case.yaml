@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: decide-vague-coins-ticket
+expected_outcome: |
+  A decision record framing the feature, with every money rule (earn rate, coin value, refunds, expiry, how much of an order coins can pay) left as an open question for the owner rather than decided, and one shareable list of questions grouped by owner with a recommendation each.
+context:
+  scaffold_script: place-files.sh

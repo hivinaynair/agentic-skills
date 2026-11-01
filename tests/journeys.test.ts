@@ -2,7 +2,7 @@ import {test, expect} from 'bun:test';
 import {mkdtemp, rm, mkdir, writeFile, symlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {resolve, join, basename} from 'node:path';
-import {parseJourneys, parseDecisions, validate, approvalHash, reviewPacket, parseTasks, validateTasks} from '../skills/journeys/scripts/journeys';
+import {parseJourneys, parseDecisions, validate, approvalHash, reviewPacket, parseTasks, validateTasks, parseIndex, indexOptions, summary, impactOf, openItems, questionList} from '../skills/journeys/scripts/journeys';
 
 const decisionsMd = `# Invite decisions
 
@@ -403,6 +403,9 @@ test('the format examples in the skill references pass the checker together', as
   const tasks = parseTasks(await fenced('skills/tasks/references/task-record.md'));
   expect(tasks.errors).toEqual([]);
   expect(validateTasks(tasks.tasks, tasks.source, journeys.spec, decisions.decisions).errors).toEqual([]);
+  const index = parseIndex([...(await Bun.file('skills/journeys/references/format.md').text()).matchAll(/```markdown\n([\s\S]*?)```/g)][1][1]);
+  expect(index.errors).toEqual([]);
+  expect(index.index.specs.map(s => s.path ?? s.title)).toEqual(['checkout.md', 'returns.md', 'Gift cards']);
 });
 
 test('CLI rejects misuse with clear messages and marks every error line', async () => {
@@ -737,4 +740,276 @@ test('an indented line continues the decision above it', () => {
   expect(d.decisions.get('Q2')?.text).toBe('Can an admin revoke a used link? Options: no; yes. Recommend: no.');
   expect(d.decisions.get('Q3')?.answers).toEqual(['D1']);
   expect(d.decisions.get('D1')?.text).toBe('Only admins invite.');
+});
+
+const indexMd = `# Shop
+
+Decisions: decisions.md
+Requires: money
+
+Release 1 ships invites; prose here is ignored.
+
+## Checks
+- money: What is charged, refunded or owed when this goes wrong?
+- privacy: Who else can see this person's data?
+
+## Specs
+- [Invite](feature.md) · Tasks: [plan](tasks.md)
+- Billing — planned for release 2
+`;
+const moneyCheck = '- repeated: n/a — each request creates a separate invite\n- money: n/a — invites are free\n';
+
+test('index lists specs, planned features, task plans and extra checks', () => {
+  const {index, errors} = parseIndex(indexMd);
+  expect(errors).toEqual([]);
+  expect(index).toMatchObject({title: 'Shop', decisions: 'decisions.md', requires: ['money']});
+  expect(index.specs).toEqual([{title: 'Invite', path: 'feature.md', tasks: ['tasks.md']}, {title: 'Billing', tasks: []}]);
+  expect([...index.checks.keys()]).toEqual(['money', 'privacy']);
+  expect(parseIndex(indexMd.replace('Requires: money', 'Requires: stock')).errors).toContain('Requires: stock is not defined under "## Checks"');
+  expect(parseIndex(indexMd.replace('- privacy:', '- denied:')).errors.join()).toContain('denied is already a check');
+  expect(parseIndex('# Empty\n').errors).toContain('Index lists no specs under "## Specs"');
+});
+
+test('extra checks: required by the index or the spec, optional when only defined', () => {
+  const options = indexOptions(parseIndex(indexMd).index);
+  const run = (md: string, ready = false) => validate(parseJourneys(md).spec, parseDecisions(decisionsMd).decisions, ready, false, options);
+  expect(run(base).warnings).toContain('J1: missing money check');
+  expect(run(base, true).errors).toContain('J1: missing money check');
+  const answered = base.replace('- repeated: n/a — each request creates a separate invite\n', moneyCheck);
+  expect(run(answered)).toMatchObject({errors: [], warnings: []});
+  // Defined but not required: may be answered; a typo still fails.
+  expect(run(answered.replace('- money:', '- privacy: n/a — no personal data\n- money:')).errors).toEqual([]);
+  expect(run(answered.replace('- money:', '- monye:')).errors.join()).toContain('unknown check monye');
+  // A spec opts into a check with Requires.
+  const spec = answered.replace('Decisions: decisions.md\n', 'Decisions: decisions.md\nRequires: privacy\n');
+  expect(run(spec).warnings).toContain('J1: missing privacy check');
+  expect(run(spec.replace('Requires: privacy', 'Requires: offline')).warnings).toContain('Requires: offline is not defined in the project index; add its owner question under "## Checks"');
+  expect(validate(parseJourneys(spec.replace('Requires: privacy', 'Requires: offline')).spec, parseDecisions(decisionsMd).decisions).warnings).toContain('J1: missing offline check');
+  expect(run(spec.replace('Requires: privacy', 'Requires: Bad Name')).errors.join()).toContain('invalid check name Bad Name');
+  // Without an index the four defaults stay the whole list, and Requires adds no hash change when absent.
+  expect(validate(parseJourneys(answered).spec, parseDecisions(decisionsMd).decisions).errors.join()).toContain('unknown check money');
+  expect(reviewPacket(parseJourneys(answered).spec, parseDecisions(decisionsMd).decisions, options)).toContain('- money: What is charged, refunded or owed when this goes wrong?');
+});
+
+test('single-file check takes extra checks from an index.md that lists the spec', async () => {
+  const dir = await project('journeys-index-');
+  try {
+    await writeFile(join(dir, 'index.md'), indexMd);
+    expect(run(dir, 'bun', cli, 'check', 'feature.md').stderr.toString()).toContain('J1: missing money check');
+    await writeFile(join(dir, 'index.md'), indexMd.replace('- [Invite](feature.md)', '- [Other](other.md)'));
+    expect(run(dir, 'bun', cli, 'check', 'feature.md').stderr.toString()).not.toContain('money');
+  } finally { await rm(dir, {recursive: true, force: true}); }
+});
+
+test('project check: status table, cross-spec links, unlisted specs and unmapped decisions', async () => {
+  const dir = await project('journeys-project-');
+  try {
+    const feature = base.replace('- repeated: n/a — each request creates a separate invite\n', moneyCheck)
+      .replace('- C2 admin: Email the invite → excluded X1', '- C2 admin: Email the invite → excluded X1\n- C3 admin: Remove a member → elsewhere: members.md J2');
+    const members = base.replace('# Invite', '# Members').replace('- repeated: n/a — each request creates a separate invite\n', moneyCheck);
+    await writeFile(join(dir, 'feature.md'), feature);
+    await writeFile(join(dir, 'members.md'), members);
+    await writeFile(join(dir, 'decisions.md'), decisionsMd.replace('- X1 accepted', '- D4 accepted — Members can leave a workspace.\n- X1 accepted'));
+    await writeFile(join(dir, 'tasks.md'), '# Invite tasks\n\nSource: [journeys](feature.md)\n\n## T1 Invite\nCovers: J1, I1.\nVerify: `bun test invite`.\nTests:\n- invite.test.ts (new)\n  - J1.S1.c1, J1.S1.c2, J1.S1.c3, J1.S2.c1, I1: invite rules\n');
+    await writeFile(join(dir, 'index.md'), indexMd);
+    const draft = run(dir, 'bun', cli, 'project', 'index.md'), out = draft.stdout.toString(), err = draft.stderr.toString();
+    expect(draft.exitCode).toBe(1);
+    expect(out).toContain('| [Invite](feature.md) | draft | — | — | 1 tasks, 5/5 tested, 0 done |');
+    expect(out).toContain('| Billing | planned | — | — | — |');
+    expect(err).toContain('ERROR: feature.md C3: members.md is not a spec in the index');
+    expect(err).toContain('warn: members.md: a journeys file the index does not list');
+    expect(err).toContain('warn: decisions.md: no listed spec cites D4');
+
+    await writeFile(join(dir, 'index.md'), indexMd.replace('- Billing', '- [Members](members.md)\n- Billing'));
+    const listedRun = run(dir, 'bun', cli, 'project', 'index.md');
+    expect(listedRun.stderr.toString()).toContain('ERROR: feature.md C3: members.md has no journey J2');
+    await writeFile(join(dir, 'feature.md'), feature.replace('members.md J2', 'members.md J1'));
+    const ok = run(dir, 'bun', cli, 'project', 'index.md');
+    expect(ok.exitCode).toBe(0);
+    expect(ok.stdout.toString()).toContain('ok: draft project index.md; 3 specs: 0 ready, 2 draft, 1 planned');
+    expect(ok.stderr.toString()).not.toContain('does not list');
+
+    const strict = run(dir, 'bun', cli, 'project', 'index.md', '--ready');
+    expect(strict.exitCode).toBe(1);
+    expect(strict.stderr.toString()).toContain('ERROR: Billing: planned; no spec is written yet');
+    expect(strict.stderr.toString()).toContain('ERROR: feature.md: Not approved');
+
+    const json = run(dir, 'bun', cli, 'project', 'index.md', '--json');
+    expect(json.exitCode).toBe(0);
+    const report = JSON.parse(json.stdout.toString());
+    expect(report).toMatchObject({ok: true, ready: false});
+    expect(report.specs.map((s: {state: string}) => s.state)).toEqual(['draft', 'draft', 'planned']);
+    expect(run(dir, 'bun', cli, 'project', 'index.md', '--strict').stderr.toString()).toContain('Unknown option --strict');
+  } finally { await rm(dir, {recursive: true, force: true}); }
+});
+
+test('examples index: one ready, one blocked, one planned', () => {
+  const r = run('.', 'bun', cli, 'project', 'examples/index.md');
+  expect(r.exitCode).toBe(0);
+  expect(r.stdout.toString()).toContain('| ready | D11 | — | 2 tasks, 16/16 tested, 0 done |');
+  expect(r.stdout.toString()).toContain('| draft | — | Q1, Q2, Q3, Q4 | — |');
+  expect(run('.', 'bun', cli, 'project', 'examples/index.md', '--ready').exitCode).toBe(1);
+});
+
+const decided = () => parseDecisions(decisionsMd).decisions;
+
+test('summary: plain sentences, approval status and what the owner must still settle', () => {
+  const page = summary(parseJourneys(base).spec, decided());
+  expect(page).toStartWith('# Invite: summary\n\nNot approved yet. 1 journey, 1 screen, 5 rules.');
+  expect(page).toContain('- Workspace admin: Invite a member → Invite a teammate');
+  expect(page).toContain('- Workspace admin: Email the invite → Email delivery is out of scope.');
+  expect(page).toContain('1. **Submit the invite** — Members › Invite; sees invite form\n   - WHEN an admin submits a valid email THE SYSTEM SHALL create the invite');
+  expect(page).toContain('2. **Show the link** (behind the scenes)');
+  // Checks resolve to the text they cite rather than IDs.
+  expect(page).toContain('- Not allowed: IF the requester is not an admin THE SYSTEM SHALL NOT create the invite');
+  expect(page).toContain('- Failure: Failure default: show a retryable error and keep no partial change.');
+  expect(page).toContain('- Repeat: does not apply: each request creates a separate invite');
+  expect(page).not.toContain('Needs your answer');
+  expect(page).toContain(`Generated from the spec (${approvalHash(parseJourneys(base).spec, decided())})`);
+
+  const pending = base.replace('Basis: D1\n-', 'Basis: D1, D4\n-').replace('- denied: J1.S1.c2\n', '- denied: open — Q1\n');
+  const record = parseDecisions(decisionsMd + '- D4 draft — Assumed: the link shows its expiry.\n').decisions;
+  const owed = summary(parseJourneys(pending).spec, record);
+  expect(owed).toContain('## Needs your answer\n\n- Accept or change (D4): the link shows its expiry.\n- Question (Q1): Which role does an accepted invite grant?');
+  expect(owed).toContain('- Not allowed: open: Q1 (Which role does an accepted invite grant?)');
+  expect(openItems(parseJourneys(pending).spec, record)).toEqual(['D4', 'Q1']);
+
+  expect(summary(approvedSpec(), decided())).toContain('Approved by D3.');
+  expect(summary(parseJourneys(approve(base).replace('show its link', 'show its link and expiry')).spec, decided())).toContain('Approval D3 is out of date');
+  const options = indexOptions(parseIndex(indexMd).index);
+  expect(summary(parseJourneys(base).spec, decided(), options)).toContain('- Money: not answered yet');
+});
+
+test('impact follows a decision through basis, invariants, guards, checks and tasks', () => {
+  const spec = approvedSpec(), tasks = parseTasks(plan(fullPlan)).tasks;
+  const d1 = impactOf(spec, decided(), ['D1'], [{path: 'tasks.md', tasks}]);
+  expect(d1).toMatchObject({approval: 'D3', stale: true, invariants: ['I1'], checks: ['J1/denied', 'J1/invalid']});
+  expect(d1.steps).toEqual([{id: 'J1.S1', why: ['basis D1', 'guards I1']}, {id: 'J1.S2', why: ['basis D1']}]);
+  expect(d1.criteria).toEqual(['J1.S1.c1', 'J1.S1.c2', 'J1.S1.c3', 'J1.S2.c1']);
+  expect(d1.tasks.map(t => [t.id, t.covers])).toEqual([['T1', ['J1.S1.c1', 'J1.S1.c2', 'J1.S1.c3', 'I1']], ['T2', ['J1.S2.c1']]]);
+  expect(d1.tasks[1].tests).toEqual(['manual › create an invite and see its link']);
+  // A check citing the decision, and an exclusion goal.
+  expect(impactOf(spec, decided(), ['D2'])).toMatchObject({stale: true, steps: [], checks: ['J1/failed']});
+  expect(impactOf(spec, decided(), ['X1'])).toMatchObject({goals: ['C2'], criteria: []});
+  // An uncited decision touches nothing and leaves the approval alone.
+  expect(impactOf(spec, decided(), ['Q1'])).toMatchObject({stale: false, steps: [], checks: [], tasks: []});
+  // Citing a resolved question cites its answers; a journey Basis reaches every step.
+  const viaQuestion = parseJourneys(base.replace('Actor: admin · Exits: created, denied', 'Actor: admin · Exits: created, denied\nBasis: Q1')).spec;
+  const answered = parseDecisions(decisionsMd.replace('- Q1 open — Which role does an accepted invite grant?', '- Q1 resolved — Answered by D5.\n- D5 accepted — Invites grant the member role.')).decisions;
+  expect(impactOf(viaQuestion, answered, ['D5']).steps.map(s => s.why)).toEqual([['journey basis Q1'], ['journey basis Q1']]);
+});
+
+test('CLI impact reads an index or one spec; summary is its own view', async () => {
+  const dir = await project('journeys-impact-');
+  try {
+    await writeFile(join(dir, 'feature.md'), approve(base));
+    await writeFile(join(dir, 'tasks.md'), plan(fullPlan));
+    await writeFile(join(dir, 'index.md'), '# Shop\n\n## Specs\n- [Invite](feature.md) · Tasks: tasks.md\n- Billing — planned\n');
+    const r = run(dir, 'bun', cli, 'impact', 'index.md', 'D1'), out = r.stdout.toString();
+    expect(r.exitCode).toBe(0);
+    expect(out).toContain('- D1 accepted — Only admins can invite. (decisions.md)');
+    expect(out).toContain('Approval D3 goes stale on any change to these decisions; re-approve after.');
+    expect(out).toContain('- Steps: J1.S1 (basis D1; guards I1), J1.S2 (basis D1)');
+    expect(out).toContain('  - T1 (Todo) in tasks.md: J1.S1.c1, J1.S1.c2, J1.S1.c3, I1; tests: invite.test.ts › admin creates, non-admin refused');
+    expect(out).toContain('ok: D1 touches 1 of 1 spec; 4 criteria, 1 invariant, 2 tasks, 1 approval to renew. Nothing was changed.');
+    expect(run(dir, 'bun', cli, 'impact', 'feature.md', 'Q1').stdout.toString()).toContain('ok: Q1 is cited by none of 1 spec.');
+    expect(run(dir, 'bun', cli, 'impact', 'feature.md', 'D9').stderr.toString()).toContain('ERROR: D9 is not in any decision record');
+    expect(run(dir, 'bun', cli, 'impact', 'feature.md').stderr.toString()).toContain('Usage');
+    expect(run(dir, 'bun', cli, 'impact', 'feature.md', 'D1', '--all').stderr.toString()).toContain('Unknown option --all');
+    const json = JSON.parse(run(dir, 'bun', cli, 'impact', 'index.md', 'D1', '--json').stdout.toString());
+    expect(json).toMatchObject({ids: ['D1'], specs: [{spec: 'feature.md', stale: true, invariants: ['I1']}]});
+    // Impact changes nothing on disk.
+    expect(await Bun.file(join(dir, 'feature.md')).text()).toBe(approve(base));
+
+    const page = run(dir, 'bun', cli, 'check', 'feature.md', '--summary');
+    expect(page.exitCode).toBe(0);
+    expect(page.stdout.toString()).toStartWith('# Invite: summary\n\nApproved by D3.');
+    expect(run(dir, 'bun', cli, 'check', 'feature.md', '--summary', '--review').stderr.toString()).toContain('not both');
+  } finally { await rm(dir, {recursive: true, force: true}); }
+});
+
+test('examples: impact of D6 spans both specs; the summary of password reset is approved', () => {
+  const impact = run('.', 'bun', cli, 'impact', 'examples/index.md', 'D6').stdout.toString();
+  expect(impact).toContain('ok: D6 touches 2 of 2 specs; 16 criteria, 2 invariants, 2 tasks, 1 approval to renew.');
+  expect(run('.', 'bun', cli, 'check', 'examples/password-reset/journeys/password-reset.md', '--summary').stdout.toString()).toContain('Approved by D11. 2 journeys, 2 screens, 16 rules.');
+});
+
+test('check reads any file: journeys, task plan or index; --impact works on journeys and index', async () => {
+  const dir = await project('journeys-dispatch-');
+  try {
+    await writeFile(join(dir, 'feature.md'), approve(base));
+    await writeFile(join(dir, 'tasks.md'), plan(fullPlan.replaceAll('invite.test.ts ›', 'invite.test.ts (new) ›')));
+    await writeFile(join(dir, 'index.md'), '# Shop\n\n## Specs\n- [Invite](feature.md) · Tasks: tasks.md\n');
+    const check = (...args: string[]) => run(dir, 'bun', cli, 'check', ...args);
+    expect(check('feature.md', '--ready').stdout.toString()).toContain('ok: ready check feature.md');
+    expect(check('tasks.md', '--status').stdout.toString()).toContain('| J1.S1.c1 | T1 |');
+    expect(check('tasks.md').stdout.toString()).toContain('ok: tasks tasks.md; 2 tasks');
+    expect(check('index.md').stdout.toString()).toContain('ok: draft project index.md; 1 spec: 1 ready');
+    expect(check('index.md', '--impact', 'D1').stdout.toString()).toContain('ok: D1 touches 1 of 1 spec; 4 criteria, 1 invariant, 2 tasks');
+    expect(check('feature.md', '--impact', 'D2').stdout.toString()).toContain('- Checks: J1/failed');
+    expect(check('tasks.md', '--impact', 'D1').stderr.toString()).toContain('Use --impact on a journeys file or the index');
+    expect(check('feature.md', '--impact').stderr.toString()).toContain('Usage');
+    // The older command names keep working.
+    expect(run(dir, 'bun', cli, 'tasks', 'tasks.md').exitCode).toBe(0);
+    expect(run(dir, 'bun', cli, 'project', 'index.md').exitCode).toBe(0);
+    expect(run(dir, 'bun', cli, 'impact', 'feature.md', 'D1').exitCode).toBe(0);
+  } finally { await rm(dir, {recursive: true, force: true}); }
+});
+
+test('impact on one spec finds its task plans beside it or in ../tasks', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'journeys-impact-plans-'));
+  try {
+    await mkdir(join(dir, 'journeys')); await mkdir(join(dir, 'tasks'));
+    await writeFile(join(dir, 'decisions.md'), decisionsMd);
+    await writeFile(join(dir, 'journeys', 'feature.md'), approve(base).replace('Decisions: decisions.md', 'Decisions: ../decisions.md'));
+    await writeFile(join(dir, 'tasks', 'feature.md'), plan(fullPlan).replace('[journeys](feature.md)', '[journeys](../journeys/feature.md)'));
+    await writeFile(join(dir, 'tasks', 'other.md'), '# Other\n\nSource: [journeys](../journeys/other.md)\n\n## T1 X\nCovers: J1.\n');
+    const out = run(dir, 'bun', cli, 'check', 'journeys/feature.md', '--impact', 'D1').stdout.toString();
+    expect(out).toContain('  - T1 (Todo) in tasks/feature.md: J1.S1.c1, J1.S1.c2, J1.S1.c3, I1');
+    expect(out).toContain('2 tasks, 1 approval to renew');
+    expect(out).not.toContain('other.md');
+  } finally { await rm(dir, {recursive: true, force: true}); }
+});
+
+test('summary: no arrow when the journey restates the goal; deferred work is not called out of scope', () => {
+  const md = base.replace('- C1 admin: Invite a member → J1', '- C1 admin: Invite a teammate and share the link → J1');
+  const later = parseDecisions(decisionsMd.replace('- X1 accepted — Email delivery is out of scope.', '- X1 accepted — Email delivery is the next slice.')).decisions;
+  const page = summary(parseJourneys(md).spec, later);
+  expect(page).toContain('- Workspace admin: Invite a teammate and share the link\n');
+  expect(page).toContain('- Workspace admin: Email the invite → Email delivery is the next slice.');
+  const plain = parseDecisions(decisionsMd.replace('- X1 accepted — Email delivery is out of scope.', '- X1 accepted — No email delivery.')).decisions;
+  expect(summary(parseJourneys(md).spec, plain)).toContain('→ not in this spec: No email delivery.');
+});
+
+test('questions to send: grouped by owner, with recommendations, assumptions after', () => {
+  const record = parseDecisions(`# Coins decisions
+
+- D1 accepted — Coins are credited when the return window closes.
+- D2 draft — Assumed: the balance shows in the account header.
+- Q1 open — Can coins pay a whole order? Options: all; up to half. Recommend: up to half. Blocks: J3.S2. Owner: PM.
+- Q2 open — Are coins a discount or a payment method on invoices?
+  This changes tax. Recommend: ask the accountant. Owner: finance.
+- Q3 open — Do coins expire? Recommend: after 12 months. Owner: PM.
+- Q4 open — Who can adjust a balance by hand?
+- Q5 resolved — Answered by D1.
+`).decisions;
+  const page = questionList(record, 'Questions: Coins');
+  expect(page).toStartWith('# Questions: Coins\n\n4 questions to answer before building.');
+  expect(page).toContain('## For PM\n\n**Q1.** Can coins pay a whole order? Options: all; up to half.\nRecommended: up to half.\n\n**Q3.** Do coins expire?\nRecommended: after 12 months.');
+  expect(page).toContain('## For finance\n\n**Q2.** Are coins a discount or a payment method on invoices? This changes tax.\nRecommended: ask the accountant.');
+  expect(page).toContain('## Owner not named yet\n\n**Q4.** Who can adjust a balance by hand?');
+  expect(page).toContain('## We will assume, unless you say otherwise\n\n- **D2.** the balance shows in the account header.');
+  expect(page).not.toContain('Blocks');
+  expect(page).not.toContain('Q5');
+  expect(questionList(parseDecisions('- D1 accepted — Done.\n').decisions)).toContain('No open questions.');
+});
+
+test('check reads a decision record; --questions prints the list to send', () => {
+  const summary = run('.', 'bun', cli, 'check', 'examples/team-invitations/decisions.md');
+  expect(summary.stdout.toString()).toContain('ok: decisions examples/team-invitations/decisions.md; 10 accepted decisions, 4 open questions, 0 drafts.');
+  const list = run('.', 'bun', cli, 'check', 'examples/team-invitations/decisions.md', '--questions').stdout.toString();
+  expect(list).toContain('# Questions: Team invitations');
+  expect(list).toContain('**Q1.** Which role does an accepted invitation grant?\nRecommended: the workspace\'s default member role.\n');
+  expect(run('.', 'bun', cli, 'check', 'examples/password-reset/decisions.md', '--questions').stdout.toString()).toContain('No open questions.');
+  expect(run('.', 'bun', cli, 'check', 'examples/team-invitations/decisions.md', '--impact', 'D1').stderr.toString()).toContain('Use --impact on a journeys file or the index');
 });

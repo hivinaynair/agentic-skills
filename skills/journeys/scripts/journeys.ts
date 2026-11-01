@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { resolve, dirname, extname, relative, isAbsolute, sep } from 'node:path';
-import { realpath } from 'node:fs/promises';
+import { realpath, readdir } from 'node:fs/promises';
 
 // Deliberately dependency-free. Parsing and validation are exported for tests.
 export const checkNames = ['denied', 'invalid', 'failed', 'repeated'];
@@ -10,10 +10,18 @@ const ears = /^(?:(?:(?:WHEN|IF|WHILE) .+ )?THE SYSTEM SHALL(?: NOT)? .+|(?:When
 const boilerplate = /\bTHE SYSTEM SHALL(?: NOT)?\b|^(?:WHEN|IF|WHILE|When|If|While|Always:?|Never:?)\s/g;
 const words = (text: string) => text.split(/\s+/).filter(Boolean).length;
 const separator = /\s+(?:—|–|--?)\s+/;
-const keys = ['Decisions', 'Approved', 'Retired', 'Scope', 'Actor', 'Exits', 'Checks', 'Screen', 'Sees', 'Basis', 'Guards'];
+const keys = ['Decisions', 'Approved', 'Retired', 'Scope', 'Requires', 'Actor', 'Exits', 'Checks', 'Screen', 'Sees', 'Basis', 'Guards'];
 const list = (v: string) => v.split(',').map(x => x.trim()).filter(x => x && !/^(—|-|none)$/i.test(x));
+const listed = (ids: string[]) => ids.slice(0, 8).join(', ') + (ids.length > 8 ? ` and ${ids.length - 8} more` : '');
+const byId = (a: string, b: string) => a[0].localeCompare(b[0]) || Number(a.slice(1)) - Number(b.slice(1));
+const checkName = /^[a-z][a-z0-9-]*$/;
 
-export type Decision = { id: string; status: string; text: string; supersedes: string[]; answers: string[] };
+// Extra outcome checks a project adds to the four defaults, such as "money" for
+// payments, "privacy" for personal data or "offline" for a mobile app. The project
+// index defines each one with its owner question; Requires lines make them required.
+export type CheckOptions = { requires?: string[]; defined?: string[]; questions?: Map<string, string> };
+
+export type Decision = { id: string; status: string; text: string; supersedes: string[]; answers: string[]; section?: string };
 export type Edge = { to?: string; exit?: string; when?: string };
 export type Step = { id: string; title: string; kind: string; screen?: string; sees?: string; basis: string[]; guards: string[]; criteria: [string, string][]; edges: Edge[] };
 export type Check = { status: 'covered' | 'n/a' | 'open'; refs: string[]; reason: string };
@@ -21,7 +29,7 @@ export type Journey = { id: string; title: string; actor?: string; exits: string
 export type Goal = { id: string; actor: string; goal: string; status: 'mapped' | 'excluded' | 'unresolved' | 'elsewhere'; journeys: string[]; decision?: string; reason?: string };
 export type Source = { ref?: string; revision?: string; locator?: string };
 export type Spec = {
-  feature: string; decisions?: string; approval?: { id: string; hash: string }; retired: string[]; scope: string[]; checks: Record<string, Check>;
+  feature: string; decisions?: string; requires?: string[]; approval?: { id: string; hash: string }; retired: string[]; scope: string[]; checks: Record<string, Check>;
   actors: { id: string; name: string }[]; goals: Goal[];
   invariants: { id: string; rule: string; basis: string[] }[];
   observations: { id: string; statement: string; sources: Source[] }[];
@@ -47,11 +55,13 @@ export function parseDecisions(markdown: string) {
     const valid = id.startsWith('Q') ? ['open', 'deferred', 'resolved', 'retired'] : ['draft', 'accepted', 'superseded', 'retired'];
     if (!valid.includes(status)) errors.push(`${where}: ${id} has invalid status ${status}`);
     if (!text) errors.push(`${where}: ${id} has no text`);
-    decisions.set(id, { id, status, text, supersedes: list(supersedes), answers: [] });
+    decisions.set(id, { id, status, text, supersedes: list(supersedes), answers: [], ...(section && { section }) });
   };
-  let headers: string[] = [], last: Decision | undefined;
+  let headers: string[] = [], last: Decision | undefined, section = '';
   markdown.split('\n').forEach((raw, i) => {
     const line = raw.trim(), where = `decisions line ${i + 1}`;
+    const heading = line.match(/^##\s+(.+)$/);
+    if (heading) section = heading[1].trim();
     // An indented line continues the item above it: "- Q2 open — Question?\n  Options: …".
     if (last && /^\s+\S/.test(raw) && !/^[-*|]/.test(line)) { last.text += ` ${line}`; return; }
     last = undefined;
@@ -115,6 +125,7 @@ export function parseJourneys(markdown: string) {
       if (key === 'Decisions') spec.decisions = value;
       else if (key === 'Retired') spec.retired = list(value);
       else if (key === 'Scope') spec.scope = expandScope(value);
+      else if (key === 'Requires') spec.requires = list(value);
       else if (key === 'Checks' && !value) inChecks = true;
       else if (key === 'Approved') {
         const m = value.match(/^(D\d+)\s+([0-9a-f]{8})$/);
@@ -239,7 +250,7 @@ export function approvalHash(spec: Spec, decisions: Map<string, Decision>) {
 
 // Lays each step beside the full text it rests on, so a reader can judge meaning:
 // does the policy support every criterion, and does anything contradict it?
-export function reviewPacket(spec: Spec, decisions: Map<string, Decision>) {
+export function reviewPacket(spec: Spec, decisions: Map<string, Decision>, options: CheckOptions = {}) {
   const observations = new Map(spec.observations.map(o => [o.id, o.statement]));
   const invariants = new Map(spec.invariants.map(i => [i.id, i.rule]));
   const criteria = new Map(spec.journeys.flatMap(j => j.steps.flatMap(st => st.criteria.map(([k, v]) => [`${st.id}.${k}`, v] as const))));
@@ -254,6 +265,9 @@ export function reviewPacket(spec: Spec, decisions: Map<string, Decision>) {
   const out = [`# Review: ${spec.feature}`, '',
     'For each step: does every criterion follow from what it rests on, is each criterion one behavior,',
     'and does any cited text contradict another? Fix the spec or raise a question; do not just note it.', ''];
+  const required = requiredChecks(spec, options);
+  const extra = required.filter(name => !checkNames.includes(name));
+  if (extra.length) out.push('## Project checks', '', ...extra.map(name => `- ${name}: ${options.questions?.get(name) ?? 'no question defined'}`), '');
   if (spec.invariants.length) out.push('## Invariants', '');
   for (const i of spec.invariants) out.push(`### ${i.id}: ${i.rule}`, ...i.basis.map(b => `- ${describe(b)}`), '');
   for (const j of spec.journeys) {
@@ -268,7 +282,7 @@ export function reviewPacket(spec: Spec, decisions: Map<string, Decision>) {
       out.push('Criteria:', ...st.criteria.map(([k, v]) => `- ${st.id}.${k}: ${v}`), '');
     }
     out.push('Checks:');
-    for (const name of checkNames) {
+    for (const name of required) {
       const c = j.checks[name] ?? spec.checks[name];
       out.push(`- ${name}: ${!c ? 'missing' : c.status === 'covered' ? '' : `${c.status} — ${c.reason}`}`);
       for (const ref of c?.refs ?? []) out.push(`  - ${describe(ref)}`);
@@ -278,7 +292,12 @@ export function reviewPacket(spec: Spec, decisions: Map<string, Decision>) {
   return out.join('\n');
 }
 
-export function validate(spec: Spec, decisions: Map<string, Decision>, ready = false, approving = false) {
+// The four defaults, then the project's required checks, then the spec's own.
+function requiredChecks(spec: Spec, options: CheckOptions) {
+  return [...new Set([...checkNames, ...(options.requires ?? []), ...(spec.requires ?? [])])];
+}
+
+export function validate(spec: Spec, decisions: Map<string, Decision>, ready = false, approving = false, options: CheckOptions = {}) {
   const errors: string[] = [], warnings: string[] = [], rules = new Set<string>();
   const screens = new Map<string, string[]>();
   const err = (m: string) => errors.push(m);
@@ -366,10 +385,16 @@ export function validate(spec: Spec, decisions: Map<string, Decision>, ready = f
   }
 
   // Owner outcome checks. Refs may cite any step, criterion, invariant, observation or decision.
-  for (const name of Object.keys(spec.checks)) if (!checkNames.includes(name)) err(`Header: unknown check ${name}`);
+  const required = requiredChecks(spec, options), known = new Set([...required, ...(options.defined ?? [])]);
+  for (const name of spec.requires ?? []) {
+    if (!checkName.test(name)) err(`Requires: invalid check name ${name}; use lowercase words joined by hyphens`);
+    else if (options.defined && !checkNames.includes(name) && !options.defined.includes(name)) warnings.push(`Requires: ${name} is not defined in the project index; add its owner question under "## Checks"`);
+  }
+  const unknownCheck = (owner: string, name: string) => err(`${owner}: unknown check ${name}; add it to Requires or the project index`);
+  for (const name of Object.keys(spec.checks)) if (!known.has(name)) unknownCheck('Header', name);
   for (const j of spec.journeys) {
-    for (const name of Object.keys(j.checks)) if (!checkNames.includes(name)) err(`${j.id}: unknown check ${name}`);
-    for (const name of checkNames) {
+    for (const name of Object.keys(j.checks)) if (!known.has(name)) unknownCheck(j.id, name);
+    for (const name of required) {
       const c = j.checks[name] ?? spec.checks[name];
       if (!c) { gate(`${j.id}: missing ${name} check`); continue; }
       if (c.status !== 'covered' && !c.reason) err(`${j.id}/${name}: ${c.status} needs a reason`);
@@ -415,7 +440,6 @@ export function validate(spec: Spec, decisions: Map<string, Decision>, ready = f
     const text = decisions.get(id)?.text ?? '';
     return id.startsWith('Q') ? words(text) > 60 : words(text.replace(/\bWhy:.*$/, '').replace(/\bSupersedes:.*$/, '')) > 30;
   });
-  const listed = (ids: string[]) => ids.slice(0, 8).join(', ') + (ids.length > 8 ? ` and ${ids.length - 8} more` : '');
   if (long.criteria.length) warnings.push(`Over 20 words, split or shorten: ${listed(long.criteria)}`);
   if (long.sees.length) warnings.push(`Sees over 12 words: ${listed(long.sees)}`);
   if (longDecisions.length) warnings.push(`Cited decisions over 30 words (questions over 60): ${listed(longDecisions)}`);
@@ -428,9 +452,9 @@ export function validate(spec: Spec, decisions: Map<string, Decision>, ready = f
 
   if (!approving) {
     const a = spec.approval;
-    if (!a) { if (ready) err('Not approved: after owner sign-off, add an accepted D and run approve'); }
+    if (!a) { if (ready) err('Not approved: after the independent review passes, add an accepted D and run approve'); }
     else if (decisions.get(a.id)?.status !== 'accepted') gate(`Approval ${a.id} is not an accepted decision`);
-    else if (a.hash !== approvalHash(spec, decisions)) gate(`Approval ${a.id} is stale: the journeys or the decisions they cite changed since sign-off; re-approve`);
+    else if (a.hash !== approvalHash(spec, decisions)) gate(`Approval ${a.id} is stale: the journeys or the decisions they cite changed since approval; review and re-approve`);
   }
   return { errors, warnings, rules, screens };
 }
@@ -611,32 +635,438 @@ export function validateTasks(tasks: Task[], source: { approval?: string }, spec
   return { errors, warnings, fileTests, plannedFiles, report, covered: targets.length - [...owners.values()].filter(by => !by.length).length, total: targets.length };
 }
 
+// Test files named by Done or Built tasks must exist and contain the test; planned
+// tests in existing files must point at a real file. Paths are from the repository root.
+async function checkTestFiles(result: ReturnType<typeof validateTasks>) {
+  for (const test of result.fileTests) {
+    const file = Bun.file(resolve(test.path));
+    if (!await file.exists()) result.errors.push(`${test.task}: test file ${test.path} for ${test.ids.join(', ')} does not exist`);
+    else if (!(await file.text()).includes(test.locator)) result.errors.push(`${test.task}: ${test.path} has no test "${test.locator}" for ${test.ids.join(', ')}`);
+  }
+  const missing = [];
+  for (const f of result.plannedFiles) if (!await Bun.file(resolve(f.path)).exists()) missing.push(`${f.path} (${f.task})`);
+  if (missing.length) result.warnings.push(`Test files not found; fix the path or mark the file "(new)": ${listed(missing)}`);
+}
+
+// Project index: one Markdown file, normally docs/journeys/index.md, listing every
+// feature spec (written or planned), its task plans and the project's extra checks.
+export type IndexEntry = { title: string; path?: string; tasks: string[] };
+export type ProjectIndex = { title: string; decisions?: string; requires: string[]; checks: Map<string, string>; specs: IndexEntry[] };
+export function parseIndex(markdown: string) {
+  const index: ProjectIndex = { title: '', requires: [], checks: new Map(), specs: [] };
+  const errors: string[] = [];
+  let section = 'header';
+  for (const [i, raw] of markdown.split('\n').entries()) {
+    const line = raw.trim(), at = `index line ${i + 1}`;
+    if (!line || line.startsWith('<!--')) continue;
+    const title = line.match(/^# (.+)$/);
+    if (title) { index.title ||= title[1].trim(); continue; }
+    const heading = line.match(/^## (.+)$/);
+    if (heading) { section = ['Checks', 'Specs'].includes(heading[1].trim()) ? heading[1].trim() : 'prose'; continue; }
+    if (section === 'header') {
+      const kv = line.match(/^(Decisions|Requires):\s*(.*)$/);
+      if (kv?.[1] === 'Decisions') index.decisions = kv[2].trim();
+      else if (kv) index.requires = list(kv[2]);
+      continue;
+    }
+    if (section === 'prose' || !/^[-*]\s/.test(line)) continue;
+    const item = line.replace(/^[-*]\s+/, '');
+    if (section === 'Checks') {
+      const m = item.match(/^([\w-]+):\s*(.+)$/);
+      if (!m || !checkName.test(m[1])) errors.push(`${at}: write a check as "- name: question for the owner", with a lowercase name`);
+      else if (checkNames.includes(m[1]) || index.checks.has(m[1])) errors.push(`${at}: ${m[1]} is already a check`);
+      else index.checks.set(m[1], m[2].trim());
+      continue;
+    }
+    // "- [Checkout](checkout.md) · Tasks: ../tasks/checkout.md" is a written spec;
+    // "- Returns — planned" (no link) is a feature with no spec yet.
+    const m = item.match(/^\[([^\]]+)\]\(([^)]+\.md)\)(.*)$/);
+    if (!m) { index.specs.push({ title: item.split(separator)[0].trim(), tasks: [] }); continue; }
+    const tasks = m[3].match(/\bTasks:\s*(.+)$/)?.[1] ?? '';
+    index.specs.push({ title: m[1].trim(), path: m[2].trim(), tasks: [...tasks.matchAll(/\(([^)]+\.md)\)|([^\s,()[\]]+\.md)/g)].map(x => x[1] ?? x[2]) });
+  }
+  if (!index.specs.length) errors.push('Index lists no specs under "## Specs"');
+  for (const r of index.requires) if (!checkNames.includes(r) && !index.checks.has(r)) errors.push(`Requires: ${r} is not defined under "## Checks"`);
+  return { index, errors };
+}
+
+export const indexOptions = (index: ProjectIndex): CheckOptions => ({ requires: index.requires, defined: [...index.checks.keys()], questions: index.checks });
+
+export type ProjectRow = { title: string; path?: string; state: 'planned' | 'invalid' | 'draft' | 'ready'; approval: string; open: string[]; tasks: string; errors: string[]; warnings: string[] };
+
+// Checks every spec the index lists against its decision record and task plans,
+// then what no single file can show: links between specs, specs missing from the
+// index and accepted decisions that no spec maps.
+export async function checkProject(indexPath: string, read: (path: string) => Promise<string>, ready = false) {
+  const errors: string[] = [], warnings: string[] = [], rows: ProjectRow[] = [];
+  const parsedIndex = parseIndex(await read(indexPath)), index = parsedIndex.index, options = indexOptions(index);
+  errors.push(...parsedIndex.errors);
+  const root = dirname(resolve(indexPath)), shown = (p: string) => relative(process.cwd(), p) || p;
+  const listedPaths = new Set<string>(), specs = new Map<string, Spec>(), plans = new Set<string>();
+  const records = new Map<string, Map<string, Decision>>(), used = new Map<string, Set<string>>(), approvals = new Set<string>();
+  const load = async (path: string) => { try { return await read(path); } catch { return undefined; } };
+  for (const entry of index.specs) {
+    const row: ProjectRow = { title: entry.title, state: 'planned', approval: '—', open: [], tasks: '—', errors: [], warnings: [] };
+    rows.push(row);
+    if (!entry.path) { if (ready) errors.push(`${entry.title}: planned; no spec is written yet`); continue; }
+    const path = resolve(root, entry.path);
+    row.path = shown(path);
+    if (listedPaths.has(path)) { errors.push(`${row.path}: listed twice`); row.state = 'invalid'; continue; }
+    listedPaths.add(path);
+    const text = await load(path);
+    if (text === undefined) { row.errors.push('spec file not found'); row.state = 'invalid'; continue; }
+    const parsed = parseJourneys(text), spec = parsed.spec;
+    specs.set(path, spec);
+    const recordPath = spec.decisions ? resolve(dirname(path), spec.decisions) : undefined;
+    if (recordPath && !records.has(recordPath)) {
+      const record = await load(recordPath);
+      if (record === undefined) row.errors.push(`decision record ${spec.decisions} not found`);
+      else { const r = parseDecisions(record); records.set(recordPath, r.decisions); errors.push(...r.errors.map(e => `${shown(recordPath)}: ${e}`)); }
+    }
+    if (index.decisions && recordPath && recordPath !== resolve(root, index.decisions)) row.warnings.push(`uses ${shown(recordPath)}, not the index's decision record`);
+    const decisions = (recordPath && records.get(recordPath)) || new Map<string, Decision>();
+    const draft = validate(spec, decisions, false, false, options), strict = validate(spec, decisions, true, false, options);
+    row.errors.push(...parsed.errors, ...draft.errors);
+    row.warnings.push(...draft.warnings);
+    row.state = row.errors.length ? 'invalid' : strict.errors.length ? 'draft' : 'ready';
+    if (ready && row.state === 'draft') row.errors.push(...strict.errors);
+    if (spec.approval) {
+      approvals.add(spec.approval.id);
+      row.approval = spec.approval.hash === approvalHash(spec, decisions) ? spec.approval.id : `${spec.approval.id} stale`;
+    }
+    const ids = cited(spec, decisions);
+    row.open = openItems(spec, decisions);
+    if (recordPath) used.set(recordPath, new Set([...(used.get(recordPath) ?? []), ...ids]));
+    const summaries: string[] = [];
+    for (const t of entry.tasks) {
+      const planPath = resolve(root, t), planText = await load(planPath), at = shown(planPath);
+      plans.add(planPath);
+      if (planText === undefined) { row.errors.push(`task plan ${at} not found`); continue; }
+      const plan = parseTasks(planText);
+      if (!plan.source.path || resolve(dirname(planPath), plan.source.path) !== path) { row.errors.push(`${at}: its Source line does not link ${row.path}`); continue; }
+      const result = validateTasks(plan.tasks, plan.source, spec, decisions);
+      await checkTestFiles(result);
+      row.errors.push(...[...plan.errors, ...result.errors].map(e => `${at}: ${e}`));
+      row.warnings.push(...result.warnings.map(w => `${at}: ${w}`));
+      const tested = result.report.filter(r => r.test !== '—').length, done = result.report.filter(r => /^done\b/i.test(r.status)).length;
+      summaries.push(`${plan.tasks.length} tasks, ${tested}/${result.total} tested, ${done} done`);
+    }
+    if (summaries.length) row.tasks = summaries.join('; ');
+  }
+
+  // "→ elsewhere: members.md J2" must name a listed spec and, if given, its journeys.
+  for (const [path, spec] of specs) for (const g of spec.goals) {
+    if (g.status !== 'elsewhere') continue;
+    const owner = `${shown(path)} ${g.id}`, m = g.reason?.match(/([^\s,;:]+\.md)\b((?:[\s,]+J\d+)*)/);
+    if (!m) { warnings.push(`${owner}: name the spec that covers it, such as "elsewhere: members.md J2"`); continue; }
+    const target = resolve(dirname(path), m[1]), other = specs.get(target);
+    if (!listedPaths.has(target)) errors.push(`${owner}: ${m[1]} is not a spec in the index`);
+    else for (const j of m[2].match(/J\d+/g) ?? []) if (other && !other.journeys.some(x => x.id === j)) errors.push(`${owner}: ${m[1]} has no journey ${j}`);
+  }
+  // A journeys file beside the index that the index does not list is invisible to it.
+  for (const name of (await readdir(root).catch(() => [] as string[])).filter(n => extname(n) === '.md').sort()) {
+    const path = resolve(root, name);
+    if (path === resolve(indexPath) || listedPaths.has(path) || plans.has(path) || records.has(path)) continue;
+    if (/^## J\d+:/m.test(await load(path) ?? '')) warnings.push(`${shown(path)}: a journeys file the index does not list`);
+  }
+  // Accepted decisions no spec cites are rules nobody has mapped yet. Framing lines
+  // and approvals describe the project rather than behavior, so they are exempt.
+  for (const [recordPath, decisions] of records) {
+    const cites = used.get(recordPath) ?? new Set<string>();
+    const unmapped = [...decisions.values()].filter(d => d.status === 'accepted' && /^[DX]/.test(d.id) && d.section !== 'Frame'
+      && !approvals.has(d.id) && !/^(?:Decisions )?approved for build\b/i.test(d.text) && !cites.has(d.id)).map(d => d.id).sort(byId);
+    if (unmapped.length) warnings.push(`${shown(recordPath)}: no listed spec cites ${listed(unmapped)}; map them or add the spec that will (planned is fine)`);
+  }
+  return { index, rows, errors, warnings };
+}
+
+// Decisions the owner still has to settle for this spec: drafts and open questions it
+// cites or scopes, plus questions its open checks wait on ("invalid: open — Q2").
+export function openItems(spec: Spec, decisions: Map<string, Decision>) {
+  const waiting = [spec.checks, ...spec.journeys.map(j => j.checks)].flatMap(c => Object.values(c)).filter(c => c.status === 'open').flatMap(c => c.reason.match(/\bQ\d+\b/g) ?? []);
+  return [...new Set([...cited(spec, decisions), ...spec.scope, ...waiting])].filter(id => ['open', 'draft'].includes(decisions.get(id)?.status ?? '')).sort(byId);
+}
+
+// Plain text for any ID, without the ID: what a person reads instead of a reference.
+function plainText(spec: Spec, decisions: Map<string, Decision>) {
+  const known = new Map<string, string>([
+    ...spec.observations.map(o => [o.id, o.statement] as const),
+    ...spec.invariants.map(i => [i.id, i.rule] as const),
+    ...spec.journeys.flatMap(j => j.steps.flatMap(st => [[st.id, st.title] as const, ...st.criteria.map(([k, v]) => [`${st.id}.${k}`, v] as const)])),
+  ]);
+  const text = (id: string): string => {
+    if (known.has(id)) return known.get(id) ?? id;
+    const d = decisions.get(id);
+    if (!d) return id;
+    if (d.answers.length) return d.answers.map(text).join(' ');
+    return d.text.replace(/\s*\bSupersedes:.*$/, '').replace(/^Assumed:\s*/, '');
+  };
+  return text;
+}
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+const checkLabels: Record<string, string> = { denied: 'Not allowed', invalid: 'Bad input', failed: 'Failure', repeated: 'Repeat' };
+
+// The owner's view: what people can do, see and rely on, in plain sentences and few
+// IDs. It is generated from the same parsed spec the approval hash covers, so the
+// page the owner approves cannot drift from the spec the builder follows.
+export function summary(spec: Spec, decisions: Map<string, Decision>, options: CheckOptions = {}) {
+  const text = plainText(spec, decisions), actors = new Map(spec.actors.map(a => [a.id, a.name]));
+  const titles = new Map(spec.journeys.map(j => [j.id, j.title]));
+  const rules = spec.invariants.length + spec.journeys.reduce((n, j) => n + j.steps.reduce((m, st) => m + st.criteria.length, 0), 0);
+  const screens = new Set(spec.journeys.flatMap(j => j.steps.flatMap(st => st.screen?.split(/\s*;\s*/) ?? [])));
+  const a = spec.approval, hash = approvalHash(spec, decisions);
+  const status = !a ? 'Not approved yet' : a.hash === hash ? `Approved by ${a.id}` : `Approval ${a.id} is out of date: the spec or its decisions changed since approval`;
+  const out = [`# ${spec.feature}: summary`, '',
+    `${status}. ${plural(spec.journeys.length, 'journey')}, ${plural(screens.size, 'screen')}, ${plural(rules, 'rule')}.`,
+    `Generated from the spec (${hash}), for information.`, ''];
+  const open = openItems(spec, decisions);
+  if (open.length) {
+    out.push('## Needs your answer', '');
+    for (const id of open) out.push(`- ${decisions.get(id)?.status === 'draft' ? 'Accept or change' : 'Question'} (${id}): ${text(id)}`);
+    out.push('');
+  }
+  if (spec.goals.length) {
+    out.push('## What people can do', '');
+    for (const g of spec.goals) {
+      // A journey titled like its goal needs no arrow: "Find a devotee → Find a devotee".
+      const same = (title: string) => g.goal.toLowerCase().startsWith(title.toLowerCase()) || title.toLowerCase().startsWith(g.goal.toLowerCase());
+      // An exclusion may be a non-goal or work deferred to a later slice; its own text says which.
+      const excluded = g.decision ? text(g.decision) : '';
+      const target = g.status === 'mapped' ? g.journeys.map(j => titles.get(j) ?? j).filter(t => !same(t)).join('; ')
+        : g.status === 'excluded' ? (/out of scope|not in|later|next slice/i.test(excluded) ? excluded : `not in this spec${excluded ? `: ${excluded}` : ''}`)
+        : g.status === 'elsewhere' ? `covered elsewhere: ${g.reason}` : `not decided: ${g.reason}`;
+      out.push(`- ${actors.get(g.actor) ?? g.actor}: ${g.goal}${target ? ` → ${target}` : ''}`);
+    }
+    out.push('');
+  }
+  if (spec.invariants.length) out.push('## Always true', '', ...spec.invariants.map(i => `- ${i.rule}`), '');
+  const required = requiredChecks(spec, options);
+  for (const j of spec.journeys) {
+    out.push(`## ${j.title}`, '', `${actors.get(j.actor ?? '') ?? j.actor ?? 'Someone'} · ends: ${j.exits.join(', ')}`, '');
+    j.steps.forEach((st, i) => {
+      const where = st.kind === 'person' ? ` — ${st.screen}${st.sees ? `; sees ${st.sees}` : ''}` : st.kind === 'system' ? ' (behind the scenes)' : ' (another system)';
+      out.push(`${i + 1}. **${st.title}**${where}`, ...st.criteria.map(([, v]) => `   - ${v}`));
+    });
+    out.push('', 'When it goes wrong:');
+    for (const name of required) {
+      const c = j.checks[name] ?? spec.checks[name], label = checkLabels[name] ?? name[0].toUpperCase() + name.slice(1);
+      const answer = !c ? 'not answered yet' : c.status === 'n/a' ? `does not apply: ${c.reason}` : c.status === 'open' ? `open: ${c.reason.replace(/\bQ\d+\b/g, q => decisions.has(q) ? `${q} (${text(q)})` : q)}`
+        : [...new Set(c.refs.map(text))].join(' / ');
+      out.push(`- ${label}: ${answer}`);
+    }
+    out.push('');
+  }
+  return out.join('\n').trimEnd() + '\n';
+}
+
+// What a change to these decisions touches in one spec: the steps resting on them
+// directly, through the journey basis or through an invariant they support; every
+// criterion of those steps; outcome checks citing them; and the tasks and tests that
+// own the affected rules. A cited decision is in the approval hash, so editing or
+// superseding it makes the approval stale.
+export type ImpactTask = { plan: string; id: string; status?: string; covers: string[]; tests: string[] };
+export type Impact = { approval?: string; stale: boolean; scope: string[]; goals: string[]; invariants: string[]; steps: { id: string; why: string[] }[]; criteria: string[]; checks: string[]; tasks: ImpactTask[] };
+export function impactOf(spec: Spec, decisions: Map<string, Decision>, ids: string[], plans: { path: string; tasks: Task[] }[] = []): Impact {
+  // Citing a resolved question cites its answers, so it counts as citing them.
+  const hit = new Set(ids);
+  for (const d of decisions.values()) if (d.answers.some(a => ids.includes(a))) hit.add(d.id);
+  const touched = (refs: string[]) => refs.filter(r => hit.has(r));
+  const invariants = spec.invariants.filter(i => touched(i.basis).length).map(i => i.id);
+  const steps = new Map<string, string[]>(), why = (id: string, reason: string) => steps.set(id, [...(steps.get(id) ?? []), reason]);
+  const checks: string[] = [];
+  for (const j of spec.journeys) {
+    const shared = touched(j.basis);
+    for (const st of j.steps) {
+      if (shared.length) why(st.id, `journey basis ${shared.join(', ')}`);
+      const own = touched(st.basis.filter(b => !j.basis.includes(b)));
+      if (own.length) why(st.id, `basis ${own.join(', ')}`);
+      const guards = st.guards.filter(g => invariants.includes(g));
+      if (guards.length) why(st.id, `guards ${guards.join(', ')}`);
+    }
+  }
+  const criteria = spec.journeys.flatMap(j => j.steps.filter(st => steps.has(st.id)).flatMap(st => st.criteria.map(([k]) => `${st.id}.${k}`)));
+  const affected = new Set([...criteria, ...invariants]);
+  // A check is affected when it cites the decisions, an affected rule or step, or waits on them.
+  for (const j of spec.journeys) for (const name of new Set([...Object.keys(spec.checks), ...Object.keys(j.checks)])) {
+    const c = j.checks[name] ?? spec.checks[name];
+    const waits = c.status === 'open' && (c.reason.match(/\b[DXQ]\d+\b/g) ?? []).some(r => hit.has(r));
+    if (waits || c.refs.some(r => hit.has(r) || affected.has(r) || steps.has(r))) checks.push(`${j.id}/${name}`);
+  }
+  const expand = (ref: string) => spec.journeys.find(j => j.id === ref)?.steps.flatMap(st => st.criteria.map(([k]) => `${st.id}.${k}`))
+    ?? spec.journeys.flatMap(j => j.steps).find(st => st.id === ref)?.criteria.map(([k]) => `${ref}.${k}`) ?? [ref];
+  const tasks = plans.flatMap(p => p.tasks.flatMap(t => {
+    const covers = [...new Set(t.covers.flatMap(expand))].filter(id => affected.has(id));
+    if (!covers.length) return [];
+    const tests = t.tests.filter(x => x.ids.some(id => affected.has(id))).map(x => `${x.path ?? 'manual'} › ${x.locator}`);
+    return [{ plan: p.path, id: t.id, ...(t.status && { status: t.status }), covers, tests }];
+  }));
+  return {
+    ...(spec.approval && { approval: spec.approval.id }),
+    stale: !!spec.approval && cited(spec, decisions).some(id => hit.has(id)),
+    scope: spec.scope.filter(s => hit.has(s)), goals: spec.goals.filter(g => g.decision && hit.has(g.decision)).map(g => g.id),
+    invariants, steps: [...steps].map(([id, reasons]) => ({ id, why: reasons })), criteria, checks, tasks,
+  };
+}
+
+// A page to send to whoever answers: open questions grouped by owner, each with its
+// recommendation, then the assumptions that stand unless someone objects. The IDs
+// stay so answers can be recorded against the right question.
+export function questionList(decisions: Map<string, Decision>, title = 'Questions') {
+  const open = [...decisions.values()].filter(d => d.id.startsWith('Q') && d.status === 'open');
+  const assumed = [...decisions.values()].filter(d => d.status === 'draft' && /^Assumed:/i.test(d.text));
+  const groups = new Map<string, string[]>();
+  for (const q of open) {
+    const owner = q.text.match(/\bOwner:\s*([^.;]+)/)?.[1].trim() ?? 'unknown';
+    const label = /^unknown$/i.test(owner) ? 'Owner not named yet' : `For ${owner}`;
+    const text = q.text.replace(/\s*\bOwner:\s*[^.;]+[.;]?/, '').replace(/\s*\bBlocks:\s*(?:[^.]|\.(?=\S))*\.?/, '').trim();
+    const [question, recommend] = text.split(/\s*\bRecommend(?:ed|ation)?:\s*/i);
+    groups.set(label, [...(groups.get(label) ?? []), `**${q.id}.** ${question.trim()}`, ...(recommend ? [`Recommended: ${recommend.trim()}`] : []), '']);
+  }
+  const out = [`# ${title}`, ''];
+  if (!open.length && !assumed.length) return [...out, 'No open questions.', ''].join('\n');
+  if (open.length) out.push(`${plural(open.length, 'question')} to answer before building. Reply "yes" to take the recommendation, or write your own answer. Keep the number (${open[0].id}) so the answer is recorded against the right question.`, '');
+  for (const [label, lines] of groups) out.push(`## ${label}`, '', ...lines);
+  if (assumed.length) out.push('## We will assume, unless you say otherwise', '', ...assumed.map(d => `- **${d.id}.** ${d.text.replace(/^Assumed:\s*/i, '')}`), '');
+  return out.join('\n').trimEnd() + '\n';
+}
+
+export const impactTouches = (i: Impact) => !!(i.scope.length || i.goals.length || i.invariants.length || i.steps.length || i.checks.length);
+
 if (import.meta.main) {
   try {
-    const usage = 'Usage: bun journeys.ts check feature.md [--ready] [--verbose] [--review] | approve feature.md D<n> [tasks.md ...] | tasks tasks.md [--status]';
-    const [cmd, input, ...rest] = process.argv.slice(2);
+    // Two commands: `check` reads any file (journeys, task plan or index) and `approve`
+    // records the owner's yes. `tasks`, `project` and `impact` remain as aliases.
+    const usage = [
+      'Usage: bun journeys.ts check <file> [options] | approve <journeys file> D<n> [task plans ...]',
+      '  journeys file:  --ready  --summary  --review  --impact D<n> ...',
+      '  task plan:      --status',
+      '  index.md:       --ready  --json  --impact D<n> ...',
+      '  decision record: --questions',
+    ].join('\n');
+    const [cmd, input, ...given] = process.argv.slice(2);
     if (['.yaml', '.yml'].includes(extname(input ?? ''))) throw Error(`${input} uses the retired YAML format; write the journeys as Markdown (see references/format.md)`);
-    if (!['check', 'approve', 'tasks'].includes(cmd) || !input || extname(input) !== '.md') throw Error(usage);
+    if (!['check', 'approve', 'tasks', 'project', 'impact'].includes(cmd) || !input || extname(input) !== '.md') throw Error(usage);
     const snapshotRoot = process.env.JOURNEYS_SNAPSHOT_ROOT;
     const read = async (path: string) => Bun.file(await snapshotRead(path, snapshotRoot)).text();
-    if (cmd === 'tasks') {
+    let mode = cmd;
+    if (cmd === 'check') {
+      const text = await read(input);
+      const kind = /^## Specs\s*$/m.test(text) ? 'index' : /^Source:/m.test(text) && /^## T(?:\d+|-[\w-]+)\b/m.test(text) && !/^## J\d+:/m.test(text) ? 'tasks'
+        : !/^## J\d+:/m.test(text) && !/^Decisions:/m.test(text) && (/^\s*[-*]\s+[DXQ]\d+\s+[a-z]+\s+(?:—|–|-)\s/m.test(text) || /^\|\s*ID\s*\|/m.test(text)) ? 'decisions' : 'journeys';
+      if (given.includes('--impact')) {
+        if (kind === 'tasks' || kind === 'decisions') throw Error('Use --impact on a journeys file or the index');
+        mode = 'impact';
+      } else if (kind === 'decisions') mode = 'decisions';
+      else if (kind !== 'journeys') mode = kind === 'index' ? 'project' : 'tasks';
+    }
+    const rest = mode === 'impact' ? given.filter(a => a !== '--impact') : given;
+    const warn = (warnings: string[]) => {
+      const shown = rest.includes('--verbose') ? warnings : warnings.slice(0, 8);
+      for (const w of shown) console.error(`warn: ${w}`);
+      if (shown.length < warnings.length) console.error(`warn: ${warnings.length - shown.length} more warnings; use --verbose for all.`);
+    };
+    if (mode === 'impact') {
+      const ids = rest.filter(a => !a.startsWith('--'));
+      for (const flag of rest.filter(a => a.startsWith('--'))) if (flag !== '--json') throw Error(`Unknown option ${flag}`);
+      if (!ids.length || ids.some(id => !/^[DXQ]\d+$/.test(id))) throw Error(usage);
+      // An index brings every spec and its task plans; a single spec stands alone.
+      const text = await read(input), targets: { path: string; spec: Spec; record?: string; plans: { path: string; tasks: Task[] }[] }[] = [];
+      const records = new Map<string, Map<string, Decision>>(), errors: string[] = [];
+      const add = async (path: string, plans: string[]) => {
+        const parsed = parseJourneys(await read(path)), record = parsed.spec.decisions ? resolve(dirname(path), parsed.spec.decisions) : undefined;
+        if (record && !records.has(record)) records.set(record, parseDecisions(await read(record)).decisions);
+        const loaded = [];
+        for (const plan of plans) loaded.push({ path: relative(process.cwd(), plan), tasks: parseTasks(await read(plan)).tasks });
+        targets.push({ path: relative(process.cwd(), path), spec: parsed.spec, record, plans: loaded });
+      };
+      if (/^## Specs\s*$/m.test(text)) {
+        const root = dirname(resolve(input));
+        for (const e of parseIndex(text).index.specs) if (e.path) await add(resolve(root, e.path), e.tasks.map(t => resolve(root, t)));
+      } else {
+        // Without an index, task plans are found where the skills write them: beside
+        // the spec or in ../tasks, linked back to it by their Source line.
+        const spec = resolve(input), plans: string[] = [];
+        for (const dir of [dirname(spec), resolve(dirname(spec), '..', 'tasks')]) {
+          for (const name of (await readdir(dir).catch(() => [] as string[])).filter(n => extname(n) === '.md').sort()) {
+            const path = resolve(dir, name), source = path === spec ? undefined : parseTasks(await read(path)).source.path;
+            if (source && resolve(dir, source) === spec) plans.push(path);
+          }
+        }
+        await add(spec, plans);
+      }
+      for (const id of ids) if (![...records.values()].some(r => r.has(id))) errors.push(`${id} is not in any decision record`);
+      if (errors.length) throw Error(errors.join('\n'));
+      const results = targets.map(t => ({ spec: t.path, ...impactOf(t.spec, (t.record && records.get(t.record)) || new Map(), ids, t.plans) }));
+      const hits = results.filter(impactTouches);
+      if (rest.includes('--json')) { console.log(JSON.stringify({ ids, specs: results }, null, 2)); process.exit(0); }
+      console.log(`# Impact of ${ids.join(', ')}\n`);
+      for (const [path, decisions] of records) for (const id of ids) {
+        const d = decisions.get(id);
+        if (!d) continue;
+        const related = [
+          ...[...decisions.values()].filter(q => q.answers.includes(id)).map(q => `answers ${q.id}`),
+          ...d.supersedes.map(old => `supersedes ${old}`),
+          ...[...decisions.values()].filter(n => n.supersedes.includes(id)).map(n => `superseded by ${n.id} (${n.status})`),
+        ];
+        console.log(`- ${id} ${d.status} — ${d.text}${related.length ? ` [${related.join('; ')}]` : ''} (${relative(process.cwd(), path)})`);
+      }
+      for (const r of hits) {
+        console.log(`\n## ${r.spec}\n`);
+        console.log(r.stale ? `Approval ${r.approval} goes stale on any change to these decisions; re-approve after.` : r.approval ? `Approval ${r.approval} does not rest on these decisions.` : 'Not approved yet.');
+        const line = (label: string, items: string[]) => { if (items.length) console.log(`- ${label}: ${items.join(', ')}`); };
+        line('Scope', r.scope); line('Goals', r.goals); line('Invariants', r.invariants);
+        line('Steps', r.steps.map(st => `${st.id} (${st.why.join('; ')})`));
+        line(`Criteria (${r.criteria.length})`, r.criteria); line('Checks', r.checks);
+        if (r.tasks.length) console.log('- Tasks:');
+        for (const t of r.tasks) console.log(`  - ${t.id}${t.status ? ` (${t.status})` : ''} in ${t.plan}: ${t.covers.join(', ')}${t.tests.length ? `; tests: ${t.tests.join('; ')}` : ''}`);
+      }
+      const untouched = results.filter(r => !impactTouches(r)).map(r => r.spec);
+      if (untouched.length) console.log(`\nNot affected: ${untouched.join(', ')}`);
+      const count = (f: (r: typeof results[number]) => number) => hits.reduce((n, r) => n + f(r), 0);
+      const totals = [plural(count(r => r.criteria.length), 'criterion').replace(/criterions$/, 'criteria'), plural(count(r => r.invariants.length), 'invariant'), plural(count(r => r.tasks.length), 'task'), `${plural(hits.filter(r => r.stale).length, 'approval')} to renew`];
+      console.log(`\nok: ${ids.join(', ')} ${hits.length ? `touches ${hits.length} of ${plural(results.length, 'spec')}; ${totals.join(', ')}` : `is cited by none of ${plural(results.length, 'spec')}`}. Nothing was changed.`);
+      process.exit(0);
+    }
+    if (mode === 'decisions') {
+      for (const flag of rest) if (flag !== '--questions') throw Error(`Unknown option ${flag}`);
+      const text = await read(input), record = parseDecisions(text);
+      if (record.errors.length) throw Error(record.errors.join('\n'));
+      if (rest.includes('--questions')) {
+        const heading = text.match(/^# (.+)$/m)?.[1].trim().replace(/\s+decisions$/i, '');
+        process.stdout.write(questionList(record.decisions, heading ? `Questions: ${heading}` : 'Questions'));
+        process.exit(0);
+      }
+      const all = [...record.decisions.values()], count = (f: (d: Decision) => boolean) => all.filter(f).length;
+      console.log(`ok: decisions ${input}; ${plural(count(d => /^[DX]/.test(d.id) && d.status === 'accepted'), 'accepted decision')}, ${plural(count(d => d.id.startsWith('Q') && d.status === 'open'), 'open question')}, ${plural(count(d => d.status === 'draft'), 'draft')}. Use --questions for a list to send.`);
+      process.exit(0);
+    }
+    if (mode === 'project') {
+      for (const flag of rest) if (!['--ready', '--verbose', '--json'].includes(flag)) throw Error(`Unknown option ${flag}`);
+      const ready = rest.includes('--ready'), result = await checkProject(input, read, ready);
+      const errors = [...result.errors, ...result.rows.flatMap(r => r.errors.map(e => `${r.path ?? r.title}: ${e}`))];
+      const warnings = [...result.rows.flatMap(r => r.warnings.map(w => `${r.path}: ${w}`)), ...result.warnings];
+      if (rest.includes('--json')) {
+        console.log(JSON.stringify({ ok: !errors.length, ready, specs: result.rows.map(({ errors: _e, warnings: _w, ...row }) => row), errors, warnings }, null, 2));
+        process.exit(errors.length ? 1 : 0);
+      }
+      console.log('| Spec | State | Approval | Open | Tasks |\n|---|---|---|---|---|');
+      for (const r of result.rows) console.log(`| ${r.path ? `[${r.title}](${r.path})` : r.title} | ${r.state} | ${r.approval} | ${r.open.join(', ') || '—'} | ${r.tasks} |`);
+      warn(warnings);
+      if (errors.length) throw Error(errors.join('\n'));
+      const count = (state: string) => result.rows.filter(r => r.state === state).length;
+      console.log(`ok: ${ready ? 'ready' : 'draft'} project ${input}; ${plural(result.rows.length, 'spec')}: ${count('ready')} ready, ${count('draft')} draft, ${count('planned')} planned; ${warnings.length} warnings. Tests were not run.`);
+      process.exit(0);
+    }
+    if (mode === 'tasks') {
       const plan = parseTasks(await read(input));
       if (!plan.source.path) throw Error('Add a Source line linking the journeys file: "Source: [journeys](../journeys/<feature>.md), approved by D<n> <hash>"');
       const journeysPath = resolve(dirname(input), plan.source.path);
       const parsedSpec = parseJourneys(await read(journeysPath));
       const record = parsedSpec.spec.decisions ? parseDecisions(await read(resolve(dirname(journeysPath), parsedSpec.spec.decisions))) : { decisions: new Map<string, Decision>(), errors: [] };
-      for (const flag of rest) if (flag !== '--status') throw Error(`Unknown option ${flag}`);
+      for (const flag of rest) if (!['--status', '--verbose'].includes(flag)) throw Error(`Unknown option ${flag}`);
       const result = validateTasks(plan.tasks, plan.source, parsedSpec.spec, record.decisions);
-      // A Done task's named tests must exist. Paths are relative to where the check runs: the repository root.
-      for (const test of result.fileTests) {
-        const file = Bun.file(resolve(test.path));
-        if (!await file.exists()) result.errors.push(`${test.task}: test file ${test.path} for ${test.ids.join(', ')} does not exist`);
-        else if (!(await file.text()).includes(test.locator)) result.errors.push(`${test.task}: ${test.path} has no test "${test.locator}" for ${test.ids.join(', ')}`);
-      }
-      // A planned test in an existing file must point at a real file; new files say "(new)".
-      const missing = [];
-      for (const f of result.plannedFiles) if (!await Bun.file(resolve(f.path)).exists()) missing.push(`${f.path} (${f.task})`);
-      if (missing.length) result.warnings.push(`Test files not found; fix the path or mark the file "(new)": ${missing.slice(0, 8).join(', ')}${missing.length > 8 ? ` and ${missing.length - 8} more` : ''}`);
+      await checkTestFiles(result);
       if (rest.includes('--status')) {
         console.log('| Criterion | Task | Test | Status |\n|---|---|---|---|');
         for (const row of result.report) console.log(`| ${row.id} | ${row.task} | ${row.test.replaceAll('|', '/')} | ${row.status} |`);
@@ -645,17 +1075,24 @@ if (import.meta.main) {
       const errors = [...plan.errors, ...parsedSpec.errors.map(e => `journeys ${e}`), ...record.errors, ...result.errors];
       if (errors.length) throw Error(errors.join('\n'));
       const named = result.report.filter(row => row.test !== '—'), manual = named.filter(row => row.manual).length, done = result.report.filter(row => /^done\b/i.test(row.status)).length;
-      console.log(`ok: tasks ${input}; ${plan.tasks.length} tasks; ${result.covered} of ${result.total} criteria and invariants have an owner, ${named.length} a named test (${manual} manual only), ${done} done with evidence.${plan.source.approval ? ` Built on approval ${plan.source.approval}.` : ''} Tests were not run.`);
+      console.log(`ok: tasks ${input}; ${plural(plan.tasks.length, 'task')}; ${result.covered} of ${result.total} criteria and invariants have an owner, ${named.length} a named test (${manual} manual only), ${done} done with evidence.${plan.source.approval ? ` Built on approval ${plan.source.approval}.` : ''} Tests were not run.`);
       process.exit(0);
     }
     const text = await read(input);
     const { spec, errors: parseErrors } = parseJourneys(text);
     const parsed = spec.decisions ? parseDecisions(await read(resolve(dirname(input), spec.decisions))) : { decisions: new Map<string, Decision>(), errors: [] };
+    // A spec listed in an index.md beside it takes that project's extra checks.
+    const indexPath = resolve(dirname(input), 'index.md');
+    let options: CheckOptions = {};
+    if (indexPath !== resolve(input) && await Bun.file(indexPath).exists()) {
+      const { index } = parseIndex(await read(indexPath));
+      if (index.specs.some(e => e.path && resolve(dirname(indexPath), e.path) === resolve(input))) options = indexOptions(index);
+    }
     if (cmd === 'approve') {
       const [id, ...plans] = rest;
       if (!/^D\d+$/.test(id ?? '') || plans.some(p => extname(p) !== '.md')) throw Error(usage);
-      const errors = [...parseErrors, ...parsed.errors, ...validate(spec, parsed.decisions, true, true).errors];
-      if (parsed.decisions.get(id)?.status !== 'accepted') errors.push(`${id}: record the owner's sign-off as an accepted decision first`);
+      const errors = [...parseErrors, ...parsed.errors, ...validate(spec, parsed.decisions, true, true, options).errors];
+      if (parsed.decisions.get(id)?.status !== 'accepted') errors.push(`${id}: record the approval as an accepted decision first`);
       if (errors.length) throw Error(errors.join('\n'));
       const hash = approvalHash(spec, parsed.decisions), stamp = `Approved: ${id} ${hash}`, lines = text.split('\n');
       const existing = lines.findIndex(l => /^Approved:/.test(l.trim()));
@@ -678,16 +1115,19 @@ if (import.meta.main) {
       for (const [i, plan] of plans.entries()) await Bun.write(plan, planTexts[i]);
       console.log(`ok: ${input} approved by ${id}${plans.length ? `; stamped ${plans.join(', ')}` : ''}. Changing the journeys or the decisions they cite makes this approval stale.`);
     } else {
-      for (const flag of rest) if (!['--ready', '--verbose', '--review'].includes(flag)) throw Error(`Unknown option ${flag}`);
+      for (const flag of rest) if (!['--ready', '--verbose', '--review', '--summary'].includes(flag)) throw Error(`Unknown option ${flag}`);
+      if (rest.includes('--review') && rest.includes('--summary')) throw Error('Use --review or --summary, not both');
+      if (rest.includes('--summary')) {
+        process.stdout.write(summary(spec, parsed.decisions, options));
+        process.exit(0);
+      }
       if (rest.includes('--review')) {
-        console.log(reviewPacket(spec, parsed.decisions));
+        console.log(reviewPacket(spec, parsed.decisions, options));
         process.exit(0);
       }
       const ready = rest.includes('--ready');
-      const result = validate(spec, parsed.decisions, ready);
-      const shown = rest.includes('--verbose') ? result.warnings : result.warnings.slice(0, 8);
-      for (const w of shown) console.error(`warn: ${w}`);
-      if (shown.length < result.warnings.length) console.error(`warn: ${result.warnings.length - shown.length} more warnings; use --verbose for all.`);
+      const result = validate(spec, parsed.decisions, ready, false, options);
+      warn(result.warnings);
       const errors = [...parseErrors, ...parsed.errors, ...result.errors];
       if (errors.length) throw Error(errors.join('\n'));
       const screens = [...result.screens].map(([screen, steps]) => `${screen} (${steps.join(', ')})`).join('; ');

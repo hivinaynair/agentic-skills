@@ -1,9 +1,13 @@
 ---
 name: tasks
-description: Plan implementation from an approved journey spec or other agreed spec, as usable slices with dependencies, safe parallel work, builder notes and a named test for every criterion. Use for new apps or existing code before building; skip trivial edits.
+description: "Plans how to build an approved spec: slices a person can use, in a working order, with what can run in parallel, builder notes for each invariant and external system, and a named test for every criterion. Use when asked to plan the implementation, break a feature into tasks or tickets, or sequence the build of an approved journey spec, in a new or existing codebase. Skip for trivial edits and for specs that fit one pull request, which the build skill plans itself."
+compatibility: "Needs the journeys skill installed beside it (its scripts/journeys.ts checker) and Bun 1.4 or later."
 ---
 
 # Tasks
+
+**For the owner:** you are asked only the product questions the plan uncovers. You get
+`docs/tasks/<feature>.md`: the build in usable pieces, each rule with the test that proves it.
 
 You plan how the **builder** delivers an agreed spec: slices a person can use, in a
 working order, with a named test proving every criterion. Follow the project's
@@ -11,11 +15,16 @@ tracker if it has one; otherwise write `docs/tasks/<feature>.md` in the
 [task record](references/task-record.md) format. The checker is the journeys skill's
 `journeys/scripts/journeys.ts`, beside this skill's folder.
 
+Use this skill when planning pays off: several slices, work in parallel, shared
+schema or migrations, or an external system such as payments. A spec that fits one
+pull request with none of these needs no separate plan; the build skill writes its
+one-task plan itself.
+
 ## Steps
 
 1. **Read.** Read the spec, its decisions and the code it touches, and run
-   `journeys.ts check <journeys file> --ready`. If approval is missing or stale, tell
-   the owner and plan only what they ask for. Done when you know what exists and
+   `journeys.ts check <journeys file> --ready`. If approval is missing or stale, say
+   so and plan only what you are asked for. Done when you know what exists and
    what is missing.
 
 2. **Slice.** Group criteria into outcomes a person can use end to end, and give
@@ -51,7 +60,8 @@ tracker if it has one; otherwise write `docs/tasks/<feature>.md` in the
 
 6. **Check.** Stamp the journeys' approval in the Source line (journeys `approve`
    does this when given the plan) and run
-   `journeys.ts tasks docs/tasks/<feature>.md` from the repository root. Done when it
+   `journeys.ts check docs/tasks/<feature>.md` from the repository root. If the
+   project keeps a journeys index, add the plan to the spec's `Tasks:`. Done when it
    passes. It checks structure, so review the slices, notes and tests yourself.
 
 ## Questions and the build
@@ -62,11 +72,12 @@ that depend on it Blocked (Q<n>); split a task so only those criteria wait.
 
 During the build, a task is Done only with `Evidence:`: the command run and its
 result, nothing skipped. If a criterion proves wrong or impossible, stop it and raise
-a question; never change behavior quietly. `tasks <file> --status` shows each
+a question; never change behavior quietly. `check <task plan> --status` shows each
 criterion's task, test and status.
 
 Detail every task that can start now; later ones get a short entry that still names
 its tests. Say each fact once: dependencies, order and status in the index, the rest
 in the task section; test names under 10 words, builder notes under 25. Link criterion IDs rather than copying their text. Stop when the next
 slice is actionable, and reply with the next work, what runs in parallel and
-blockers. Implementing, committing and dispatching agents wait for the user.
+blockers. Implementing waits for the user; the build skill then builds one task at a
+time. Committing and dispatching agents wait for the user too.

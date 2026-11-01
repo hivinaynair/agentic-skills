@@ -1,0 +1,28 @@
+name: specs
+
+on:
+  pull_request:
+    paths:
+      - "docs/decisions.md"
+      - "docs/decisions/**"
+      - "docs/journeys/**"
+      - "docs/tasks/**"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.x
+      - name: Check specs
+        run: |
+          checker=.agents/skills/journeys/scripts/journeys.ts
+          if [ -f docs/journeys/index.md ]; then
+            bun "$checker" check docs/journeys/index.md
+          else
+            for file in docs/journeys/*.md docs/tasks/*.md; do
+              if [ -f "$file" ]; then bun "$checker" check "$file"; fi
+            done
+          fi

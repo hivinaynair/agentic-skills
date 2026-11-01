@@ -1,0 +1,6 @@
+{
+  "name": "acme-coins",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "bun test" }
+}

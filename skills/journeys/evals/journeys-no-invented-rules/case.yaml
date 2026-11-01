@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: journeys-no-invented-rules
+expected_outcome: |
+  A journeys spec for coins earning that rests only on the approved decisions, covers guest orders, returns and a repeated credit run, and records any rule the decisions do not cover (for example whether pending coins are shown, or whether customers are notified) as a question or assumption for the owner instead of inventing it.
+context:
+  scaffold_script: place-files.sh

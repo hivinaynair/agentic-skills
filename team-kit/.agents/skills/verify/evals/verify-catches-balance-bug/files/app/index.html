@@ -1,0 +1,9 @@
+<!doctype html><html><body style="font-family:sans-serif;padding:40px">
+<h1>Checkout</h1><p>Coin balance: <b id="bal">120</b> coins</p>
+<label>Use coins <input id="amt" aria-label="Coins to use"></label>
+<button id="pay" onclick="pay()">Pay with coins</button><p id="msg"></p>
+<script>
+function pay(){var v=+document.getElementById('amt').value,m=document.getElementById('msg'),b=+document.getElementById('bal').textContent;
+if(!(v>0)||v>b){m.textContent='Enter between 1 and '+b+' coins';m.style.color='red';return}
+m.textContent='Paid with '+v+' coins';m.style.color='green';}
+</script></body></html>

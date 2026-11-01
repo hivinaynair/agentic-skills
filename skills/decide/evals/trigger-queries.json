@@ -1,0 +1,82 @@
+[
+ {
+  "query": "pm just pinged me: 'we need gift cards before black friday'. thats literally the whole ticket. can you help me figure out what we actually need to decide before anyone writes code?",
+  "should_trigger": true
+ },
+ {
+  "query": "I'm taking over a Medusa store at a new job. The client wants 'store credit for returns'. They own the rules, not me. Can you work out the questions I need to send them, with your recommendation for each?",
+  "should_trigger": true
+ },
+ {
+  "query": "Here's the PRD for our referral program (pasted below). Half of it is solutions, half is requirements, and some of it contradicts itself. Separate what's actually decided from what's open, and list what we still need from product.\n\n- Refer a friend, both get $10\n- Credit after first order ships\n- Maybe cap at 5 referrals?",
+  "should_trigger": true
+ },
+ {
+  "query": "we approved that coupons can't stack, but now marketing wants a 'stackable welcome code'. how do I handle this change without breaking what we already agreed?",
+  "should_trigger": true
+ },
+ {
+  "query": "Before I start on the subscription feature, I want the requirements nailed down: who can pause, what happens to billing on pause, and what customers see. Help me scope the first slice.",
+  "should_trigger": true
+ },
+ {
+  "query": "idea: a temple booking app where devotees book poojas for family members. I have no spec at all. Help me shape this into something buildable, what's the first usable version?",
+  "should_trigger": true
+ },
+ {
+  "query": "Write up the requirements for 'customers can save carts for later'. I'm the product owner here, so ask me what you need.",
+  "should_trigger": true
+ },
+ {
+  "query": "Our finance team owns tax and Priya owns product. Ticket: 'support multiple currencies at checkout'. What do I need to ask each of them before building?",
+  "should_trigger": true
+ },
+ {
+  "query": "The ticket says 'add wishlist sharing'. Who can see a shared wishlist? Should it be public? I don't want the agent guessing this stuff. Plan it properly.",
+  "should_trigger": true
+ },
+ {
+  "query": "I keep getting vague tickets from the client. Can you turn this one into a clear list of decisions and open questions? 'Improve the returns flow so customers are happier.'",
+  "should_trigger": true
+ },
+ {
+  "query": "fix the typo in the checkout button, it says 'Chekout'",
+  "should_trigger": false
+ },
+ {
+  "query": "Should we use Postgres or DynamoDB for the order events table? Compare them for our write volume of about 2k/sec.",
+  "should_trigger": false
+ },
+ {
+  "query": "Write unit tests for the existing calculateShipping function in src/shipping.ts",
+  "should_trigger": false
+ },
+ {
+  "query": "Can you review this PR for security issues? It adds a new admin endpoint for refunds.",
+  "should_trigger": false
+ },
+ {
+  "query": "Draw me the user flow for checkout as a diagram for the design review tomorrow",
+  "should_trigger": false
+ },
+ {
+  "query": "Our decisions doc is approved. Now map out every screen and step a customer goes through when redeeming a gift card, including errors.",
+  "should_trigger": false
+ },
+ {
+  "query": "Break the approved gift card spec into implementation tasks with tests for each rule",
+  "should_trigger": false
+ },
+ {
+  "query": "What's the difference between a PRD and an RFC? I'm writing my first one at the new job.",
+  "should_trigger": false
+ },
+ {
+  "query": "Rename the variable `cust` to `customer` across the cart module",
+  "should_trigger": false
+ },
+ {
+  "query": "Summarize the meeting notes from yesterday's planning call into action items (pasted below)",
+  "should_trigger": false
+ }
+]
