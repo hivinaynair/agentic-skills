@@ -735,9 +735,7 @@ export async function checkProject(indexPath: string, read: (path: string) => Pr
       row.approval = spec.approval.hash === approvalHash(spec, decisions) ? spec.approval.id : `${spec.approval.id} stale`;
     }
     const ids = cited(spec, decisions);
-    // Open checks name their blocking question in the reason: "invalid: open — Q2".
-    const waiting = [spec.checks, ...spec.journeys.map(j => j.checks)].flatMap(c => Object.values(c)).filter(c => c.status === 'open').flatMap(c => c.reason.match(/\bQ\d+\b/g) ?? []);
-    row.open = [...new Set([...ids, ...spec.scope, ...waiting])].filter(id => ['open', 'draft'].includes(decisions.get(id)?.status ?? '')).sort(byId);
+    row.open = openItems(spec, decisions);
     if (recordPath) used.set(recordPath, new Set([...(used.get(recordPath) ?? []), ...ids]));
     const summaries: string[] = [];
     for (const t of entry.tasks) {
@@ -782,12 +780,140 @@ export async function checkProject(indexPath: string, read: (path: string) => Pr
   return { index, rows, errors, warnings };
 }
 
+// Decisions the owner still has to settle for this spec: drafts and open questions it
+// cites or scopes, plus questions its open checks wait on ("invalid: open — Q2").
+export function openItems(spec: Spec, decisions: Map<string, Decision>) {
+  const waiting = [spec.checks, ...spec.journeys.map(j => j.checks)].flatMap(c => Object.values(c)).filter(c => c.status === 'open').flatMap(c => c.reason.match(/\bQ\d+\b/g) ?? []);
+  return [...new Set([...cited(spec, decisions), ...spec.scope, ...waiting])].filter(id => ['open', 'draft'].includes(decisions.get(id)?.status ?? '')).sort(byId);
+}
+
+// Plain text for any ID, without the ID: what a person reads instead of a reference.
+function plainText(spec: Spec, decisions: Map<string, Decision>) {
+  const known = new Map<string, string>([
+    ...spec.observations.map(o => [o.id, o.statement] as const),
+    ...spec.invariants.map(i => [i.id, i.rule] as const),
+    ...spec.journeys.flatMap(j => j.steps.flatMap(st => [[st.id, st.title] as const, ...st.criteria.map(([k, v]) => [`${st.id}.${k}`, v] as const)])),
+  ]);
+  const text = (id: string): string => {
+    if (known.has(id)) return known.get(id) ?? id;
+    const d = decisions.get(id);
+    if (!d) return id;
+    if (d.answers.length) return d.answers.map(text).join(' ');
+    return d.text.replace(/\s*\bSupersedes:.*$/, '').replace(/^Assumed:\s*/, '');
+  };
+  return text;
+}
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+const checkLabels: Record<string, string> = { denied: 'Not allowed', invalid: 'Bad input', failed: 'Failure', repeated: 'Repeat' };
+
+// The owner's view: what people can do, see and rely on, in plain sentences and few
+// IDs. It is generated from the same parsed spec the approval hash covers, so the
+// page the owner approves cannot drift from the spec the builder follows.
+export function summary(spec: Spec, decisions: Map<string, Decision>, options: CheckOptions = {}) {
+  const text = plainText(spec, decisions), actors = new Map(spec.actors.map(a => [a.id, a.name]));
+  const titles = new Map(spec.journeys.map(j => [j.id, j.title]));
+  const rules = spec.invariants.length + spec.journeys.reduce((n, j) => n + j.steps.reduce((m, st) => m + st.criteria.length, 0), 0);
+  const screens = new Set(spec.journeys.flatMap(j => j.steps.flatMap(st => st.screen?.split(/\s*;\s*/) ?? [])));
+  const a = spec.approval, hash = approvalHash(spec, decisions);
+  const status = !a ? 'Not approved yet' : a.hash === hash ? `Approved by ${a.id}` : `Approval ${a.id} is out of date: the spec or its decisions changed since sign-off`;
+  const out = [`# ${spec.feature}: summary`, '',
+    `${status}. ${plural(spec.journeys.length, 'journey')}, ${plural(screens.size, 'screen')}, ${plural(rules, 'rule')}.`,
+    `Generated from the spec (${hash}); approving this page approves the spec.`, ''];
+  const open = openItems(spec, decisions);
+  if (open.length) {
+    out.push('## Needs your answer', '');
+    for (const id of open) out.push(`- ${decisions.get(id)?.status === 'draft' ? 'Accept or change' : 'Question'} (${id}): ${text(id)}`);
+    out.push('');
+  }
+  if (spec.goals.length) {
+    out.push('## What people can do', '');
+    for (const g of spec.goals) {
+      // A journey titled like its goal needs no arrow: "Revoke an invitation → Revoke an invitation".
+      const target = g.status === 'mapped' ? g.journeys.map(j => titles.get(j) ?? j).filter(t => t.toLowerCase() !== g.goal.toLowerCase()).join('; ')
+        : g.status === 'excluded' ? (g.decision && /out of scope/i.test(text(g.decision)) ? text(g.decision) : `out of scope${g.decision ? `: ${text(g.decision)}` : ''}`)
+        : g.status === 'elsewhere' ? `covered elsewhere: ${g.reason}` : `not decided: ${g.reason}`;
+      out.push(`- ${actors.get(g.actor) ?? g.actor}: ${g.goal}${target ? ` → ${target}` : ''}`);
+    }
+    out.push('');
+  }
+  if (spec.invariants.length) out.push('## Always true', '', ...spec.invariants.map(i => `- ${i.rule}`), '');
+  const required = requiredChecks(spec, options);
+  for (const j of spec.journeys) {
+    out.push(`## ${j.title}`, '', `${actors.get(j.actor ?? '') ?? j.actor ?? 'Someone'} · ends: ${j.exits.join(', ')}`, '');
+    j.steps.forEach((st, i) => {
+      const where = st.kind === 'person' ? ` — ${st.screen}${st.sees ? `; sees ${st.sees}` : ''}` : st.kind === 'system' ? ' (behind the scenes)' : ' (another system)';
+      out.push(`${i + 1}. **${st.title}**${where}`, ...st.criteria.map(([, v]) => `   - ${v}`));
+    });
+    out.push('', 'When it goes wrong:');
+    for (const name of required) {
+      const c = j.checks[name] ?? spec.checks[name], label = checkLabels[name] ?? name[0].toUpperCase() + name.slice(1);
+      const answer = !c ? 'not answered yet' : c.status === 'n/a' ? `does not apply: ${c.reason}` : c.status === 'open' ? `open: ${c.reason.replace(/\bQ\d+\b/g, q => decisions.has(q) ? `${q} (${text(q)})` : q)}`
+        : [...new Set(c.refs.map(text))].join(' / ');
+      out.push(`- ${label}: ${answer}`);
+    }
+    out.push('');
+  }
+  return out.join('\n').trimEnd() + '\n';
+}
+
+// What a change to these decisions touches in one spec: the steps resting on them
+// directly, through the journey basis or through an invariant they support; every
+// criterion of those steps; outcome checks citing them; and the tasks and tests that
+// own the affected rules. A cited decision is in the approval hash, so editing or
+// superseding it makes the approval stale.
+export type ImpactTask = { plan: string; id: string; status?: string; covers: string[]; tests: string[] };
+export type Impact = { approval?: string; stale: boolean; scope: string[]; goals: string[]; invariants: string[]; steps: { id: string; why: string[] }[]; criteria: string[]; checks: string[]; tasks: ImpactTask[] };
+export function impactOf(spec: Spec, decisions: Map<string, Decision>, ids: string[], plans: { path: string; tasks: Task[] }[] = []): Impact {
+  // Citing a resolved question cites its answers, so it counts as citing them.
+  const hit = new Set(ids);
+  for (const d of decisions.values()) if (d.answers.some(a => ids.includes(a))) hit.add(d.id);
+  const touched = (refs: string[]) => refs.filter(r => hit.has(r));
+  const invariants = spec.invariants.filter(i => touched(i.basis).length).map(i => i.id);
+  const steps = new Map<string, string[]>(), why = (id: string, reason: string) => steps.set(id, [...(steps.get(id) ?? []), reason]);
+  const checks: string[] = [];
+  for (const j of spec.journeys) {
+    const shared = touched(j.basis);
+    for (const st of j.steps) {
+      if (shared.length) why(st.id, `journey basis ${shared.join(', ')}`);
+      const own = touched(st.basis.filter(b => !j.basis.includes(b)));
+      if (own.length) why(st.id, `basis ${own.join(', ')}`);
+      const guards = st.guards.filter(g => invariants.includes(g));
+      if (guards.length) why(st.id, `guards ${guards.join(', ')}`);
+    }
+  }
+  const criteria = spec.journeys.flatMap(j => j.steps.filter(st => steps.has(st.id)).flatMap(st => st.criteria.map(([k]) => `${st.id}.${k}`)));
+  const affected = new Set([...criteria, ...invariants]);
+  // A check is affected when it cites the decisions, an affected rule or step, or waits on them.
+  for (const j of spec.journeys) for (const name of new Set([...Object.keys(spec.checks), ...Object.keys(j.checks)])) {
+    const c = j.checks[name] ?? spec.checks[name];
+    const waits = c.status === 'open' && (c.reason.match(/\b[DXQ]\d+\b/g) ?? []).some(r => hit.has(r));
+    if (waits || c.refs.some(r => hit.has(r) || affected.has(r) || steps.has(r))) checks.push(`${j.id}/${name}`);
+  }
+  const expand = (ref: string) => spec.journeys.find(j => j.id === ref)?.steps.flatMap(st => st.criteria.map(([k]) => `${st.id}.${k}`))
+    ?? spec.journeys.flatMap(j => j.steps).find(st => st.id === ref)?.criteria.map(([k]) => `${ref}.${k}`) ?? [ref];
+  const tasks = plans.flatMap(p => p.tasks.flatMap(t => {
+    const covers = [...new Set(t.covers.flatMap(expand))].filter(id => affected.has(id));
+    if (!covers.length) return [];
+    const tests = t.tests.filter(x => x.ids.some(id => affected.has(id))).map(x => `${x.path ?? 'manual'} › ${x.locator}`);
+    return [{ plan: p.path, id: t.id, ...(t.status && { status: t.status }), covers, tests }];
+  }));
+  return {
+    ...(spec.approval && { approval: spec.approval.id }),
+    stale: !!spec.approval && cited(spec, decisions).some(id => hit.has(id)),
+    scope: spec.scope.filter(s => hit.has(s)), goals: spec.goals.filter(g => g.decision && hit.has(g.decision)).map(g => g.id),
+    invariants, steps: [...steps].map(([id, reasons]) => ({ id, why: reasons })), criteria, checks, tasks,
+  };
+}
+
+export const impactTouches = (i: Impact) => !!(i.scope.length || i.goals.length || i.invariants.length || i.steps.length || i.checks.length);
+
 if (import.meta.main) {
   try {
-    const usage = 'Usage: bun journeys.ts check feature.md [--ready] [--verbose] [--review] | approve feature.md D<n> [tasks.md ...] | tasks tasks.md [--status] | project index.md [--ready] [--verbose] [--json]';
+    const usage = 'Usage: bun journeys.ts check feature.md [--ready] [--verbose] [--review | --summary] | approve feature.md D<n> [tasks.md ...] | tasks tasks.md [--status] | project index.md [--ready] [--verbose] [--json] | impact index.md|feature.md D<n> [...] [--json]';
     const [cmd, input, ...rest] = process.argv.slice(2);
     if (['.yaml', '.yml'].includes(extname(input ?? ''))) throw Error(`${input} uses the retired YAML format; write the journeys as Markdown (see references/format.md)`);
-    if (!['check', 'approve', 'tasks', 'project'].includes(cmd) || !input || extname(input) !== '.md') throw Error(usage);
+    if (!['check', 'approve', 'tasks', 'project', 'impact'].includes(cmd) || !input || extname(input) !== '.md') throw Error(usage);
     const snapshotRoot = process.env.JOURNEYS_SNAPSHOT_ROOT;
     const read = async (path: string) => Bun.file(await snapshotRead(path, snapshotRoot)).text();
     const warn = (warnings: string[]) => {
@@ -795,6 +921,57 @@ if (import.meta.main) {
       for (const w of shown) console.error(`warn: ${w}`);
       if (shown.length < warnings.length) console.error(`warn: ${warnings.length - shown.length} more warnings; use --verbose for all.`);
     };
+    if (cmd === 'impact') {
+      const ids = rest.filter(a => !a.startsWith('--'));
+      for (const flag of rest.filter(a => a.startsWith('--'))) if (flag !== '--json') throw Error(`Unknown option ${flag}`);
+      if (!ids.length || ids.some(id => !/^[DXQ]\d+$/.test(id))) throw Error(usage);
+      // An index brings every spec and its task plans; a single spec stands alone.
+      const text = await read(input), targets: { path: string; spec: Spec; record?: string; plans: { path: string; tasks: Task[] }[] }[] = [];
+      const records = new Map<string, Map<string, Decision>>(), errors: string[] = [];
+      const add = async (path: string, plans: string[]) => {
+        const parsed = parseJourneys(await read(path)), record = parsed.spec.decisions ? resolve(dirname(path), parsed.spec.decisions) : undefined;
+        if (record && !records.has(record)) records.set(record, parseDecisions(await read(record)).decisions);
+        const loaded = [];
+        for (const plan of plans) loaded.push({ path: relative(process.cwd(), plan), tasks: parseTasks(await read(plan)).tasks });
+        targets.push({ path: relative(process.cwd(), path), spec: parsed.spec, record, plans: loaded });
+      };
+      if (/^## Specs\s*$/m.test(text)) {
+        const root = dirname(resolve(input));
+        for (const e of parseIndex(text).index.specs) if (e.path) await add(resolve(root, e.path), e.tasks.map(t => resolve(root, t)));
+      } else await add(resolve(input), []);
+      for (const id of ids) if (![...records.values()].some(r => r.has(id))) errors.push(`${id} is not in any decision record`);
+      if (errors.length) throw Error(errors.join('\n'));
+      const results = targets.map(t => ({ spec: t.path, ...impactOf(t.spec, (t.record && records.get(t.record)) || new Map(), ids, t.plans) }));
+      const hits = results.filter(impactTouches);
+      if (rest.includes('--json')) { console.log(JSON.stringify({ ids, specs: results }, null, 2)); process.exit(0); }
+      console.log(`# Impact of ${ids.join(', ')}\n`);
+      for (const [path, decisions] of records) for (const id of ids) {
+        const d = decisions.get(id);
+        if (!d) continue;
+        const related = [
+          ...[...decisions.values()].filter(q => q.answers.includes(id)).map(q => `answers ${q.id}`),
+          ...d.supersedes.map(old => `supersedes ${old}`),
+          ...[...decisions.values()].filter(n => n.supersedes.includes(id)).map(n => `superseded by ${n.id} (${n.status})`),
+        ];
+        console.log(`- ${id} ${d.status} — ${d.text}${related.length ? ` [${related.join('; ')}]` : ''} (${relative(process.cwd(), path)})`);
+      }
+      for (const r of hits) {
+        console.log(`\n## ${r.spec}\n`);
+        console.log(r.stale ? `Approval ${r.approval} goes stale on any change to these decisions; re-approve after.` : r.approval ? `Approval ${r.approval} does not rest on these decisions.` : 'Not approved yet.');
+        const line = (label: string, items: string[]) => { if (items.length) console.log(`- ${label}: ${items.join(', ')}`); };
+        line('Scope', r.scope); line('Goals', r.goals); line('Invariants', r.invariants);
+        line('Steps', r.steps.map(st => `${st.id} (${st.why.join('; ')})`));
+        line(`Criteria (${r.criteria.length})`, r.criteria); line('Checks', r.checks);
+        if (r.tasks.length) console.log('- Tasks:');
+        for (const t of r.tasks) console.log(`  - ${t.id}${t.status ? ` (${t.status})` : ''} in ${t.plan}: ${t.covers.join(', ')}${t.tests.length ? `; tests: ${t.tests.join('; ')}` : ''}`);
+      }
+      const untouched = results.filter(r => !impactTouches(r)).map(r => r.spec);
+      if (untouched.length) console.log(`\nNot affected: ${untouched.join(', ')}`);
+      const count = (f: (r: typeof results[number]) => number) => hits.reduce((n, r) => n + f(r), 0);
+      const totals = [plural(count(r => r.criteria.length), 'criterion').replace(/criterions$/, 'criteria'), plural(count(r => r.invariants.length), 'invariant'), plural(count(r => r.tasks.length), 'task'), `${plural(hits.filter(r => r.stale).length, 'approval')} to renew`];
+      console.log(`\nok: ${ids.join(', ')} ${hits.length ? `touches ${hits.length} of ${plural(results.length, 'spec')}; ${totals.join(', ')}` : `is cited by none of ${plural(results.length, 'spec')}`}. Nothing was changed.`);
+      process.exit(0);
+    }
     if (cmd === 'project') {
       for (const flag of rest) if (!['--ready', '--verbose', '--json'].includes(flag)) throw Error(`Unknown option ${flag}`);
       const ready = rest.includes('--ready'), result = await checkProject(input, read, ready);
@@ -869,7 +1046,12 @@ if (import.meta.main) {
       for (const [i, plan] of plans.entries()) await Bun.write(plan, planTexts[i]);
       console.log(`ok: ${input} approved by ${id}${plans.length ? `; stamped ${plans.join(', ')}` : ''}. Changing the journeys or the decisions they cite makes this approval stale.`);
     } else {
-      for (const flag of rest) if (!['--ready', '--verbose', '--review'].includes(flag)) throw Error(`Unknown option ${flag}`);
+      for (const flag of rest) if (!['--ready', '--verbose', '--review', '--summary'].includes(flag)) throw Error(`Unknown option ${flag}`);
+      if (rest.includes('--review') && rest.includes('--summary')) throw Error('Use --review or --summary, not both');
+      if (rest.includes('--summary')) {
+        process.stdout.write(summary(spec, parsed.decisions, options));
+        process.exit(0);
+      }
       if (rest.includes('--review')) {
         console.log(reviewPacket(spec, parsed.decisions, options));
         process.exit(0);

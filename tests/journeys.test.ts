@@ -2,7 +2,7 @@ import {test, expect} from 'bun:test';
 import {mkdtemp, rm, mkdir, writeFile, symlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {resolve, join, basename} from 'node:path';
-import {parseJourneys, parseDecisions, validate, approvalHash, reviewPacket, parseTasks, validateTasks, parseIndex, indexOptions} from '../skills/journeys/scripts/journeys';
+import {parseJourneys, parseDecisions, validate, approvalHash, reviewPacket, parseTasks, validateTasks, parseIndex, indexOptions, summary, impactOf, openItems} from '../skills/journeys/scripts/journeys';
 
 const decisionsMd = `# Invite decisions
 
@@ -849,4 +849,87 @@ test('examples index: one ready, one blocked, one planned', () => {
   expect(r.stdout.toString()).toContain('| ready | D11 | — | 2 tasks, 16/16 tested, 0 done |');
   expect(r.stdout.toString()).toContain('| draft | — | Q1, Q2, Q3, Q4 | — |');
   expect(run('.', 'bun', cli, 'project', 'examples/index.md', '--ready').exitCode).toBe(1);
+});
+
+const decided = () => parseDecisions(decisionsMd).decisions;
+
+test('summary: plain sentences, approval status and what the owner must still settle', () => {
+  const page = summary(parseJourneys(base).spec, decided());
+  expect(page).toStartWith('# Invite: summary\n\nNot approved yet. 1 journey, 1 screen, 5 rules.');
+  expect(page).toContain('- Workspace admin: Invite a member → Invite a teammate');
+  expect(page).toContain('- Workspace admin: Email the invite → Email delivery is out of scope.');
+  expect(page).toContain('1. **Submit the invite** — Members › Invite; sees invite form\n   - WHEN an admin submits a valid email THE SYSTEM SHALL create the invite');
+  expect(page).toContain('2. **Show the link** (behind the scenes)');
+  // Checks resolve to the text they cite rather than IDs.
+  expect(page).toContain('- Not allowed: IF the requester is not an admin THE SYSTEM SHALL NOT create the invite');
+  expect(page).toContain('- Failure: Failure default: show a retryable error and keep no partial change.');
+  expect(page).toContain('- Repeat: does not apply: each request creates a separate invite');
+  expect(page).not.toContain('Needs your answer');
+  expect(page).toContain(`Generated from the spec (${approvalHash(parseJourneys(base).spec, decided())})`);
+
+  const pending = base.replace('Basis: D1\n-', 'Basis: D1, D4\n-').replace('- denied: J1.S1.c2\n', '- denied: open — Q1\n');
+  const record = parseDecisions(decisionsMd + '- D4 draft — Assumed: the link shows its expiry.\n').decisions;
+  const owed = summary(parseJourneys(pending).spec, record);
+  expect(owed).toContain('## Needs your answer\n\n- Accept or change (D4): the link shows its expiry.\n- Question (Q1): Which role does an accepted invite grant?');
+  expect(owed).toContain('- Not allowed: open: Q1 (Which role does an accepted invite grant?)');
+  expect(openItems(parseJourneys(pending).spec, record)).toEqual(['D4', 'Q1']);
+
+  expect(summary(approvedSpec(), decided())).toContain('Approved by D3.');
+  expect(summary(parseJourneys(approve(base).replace('show its link', 'show its link and expiry')).spec, decided())).toContain('Approval D3 is out of date');
+  const options = indexOptions(parseIndex(indexMd).index);
+  expect(summary(parseJourneys(base).spec, decided(), options)).toContain('- Money: not answered yet');
+});
+
+test('impact follows a decision through basis, invariants, guards, checks and tasks', () => {
+  const spec = approvedSpec(), tasks = parseTasks(plan(fullPlan)).tasks;
+  const d1 = impactOf(spec, decided(), ['D1'], [{path: 'tasks.md', tasks}]);
+  expect(d1).toMatchObject({approval: 'D3', stale: true, invariants: ['I1'], checks: ['J1/denied', 'J1/invalid']});
+  expect(d1.steps).toEqual([{id: 'J1.S1', why: ['basis D1', 'guards I1']}, {id: 'J1.S2', why: ['basis D1']}]);
+  expect(d1.criteria).toEqual(['J1.S1.c1', 'J1.S1.c2', 'J1.S1.c3', 'J1.S2.c1']);
+  expect(d1.tasks.map(t => [t.id, t.covers])).toEqual([['T1', ['J1.S1.c1', 'J1.S1.c2', 'J1.S1.c3', 'I1']], ['T2', ['J1.S2.c1']]]);
+  expect(d1.tasks[1].tests).toEqual(['manual › create an invite and see its link']);
+  // A check citing the decision, and an exclusion goal.
+  expect(impactOf(spec, decided(), ['D2'])).toMatchObject({stale: true, steps: [], checks: ['J1/failed']});
+  expect(impactOf(spec, decided(), ['X1'])).toMatchObject({goals: ['C2'], criteria: []});
+  // An uncited decision touches nothing and leaves the approval alone.
+  expect(impactOf(spec, decided(), ['Q1'])).toMatchObject({stale: false, steps: [], checks: [], tasks: []});
+  // Citing a resolved question cites its answers; a journey Basis reaches every step.
+  const viaQuestion = parseJourneys(base.replace('Actor: admin · Exits: created, denied', 'Actor: admin · Exits: created, denied\nBasis: Q1')).spec;
+  const answered = parseDecisions(decisionsMd.replace('- Q1 open — Which role does an accepted invite grant?', '- Q1 resolved — Answered by D5.\n- D5 accepted — Invites grant the member role.')).decisions;
+  expect(impactOf(viaQuestion, answered, ['D5']).steps.map(s => s.why)).toEqual([['journey basis Q1'], ['journey basis Q1']]);
+});
+
+test('CLI impact reads an index or one spec; summary is its own view', async () => {
+  const dir = await project('journeys-impact-');
+  try {
+    await writeFile(join(dir, 'feature.md'), approve(base));
+    await writeFile(join(dir, 'tasks.md'), plan(fullPlan));
+    await writeFile(join(dir, 'index.md'), '# Shop\n\n## Specs\n- [Invite](feature.md) · Tasks: tasks.md\n- Billing — planned\n');
+    const r = run(dir, 'bun', cli, 'impact', 'index.md', 'D1'), out = r.stdout.toString();
+    expect(r.exitCode).toBe(0);
+    expect(out).toContain('- D1 accepted — Only admins can invite. (decisions.md)');
+    expect(out).toContain('Approval D3 goes stale on any change to these decisions; re-approve after.');
+    expect(out).toContain('- Steps: J1.S1 (basis D1; guards I1), J1.S2 (basis D1)');
+    expect(out).toContain('  - T1 (Todo) in tasks.md: J1.S1.c1, J1.S1.c2, J1.S1.c3, I1; tests: invite.test.ts › admin creates, non-admin refused');
+    expect(out).toContain('ok: D1 touches 1 of 1 spec; 4 criteria, 1 invariant, 2 tasks, 1 approval to renew. Nothing was changed.');
+    expect(run(dir, 'bun', cli, 'impact', 'feature.md', 'Q1').stdout.toString()).toContain('ok: Q1 is cited by none of 1 spec.');
+    expect(run(dir, 'bun', cli, 'impact', 'feature.md', 'D9').stderr.toString()).toContain('ERROR: D9 is not in any decision record');
+    expect(run(dir, 'bun', cli, 'impact', 'feature.md').stderr.toString()).toContain('Usage');
+    expect(run(dir, 'bun', cli, 'impact', 'feature.md', 'D1', '--all').stderr.toString()).toContain('Unknown option --all');
+    const json = JSON.parse(run(dir, 'bun', cli, 'impact', 'index.md', 'D1', '--json').stdout.toString());
+    expect(json).toMatchObject({ids: ['D1'], specs: [{spec: 'feature.md', stale: true, invariants: ['I1']}]});
+    // Impact changes nothing on disk.
+    expect(await Bun.file(join(dir, 'feature.md')).text()).toBe(approve(base));
+
+    const page = run(dir, 'bun', cli, 'check', 'feature.md', '--summary');
+    expect(page.exitCode).toBe(0);
+    expect(page.stdout.toString()).toStartWith('# Invite: summary\n\nApproved by D3.');
+    expect(run(dir, 'bun', cli, 'check', 'feature.md', '--summary', '--review').stderr.toString()).toContain('not both');
+  } finally { await rm(dir, {recursive: true, force: true}); }
+});
+
+test('examples: impact of D6 spans both specs; the summary of password reset is approved', () => {
+  const impact = run('.', 'bun', cli, 'impact', 'examples/index.md', 'D6').stdout.toString();
+  expect(impact).toContain('ok: D6 touches 2 of 2 specs; 16 criteria, 2 invariants, 2 tasks, 1 approval to renew.');
+  expect(run('.', 'bun', cli, 'check', 'examples/password-reset/journeys/password-reset.md', '--summary').stdout.toString()).toContain('Approved by D11. 2 journeys, 2 screens, 16 rules.');
 });

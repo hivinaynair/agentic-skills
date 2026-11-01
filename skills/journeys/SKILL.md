@@ -45,10 +45,9 @@ or as a question when it is about visibility, money or core-flow timing.
    nothing contradicts another decision. Fix the spec or ask. Done when both pass.
 
 6. **Ready.** When `check --ready` fails only on approval and draft assumptions,
-   give the owner a short Ready summary: goals covered, non-goals, screens, external
-   systems involved (payment, messaging, identity providers), the assumptions to
-   accept, builder work left, and other specs that cite a decision this one
-   supersedes. Ask "Approve for build?", even when the owner approved in advance.
+   show the owner the page from `check --summary`, then add only what it cannot know:
+   external systems involved (payment, messaging, identity providers), builder work
+   left, and other specs that cite a decision this one supersedes (`impact` lists them). Ask "Approve for build?", even when the owner approved in advance.
    On yes, mark the assumptions accepted (recording any override), add
    `- D<n> accepted — Approved for build: <feature> J1–J<n>` to the decision record
    and run `approve docs/journeys/<feature>.md D<n>`, naming any task plan after it

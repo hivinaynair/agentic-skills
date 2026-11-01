@@ -97,7 +97,16 @@ bun skills/journeys/scripts/journeys.ts check docs/journeys/password-reset.md --
 bun skills/journeys/scripts/journeys.ts check docs/journeys/password-reset.md --ready  # before building
 bun skills/journeys/scripts/journeys.ts approve docs/journeys/password-reset.md D11    # record approval
 bun skills/journeys/scripts/journeys.ts project docs/journeys/index.md                 # the whole project
+bun skills/journeys/scripts/journeys.ts check docs/journeys/password-reset.md --summary # the owner's page
+bun skills/journeys/scripts/journeys.ts impact docs/journeys/index.md D6               # before changing D6
 ```
+
+The spec stays one short file with two generated views. `--summary` is what the owner
+reads and approves: plain sentences, few IDs, built from the same structure the
+approval covers, so the page and the spec cannot drift. `--review` is the expanded
+version for whoever checks meaning. Before a decision changes, `impact` lists every
+step, criterion, check, task and test resting on it, and the approvals that would go
+stale.
 
 For a product with many features, an index (`docs/journeys/index.md`) lists every
 spec, planned or written, with its task plans. `project` checks them all, plus links

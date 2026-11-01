@@ -29,7 +29,8 @@ If the project already keeps a decision record, add to it in its own format.
 
 3. **Ask.** First compare the request with known facts and accepted decisions, and
    name every conflict; a request that changes an accepted decision is a question
-   too ("Replace D52 with …?"). Then find the missing rules that change what a person
+   too ("Replace D52 with …?"). When journeys exist, run the journeys checker's
+   `impact` on that decision and say in the question what it would reopen. Then find the missing rules that change what a person
    can do or see in the first slice, including who can see shared data, existing
    data, and changes made outside the app. Sort each gap:
    - **Question**, when the answer changes what gets built and you cannot pick

@@ -116,8 +116,10 @@ a link is a planned feature. Any other text is prose, such as release notes.
 bun <skill-dir>/scripts/journeys.ts check <file>          # draft: structure, links, reachability
 bun <skill-dir>/scripts/journeys.ts check <file> --ready  # plus: complete, accepted, approved
 bun <skill-dir>/scripts/journeys.ts check <file> --review # each step beside the text it rests on
+bun <skill-dir>/scripts/journeys.ts check <file> --summary # the owner's page, in plain sentences
 bun <skill-dir>/scripts/journeys.ts approve <file> D<n>   # stamp owner approval
 bun <skill-dir>/scripts/journeys.ts project <index>       # every spec, plan and link
+bun <skill-dir>/scripts/journeys.ts impact <index> D<n>   # what changing D<n> touches
 ```
 
 Draft `check` warns about open items; `--ready` fails on them. `--ready` requires
@@ -125,6 +127,21 @@ every goal covered, every Basis on accepted decisions, every check answered and 
 current approval. The approval hash covers the structure and the text of every
 cited decision, so editing prose keeps it valid. A passing check shows the spec is
 consistent and approved; tests show the code works.
+
+The same file has two readers. `--review` is for whoever checks meaning: every step
+beside the full text it rests on. `--summary` is for the owner: approval status, what
+still needs an answer, goals, invariants, and each journey's steps and criteria with
+the checks resolved to the text they cite, almost without IDs. It is generated from
+the structure the approval covers, so approving the summary approves the spec. Keep
+detail out of the spec rather than hiding it from the summary: mechanics go in task
+builder notes, and longer reasoning in linked docs.
+
+`impact <index or file> D<n> [more IDs]` lists, before anything changes, what editing
+or superseding those decisions touches in each spec: steps resting on them (directly,
+through the journey Basis or through an invariant they support), every criterion of
+those steps, checks citing them, the tasks and tests owning those rules, and the
+approvals that would go stale. A resolved question counts as citing its answers.
+Given the index, it includes the task plans the index lists. `--json` prints the same.
 
 `project` checks every listed spec and task plan, then what no single file shows:
 `elsewhere:` goals that name a missing spec or journey, journeys files the index does
