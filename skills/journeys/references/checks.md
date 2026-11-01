@@ -26,7 +26,7 @@ leaves a failed save to answer.
 The four checks fit any product. A project adds its own where a kind of risk recurs
 across features: `money` for payments, `privacy` for personal data, `offline` for a
 mobile app, `tenant` for shared infrastructure, `market` for behavior that differs
-by country. Define each once in the [project index](format.md#project-index) as a
+by country. Define each once in the [project index](format.md#when-your-project-grows) as a
 question for the owner, then answer it in each journey like the four. Add a check
 only when most specs need it; a one-off risk is an invariant or a question.
 

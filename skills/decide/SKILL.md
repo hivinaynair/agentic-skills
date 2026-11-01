@@ -5,6 +5,9 @@ description: Settle what to build before code. Frames a raw idea or vague ticket
 
 # Decide
 
+**For the owner:** you are asked one question at a time, each with a recommendation,
+and you get `docs/decisions.md`: one line per rule you settled. You run no commands.
+
 You help the **owner** settle what to build. The owner decides product rules:
 who may do what, and what a person sees. The **builder** decides how to build them.
 The owner may not be the person you are working with: on a company ticket it is
@@ -30,8 +33,9 @@ If the project already keeps a decision record, add to it in its own format.
 3. **Ask.** First compare the request with known facts and accepted decisions, and
    name every conflict; a request that changes an accepted decision is a question
    too ("Replace D52 with …?"). When journeys exist, run the journeys checker's
-   `impact` on that decision and say in the question what it would reopen. Then find the missing rules that change what a person
-   can do or see in the first slice, including who can see shared data, existing
+   `check <journeys file or index> --impact D52` and say in the question what the
+   change would reopen. Then find the missing rules that change what a person can do
+   or see in the first slice, including who can see shared data, existing
    data, and changes made outside the app. Sort each gap:
    - **Question**, when the answer changes what gets built and you cannot pick
      safely. Write it for someone who has not read your docs: the context they need,

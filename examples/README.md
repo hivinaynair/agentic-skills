@@ -15,7 +15,7 @@ Synthetic features planned with the skills. No application was built for them.
   for the project check.
 
 ```sh
-bun skills/journeys/scripts/journeys.ts project examples/index.md
+bun skills/journeys/scripts/journeys.ts check examples/index.md
 bun skills/journeys/scripts/journeys.ts check examples/password-reset/journeys/password-reset.md --ready
 bun skills/journeys/scripts/journeys.ts check examples/team-invitations/journeys/invitations.md --ready
 ```

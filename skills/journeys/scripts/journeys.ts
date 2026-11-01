@@ -910,18 +910,35 @@ export const impactTouches = (i: Impact) => !!(i.scope.length || i.goals.length 
 
 if (import.meta.main) {
   try {
-    const usage = 'Usage: bun journeys.ts check feature.md [--ready] [--verbose] [--review | --summary] | approve feature.md D<n> [tasks.md ...] | tasks tasks.md [--status] | project index.md [--ready] [--verbose] [--json] | impact index.md|feature.md D<n> [...] [--json]';
-    const [cmd, input, ...rest] = process.argv.slice(2);
+    // Two commands: `check` reads any file (journeys, task plan or index) and `approve`
+    // records the owner's yes. `tasks`, `project` and `impact` remain as aliases.
+    const usage = [
+      'Usage: bun journeys.ts check <file> [options] | approve <journeys file> D<n> [task plans ...]',
+      '  journeys file:  --ready  --summary  --review  --impact D<n> ...',
+      '  task plan:      --status',
+      '  index.md:       --ready  --json  --impact D<n> ...',
+    ].join('\n');
+    const [cmd, input, ...given] = process.argv.slice(2);
     if (['.yaml', '.yml'].includes(extname(input ?? ''))) throw Error(`${input} uses the retired YAML format; write the journeys as Markdown (see references/format.md)`);
     if (!['check', 'approve', 'tasks', 'project', 'impact'].includes(cmd) || !input || extname(input) !== '.md') throw Error(usage);
     const snapshotRoot = process.env.JOURNEYS_SNAPSHOT_ROOT;
     const read = async (path: string) => Bun.file(await snapshotRead(path, snapshotRoot)).text();
+    let mode = cmd;
+    if (cmd === 'check') {
+      const text = await read(input);
+      const kind = /^## Specs\s*$/m.test(text) ? 'index' : /^Source:/m.test(text) && /^## T(?:\d+|-[\w-]+)\b/m.test(text) && !/^## J\d+:/m.test(text) ? 'tasks' : 'journeys';
+      if (given.includes('--impact')) {
+        if (kind === 'tasks') throw Error('Use --impact on a journeys file or the index, not a task plan');
+        mode = 'impact';
+      } else if (kind !== 'journeys') mode = kind === 'index' ? 'project' : 'tasks';
+    }
+    const rest = mode === 'impact' ? given.filter(a => a !== '--impact') : given;
     const warn = (warnings: string[]) => {
       const shown = rest.includes('--verbose') ? warnings : warnings.slice(0, 8);
       for (const w of shown) console.error(`warn: ${w}`);
       if (shown.length < warnings.length) console.error(`warn: ${warnings.length - shown.length} more warnings; use --verbose for all.`);
     };
-    if (cmd === 'impact') {
+    if (mode === 'impact') {
       const ids = rest.filter(a => !a.startsWith('--'));
       for (const flag of rest.filter(a => a.startsWith('--'))) if (flag !== '--json') throw Error(`Unknown option ${flag}`);
       if (!ids.length || ids.some(id => !/^[DXQ]\d+$/.test(id))) throw Error(usage);
@@ -972,7 +989,7 @@ if (import.meta.main) {
       console.log(`\nok: ${ids.join(', ')} ${hits.length ? `touches ${hits.length} of ${plural(results.length, 'spec')}; ${totals.join(', ')}` : `is cited by none of ${plural(results.length, 'spec')}`}. Nothing was changed.`);
       process.exit(0);
     }
-    if (cmd === 'project') {
+    if (mode === 'project') {
       for (const flag of rest) if (!['--ready', '--verbose', '--json'].includes(flag)) throw Error(`Unknown option ${flag}`);
       const ready = rest.includes('--ready'), result = await checkProject(input, read, ready);
       const errors = [...result.errors, ...result.rows.flatMap(r => r.errors.map(e => `${r.path ?? r.title}: ${e}`))];
@@ -986,16 +1003,16 @@ if (import.meta.main) {
       warn(warnings);
       if (errors.length) throw Error(errors.join('\n'));
       const count = (state: string) => result.rows.filter(r => r.state === state).length;
-      console.log(`ok: ${ready ? 'ready' : 'draft'} project ${input}; ${result.rows.length} specs: ${count('ready')} ready, ${count('draft')} draft, ${count('planned')} planned; ${warnings.length} warnings. Tests were not run.`);
+      console.log(`ok: ${ready ? 'ready' : 'draft'} project ${input}; ${plural(result.rows.length, 'spec')}: ${count('ready')} ready, ${count('draft')} draft, ${count('planned')} planned; ${warnings.length} warnings. Tests were not run.`);
       process.exit(0);
     }
-    if (cmd === 'tasks') {
+    if (mode === 'tasks') {
       const plan = parseTasks(await read(input));
       if (!plan.source.path) throw Error('Add a Source line linking the journeys file: "Source: [journeys](../journeys/<feature>.md), approved by D<n> <hash>"');
       const journeysPath = resolve(dirname(input), plan.source.path);
       const parsedSpec = parseJourneys(await read(journeysPath));
       const record = parsedSpec.spec.decisions ? parseDecisions(await read(resolve(dirname(journeysPath), parsedSpec.spec.decisions))) : { decisions: new Map<string, Decision>(), errors: [] };
-      for (const flag of rest) if (flag !== '--status') throw Error(`Unknown option ${flag}`);
+      for (const flag of rest) if (!['--status', '--verbose'].includes(flag)) throw Error(`Unknown option ${flag}`);
       const result = validateTasks(plan.tasks, plan.source, parsedSpec.spec, record.decisions);
       await checkTestFiles(result);
       if (rest.includes('--status')) {
@@ -1006,7 +1023,7 @@ if (import.meta.main) {
       const errors = [...plan.errors, ...parsedSpec.errors.map(e => `journeys ${e}`), ...record.errors, ...result.errors];
       if (errors.length) throw Error(errors.join('\n'));
       const named = result.report.filter(row => row.test !== '—'), manual = named.filter(row => row.manual).length, done = result.report.filter(row => /^done\b/i.test(row.status)).length;
-      console.log(`ok: tasks ${input}; ${plan.tasks.length} tasks; ${result.covered} of ${result.total} criteria and invariants have an owner, ${named.length} a named test (${manual} manual only), ${done} done with evidence.${plan.source.approval ? ` Built on approval ${plan.source.approval}.` : ''} Tests were not run.`);
+      console.log(`ok: tasks ${input}; ${plural(plan.tasks.length, 'task')}; ${result.covered} of ${result.total} criteria and invariants have an owner, ${named.length} a named test (${manual} manual only), ${done} done with evidence.${plan.source.approval ? ` Built on approval ${plan.source.approval}.` : ''} Tests were not run.`);
       process.exit(0);
     }
     const text = await read(input);

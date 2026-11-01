@@ -933,3 +933,25 @@ test('examples: impact of D6 spans both specs; the summary of password reset is 
   expect(impact).toContain('ok: D6 touches 2 of 2 specs; 16 criteria, 2 invariants, 2 tasks, 1 approval to renew.');
   expect(run('.', 'bun', cli, 'check', 'examples/password-reset/journeys/password-reset.md', '--summary').stdout.toString()).toContain('Approved by D11. 2 journeys, 2 screens, 16 rules.');
 });
+
+test('check reads any file: journeys, task plan or index; --impact works on journeys and index', async () => {
+  const dir = await project('journeys-dispatch-');
+  try {
+    await writeFile(join(dir, 'feature.md'), approve(base));
+    await writeFile(join(dir, 'tasks.md'), plan(fullPlan.replaceAll('invite.test.ts ›', 'invite.test.ts (new) ›')));
+    await writeFile(join(dir, 'index.md'), '# Shop\n\n## Specs\n- [Invite](feature.md) · Tasks: tasks.md\n');
+    const check = (...args: string[]) => run(dir, 'bun', cli, 'check', ...args);
+    expect(check('feature.md', '--ready').stdout.toString()).toContain('ok: ready check feature.md');
+    expect(check('tasks.md', '--status').stdout.toString()).toContain('| J1.S1.c1 | T1 |');
+    expect(check('tasks.md').stdout.toString()).toContain('ok: tasks tasks.md; 2 tasks');
+    expect(check('index.md').stdout.toString()).toContain('ok: draft project index.md; 1 spec: 1 ready');
+    expect(check('index.md', '--impact', 'D1').stdout.toString()).toContain('ok: D1 touches 1 of 1 spec; 4 criteria, 1 invariant, 2 tasks');
+    expect(check('feature.md', '--impact', 'D2').stdout.toString()).toContain('- Checks: J1/failed');
+    expect(check('tasks.md', '--impact', 'D1').stderr.toString()).toContain('not a task plan');
+    expect(check('feature.md', '--impact').stderr.toString()).toContain('Usage');
+    // The older command names keep working.
+    expect(run(dir, 'bun', cli, 'tasks', 'tasks.md').exitCode).toBe(0);
+    expect(run(dir, 'bun', cli, 'project', 'index.md').exitCode).toBe(0);
+    expect(run(dir, 'bun', cli, 'impact', 'feature.md', 'D1').exitCode).toBe(0);
+  } finally { await rm(dir, {recursive: true, force: true}); }
+});

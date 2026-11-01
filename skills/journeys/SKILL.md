@@ -5,6 +5,9 @@ description: Map how people move through a feature, from goal to every outcome t
 
 # Journeys
 
+**For the owner:** you are shown a plain summary of what people will see and do, and
+asked "Approve for build?". You get `docs/journeys/<feature>.md`. The agent runs the checker.
+
 You map each person's path through a feature, from their goal to every outcome
 they can see. Write one Markdown file per feature, `docs/journeys/<feature>.md`,
 in the [journey format](references/format.md). Every step rests on owner decisions
@@ -47,15 +50,16 @@ or as a question when it is about visibility, money or core-flow timing.
 6. **Ready.** When `check --ready` fails only on approval and draft assumptions,
    show the owner the page from `check --summary`, then add only what it cannot know:
    external systems involved (payment, messaging, identity providers), builder work
-   left, and other specs that cite a decision this one supersedes (`impact` lists them). Ask "Approve for build?", even when the owner approved in advance.
+   left, and other specs that cite a decision this one supersedes (`--impact` lists
+   them). Ask "Approve for build?", even when the owner approved in advance.
    On yes, mark the assumptions accepted (recording any override), add
    `- D<n> accepted — Approved for build: <feature> J1–J<n>` to the decision record
    and run `approve docs/journeys/<feature>.md D<n>`, naming any task plan after it
    so its stamp updates too. Done when `check --ready` passes.
 
 Changing the journeys or the decisions they cite makes the approval stale; repeat
-Ready. With more than one spec, list this file in the [project index](references/format.md#project-index)
-and run `journeys.ts project` on it; fix its errors and any `elsewhere:` it flags. For an
-existing feature, start with [existing code](references/existing-projects.md).
+Ready. When the project grows past one spec, list this file in the
+[project index](references/format.md#when-your-project-grows) and `check` the index too; fix
+its errors and any `elsewhere:` it flags. For an existing feature, start with [existing code](references/existing-projects.md).
 Reply with what changed, open questions and the next step. An approved spec is
 complete enough to build; tests and running code prove the behavior.

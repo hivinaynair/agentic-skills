@@ -5,6 +5,9 @@ description: Plan implementation from an approved journey spec or other agreed s
 
 # Tasks
 
+**For the owner:** you are asked only the product questions the plan uncovers. You get
+`docs/tasks/<feature>.md`: the build in usable pieces, each rule with the test that proves it.
+
 You plan how the **builder** delivers an agreed spec: slices a person can use, in a
 working order, with a named test proving every criterion. Follow the project's
 tracker if it has one; otherwise write `docs/tasks/<feature>.md` in the
@@ -14,8 +17,7 @@ tracker if it has one; otherwise write `docs/tasks/<feature>.md` in the
 ## Steps
 
 1. **Read.** Read the spec, its decisions and the code it touches, and run
-   `journeys.ts check <journeys file> --ready`, or `journeys.ts project <index>` when
-   the project keeps one. If approval is missing or stale, tell
+   `journeys.ts check <journeys file> --ready`. If approval is missing or stale, tell
    the owner and plan only what they ask for. Done when you know what exists and
    what is missing.
 
@@ -52,7 +54,7 @@ tracker if it has one; otherwise write `docs/tasks/<feature>.md` in the
 
 6. **Check.** Stamp the journeys' approval in the Source line (journeys `approve`
    does this when given the plan) and run
-   `journeys.ts tasks docs/tasks/<feature>.md` from the repository root. If the
+   `journeys.ts check docs/tasks/<feature>.md` from the repository root. If the
    project keeps a journeys index, add the plan to the spec's `Tasks:`. Done when it
    passes. It checks structure, so review the slices, notes and tests yourself.
 
@@ -64,7 +66,7 @@ that depend on it Blocked (Q<n>); split a task so only those criteria wait.
 
 During the build, a task is Done only with `Evidence:`: the command run and its
 result, nothing skipped. If a criterion proves wrong or impossible, stop it and raise
-a question; never change behavior quietly. `tasks <file> --status` shows each
+a question; never change behavior quietly. `check <task plan> --status` shows each
 criterion's task, test and status.
 
 Detail every task that can start now; later ones get a short entry that still names
