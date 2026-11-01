@@ -40,6 +40,24 @@ Before changing an approved rule, ask the agent for the impact
 (`check <journeys file> --impact D<n>`): which steps, tests and approvals it touches.
 The report covers mapped features only; tests are the safety net for the rest.
 
+## Review evidence
+
+Reviewers should see a change work before reading its code.
+
+- **Demo, before the PR.** For a change people can see, the agent runs the demo
+  skill: a short video and a screenshot of every state, including failures, in the
+  PR's Walkthrough section. It shows the change once.
+- **Journey recordings, on every push.** Tests in `e2e/journeys/` are named after
+  the journey or rule they prove (`J3: pay with coins at checkout`). CI runs them
+  with video and a step-by-step trace, and comments on the PR with each journey's
+  result. They prove the rules still hold.
+- **Where media lives.** <Where the team keeps PR videos: dragged into the PR
+  (GitHub plays MP4 inline), or a shared bucket.> CI recordings stay in the run's
+  artifacts for 14 days.
+
+Reviewers watch the walkthrough and check the journey table, then read the risky
+parts of the code: money, permissions, data, migrations.
+
 ## Pull requests
 
 Every PR uses the template: its route, what was asked, the spec IDs it implements

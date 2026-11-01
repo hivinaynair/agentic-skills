@@ -1,0 +1,64 @@
+name: journeys
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Find journey tests
+        id: find
+        run: |
+          if ls e2e/journeys/*.spec.ts >/dev/null 2>&1; then echo "found=true" >> "$GITHUB_OUTPUT"
+          else echo "No tests in e2e/journeys yet; nothing to record."; fi
+      - name: Install dependencies
+        if: steps.find.outputs.found == 'true'
+        run: |
+          if [ -f pnpm-lock.yaml ]; then corepack enable && pnpm install --frozen-lockfile
+          elif [ -f yarn.lock ]; then corepack enable && yarn install --immutable
+          elif [ -f bun.lock ] || [ -f bun.lockb ]; then npm install -g bun && bun install --frozen-lockfile
+          else npm ci; fi
+          npx playwright install --with-deps chromium
+      - name: Run journey tests
+        id: run
+        if: steps.find.outputs.found == 'true'
+        env:
+          # A deployed preview to test; leave unset to start the app in CI.
+          BASE_URL: ${{ vars.E2E_BASE_URL }}
+          E2E_START_COMMAND: ${{ vars.E2E_START_COMMAND }}
+        run: npx playwright test -c e2e/playwright.config.ts || echo "failed=true" >> "$GITHUB_OUTPUT"
+      - name: Upload videos, traces and report
+        id: upload
+        if: always() && steps.find.outputs.found == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: journey-recordings
+          path: e2e/report
+          retention-days: 14
+      - name: Write the PR comment
+        if: always() && steps.find.outputs.found == 'true' && hashFiles('e2e/report/results.json') != ''
+        run: node scripts/journey-report.mjs e2e/report/results.json "${{ steps.upload.outputs.artifact-url }}" > journey-comment.md
+      - name: Post or update the PR comment
+        # Pull requests from forks get a read-only token, so they skip the comment.
+        if: always() && hashFiles('journey-comment.md') != '' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = require('fs').readFileSync('journey-comment.md', 'utf8');
+            const { owner, repo } = context.repo, issue_number = context.issue.number;
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number });
+            const mine = comments.find(c => c.body?.startsWith('<!-- journey-recordings -->'));
+            if (mine) await github.rest.issues.updateComment({ owner, repo, comment_id: mine.id, body });
+            else await github.rest.issues.createComment({ owner, repo, issue_number, body });
+      - name: Fail if a journey failed
+        if: steps.run.outputs.failed == 'true'
+        run: exit 1

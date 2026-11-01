@@ -12,6 +12,11 @@
 
 <Risky work only, e.g. J1.S2, J1.S3.c1, I2. Write "none" otherwise.>
 
+## Walkthrough
+
+<UI changes: one line per state with its screenshot, and the video. The demo skill
+writes this section. Write "no UI change" otherwise.>
+
 ## Evidence
 
 <Commands run and their output: tests, lint, types; screenshots for UI.>

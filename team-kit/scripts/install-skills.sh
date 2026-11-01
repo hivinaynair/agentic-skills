@@ -1,6 +1,6 @@
 #!/bin/sh
-# Installs the decide, journeys and tasks skills into .agents/skills and links them
-# for Claude Code (.claude/skills) and Cursor (.cursor/skills). Re-run to update.
+# Installs the decide, journeys and tasks skills into .agents/skills and links every
+# skill there for Claude Code (.claude/skills) and Cursor (.cursor/skills). Re-run to update.
 set -eu
 repo=${AGENTIC_SKILLS_REPO:-https://github.com/hivinaynair/agentic-skills.git}
 ref=${AGENTIC_SKILLS_REF:-main}
@@ -11,9 +11,13 @@ mkdir -p .agents/skills .claude/skills .cursor/skills
 for name in decide journeys tasks; do
   rm -rf ".agents/skills/$name"
   cp -R "$tmp/src/skills/$name" ".agents/skills/$name"
+done
+# Link every skill in .agents/skills, including the kit's own (demo).
+for dir in .agents/skills/*/; do
+  name=$(basename "$dir")
   for tool in .claude .cursor; do
     rm -rf "$tool/skills/$name"
     ln -s "../../.agents/skills/$name" "$tool/skills/$name"
   done
 done
-echo "Installed decide, journeys and tasks from $repo@$ref into .agents/skills."
+echo "Installed decide, journeys and tasks from $repo@$ref; linked every skill in .agents/skills."

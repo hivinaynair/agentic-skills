@@ -16,6 +16,9 @@ Read [docs/ai-workflow.md](docs/ai-workflow.md). In short, route each change:
   with the decide and journeys skills, get the PM's approval of the summary page,
   then plan tasks and build. Do not start code before approval.
 
+For a change people can see, run the demo skill before opening the PR: a video
+and a screenshot of every state, including what happens when it goes wrong.
+
 Never decide a product rule yourself. If a ticket leaves a rule open (who may do
 something, what a person sees, what happens to money), ask, or record it as an
 open question for the owner.
