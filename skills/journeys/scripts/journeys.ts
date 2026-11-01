@@ -909,6 +909,28 @@ export function impactOf(spec: Spec, decisions: Map<string, Decision>, ids: stri
   };
 }
 
+// A page to send to whoever answers: open questions grouped by owner, each with its
+// recommendation, then the assumptions that stand unless someone objects. The IDs
+// stay so answers can be recorded against the right question.
+export function questionList(decisions: Map<string, Decision>, title = 'Questions') {
+  const open = [...decisions.values()].filter(d => d.id.startsWith('Q') && d.status === 'open');
+  const assumed = [...decisions.values()].filter(d => d.status === 'draft' && /^Assumed:/i.test(d.text));
+  const groups = new Map<string, string[]>();
+  for (const q of open) {
+    const owner = q.text.match(/\bOwner:\s*([^.;]+)/)?.[1].trim() ?? 'unknown';
+    const label = /^unknown$/i.test(owner) ? 'Owner not named yet' : `For ${owner}`;
+    const text = q.text.replace(/\s*\bOwner:\s*[^.;]+[.;]?/, '').replace(/\s*\bBlocks:\s*(?:[^.]|\.(?=\S))*\.?/, '').trim();
+    const [question, recommend] = text.split(/\s*\bRecommend(?:ed|ation)?:\s*/i);
+    groups.set(label, [...(groups.get(label) ?? []), `**${q.id}.** ${question.trim()}`, ...(recommend ? [`Recommended: ${recommend.trim()}`] : []), '']);
+  }
+  const out = [`# ${title}`, ''];
+  if (!open.length && !assumed.length) return [...out, 'No open questions.', ''].join('\n');
+  if (open.length) out.push(`${plural(open.length, 'question')} to answer before building. Reply "yes" to take the recommendation, or write your own answer. Keep the number (${open[0].id}) so the answer is recorded against the right question.`, '');
+  for (const [label, lines] of groups) out.push(`## ${label}`, '', ...lines);
+  if (assumed.length) out.push('## We will assume, unless you say otherwise', '', ...assumed.map(d => `- **${d.id}.** ${d.text.replace(/^Assumed:\s*/i, '')}`), '');
+  return out.join('\n').trimEnd() + '\n';
+}
+
 export const impactTouches = (i: Impact) => !!(i.scope.length || i.goals.length || i.invariants.length || i.steps.length || i.checks.length);
 
 if (import.meta.main) {
@@ -920,6 +942,7 @@ if (import.meta.main) {
       '  journeys file:  --ready  --summary  --review  --impact D<n> ...',
       '  task plan:      --status',
       '  index.md:       --ready  --json  --impact D<n> ...',
+      '  decision record: --questions',
     ].join('\n');
     const [cmd, input, ...given] = process.argv.slice(2);
     if (['.yaml', '.yml'].includes(extname(input ?? ''))) throw Error(`${input} uses the retired YAML format; write the journeys as Markdown (see references/format.md)`);
@@ -929,11 +952,13 @@ if (import.meta.main) {
     let mode = cmd;
     if (cmd === 'check') {
       const text = await read(input);
-      const kind = /^## Specs\s*$/m.test(text) ? 'index' : /^Source:/m.test(text) && /^## T(?:\d+|-[\w-]+)\b/m.test(text) && !/^## J\d+:/m.test(text) ? 'tasks' : 'journeys';
+      const kind = /^## Specs\s*$/m.test(text) ? 'index' : /^Source:/m.test(text) && /^## T(?:\d+|-[\w-]+)\b/m.test(text) && !/^## J\d+:/m.test(text) ? 'tasks'
+        : !/^## J\d+:/m.test(text) && !/^Decisions:/m.test(text) && (/^\s*[-*]\s+[DXQ]\d+\s+[a-z]+\s+(?:—|–|-)\s/m.test(text) || /^\|\s*ID\s*\|/m.test(text)) ? 'decisions' : 'journeys';
       if (given.includes('--impact')) {
-        if (kind === 'tasks') throw Error('Use --impact on a journeys file or the index, not a task plan');
+        if (kind === 'tasks' || kind === 'decisions') throw Error('Use --impact on a journeys file or the index');
         mode = 'impact';
-      } else if (kind !== 'journeys') mode = kind === 'index' ? 'project' : 'tasks';
+      } else if (kind === 'decisions') mode = 'decisions';
+      else if (kind !== 'journeys') mode = kind === 'index' ? 'project' : 'tasks';
     }
     const rest = mode === 'impact' ? given.filter(a => a !== '--impact') : given;
     const warn = (warnings: string[]) => {
@@ -1001,6 +1026,19 @@ if (import.meta.main) {
       const count = (f: (r: typeof results[number]) => number) => hits.reduce((n, r) => n + f(r), 0);
       const totals = [plural(count(r => r.criteria.length), 'criterion').replace(/criterions$/, 'criteria'), plural(count(r => r.invariants.length), 'invariant'), plural(count(r => r.tasks.length), 'task'), `${plural(hits.filter(r => r.stale).length, 'approval')} to renew`];
       console.log(`\nok: ${ids.join(', ')} ${hits.length ? `touches ${hits.length} of ${plural(results.length, 'spec')}; ${totals.join(', ')}` : `is cited by none of ${plural(results.length, 'spec')}`}. Nothing was changed.`);
+      process.exit(0);
+    }
+    if (mode === 'decisions') {
+      for (const flag of rest) if (flag !== '--questions') throw Error(`Unknown option ${flag}`);
+      const text = await read(input), record = parseDecisions(text);
+      if (record.errors.length) throw Error(record.errors.join('\n'));
+      if (rest.includes('--questions')) {
+        const heading = text.match(/^# (.+)$/m)?.[1].trim().replace(/\s+decisions$/i, '');
+        process.stdout.write(questionList(record.decisions, heading ? `Questions: ${heading}` : 'Questions'));
+        process.exit(0);
+      }
+      const all = [...record.decisions.values()], count = (f: (d: Decision) => boolean) => all.filter(f).length;
+      console.log(`ok: decisions ${input}; ${plural(count(d => /^[DX]/.test(d.id) && d.status === 'accepted'), 'accepted decision')}, ${plural(count(d => d.id.startsWith('Q') && d.status === 'open'), 'open question')}, ${plural(count(d => d.status === 'draft'), 'draft')}. Use --questions for a list to send.`);
       process.exit(0);
     }
     if (mode === 'project') {

@@ -2,7 +2,7 @@ import {test, expect} from 'bun:test';
 import {mkdtemp, rm, mkdir, writeFile, symlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {resolve, join, basename} from 'node:path';
-import {parseJourneys, parseDecisions, validate, approvalHash, reviewPacket, parseTasks, validateTasks, parseIndex, indexOptions, summary, impactOf, openItems} from '../skills/journeys/scripts/journeys';
+import {parseJourneys, parseDecisions, validate, approvalHash, reviewPacket, parseTasks, validateTasks, parseIndex, indexOptions, summary, impactOf, openItems, questionList} from '../skills/journeys/scripts/journeys';
 
 const decisionsMd = `# Invite decisions
 
@@ -947,7 +947,7 @@ test('check reads any file: journeys, task plan or index; --impact works on jour
     expect(check('index.md').stdout.toString()).toContain('ok: draft project index.md; 1 spec: 1 ready');
     expect(check('index.md', '--impact', 'D1').stdout.toString()).toContain('ok: D1 touches 1 of 1 spec; 4 criteria, 1 invariant, 2 tasks');
     expect(check('feature.md', '--impact', 'D2').stdout.toString()).toContain('- Checks: J1/failed');
-    expect(check('tasks.md', '--impact', 'D1').stderr.toString()).toContain('not a task plan');
+    expect(check('tasks.md', '--impact', 'D1').stderr.toString()).toContain('Use --impact on a journeys file or the index');
     expect(check('feature.md', '--impact').stderr.toString()).toContain('Usage');
     // The older command names keep working.
     expect(run(dir, 'bun', cli, 'tasks', 'tasks.md').exitCode).toBe(0);
@@ -979,4 +979,37 @@ test('summary: no arrow when the journey restates the goal; deferred work is not
   expect(page).toContain('- Workspace admin: Email the invite → Email delivery is the next slice.');
   const plain = parseDecisions(decisionsMd.replace('- X1 accepted — Email delivery is out of scope.', '- X1 accepted — No email delivery.')).decisions;
   expect(summary(parseJourneys(md).spec, plain)).toContain('→ not in this spec: No email delivery.');
+});
+
+test('questions to send: grouped by owner, with recommendations, assumptions after', () => {
+  const record = parseDecisions(`# Coins decisions
+
+- D1 accepted — Coins are credited when the return window closes.
+- D2 draft — Assumed: the balance shows in the account header.
+- Q1 open — Can coins pay a whole order? Options: all; up to half. Recommend: up to half. Blocks: J3.S2. Owner: PM.
+- Q2 open — Are coins a discount or a payment method on invoices?
+  This changes tax. Recommend: ask the accountant. Owner: finance.
+- Q3 open — Do coins expire? Recommend: after 12 months. Owner: PM.
+- Q4 open — Who can adjust a balance by hand?
+- Q5 resolved — Answered by D1.
+`).decisions;
+  const page = questionList(record, 'Questions: Coins');
+  expect(page).toStartWith('# Questions: Coins\n\n4 questions to answer before building.');
+  expect(page).toContain('## For PM\n\n**Q1.** Can coins pay a whole order? Options: all; up to half.\nRecommended: up to half.\n\n**Q3.** Do coins expire?\nRecommended: after 12 months.');
+  expect(page).toContain('## For finance\n\n**Q2.** Are coins a discount or a payment method on invoices? This changes tax.\nRecommended: ask the accountant.');
+  expect(page).toContain('## Owner not named yet\n\n**Q4.** Who can adjust a balance by hand?');
+  expect(page).toContain('## We will assume, unless you say otherwise\n\n- **D2.** the balance shows in the account header.');
+  expect(page).not.toContain('Blocks');
+  expect(page).not.toContain('Q5');
+  expect(questionList(parseDecisions('- D1 accepted — Done.\n').decisions)).toContain('No open questions.');
+});
+
+test('check reads a decision record; --questions prints the list to send', () => {
+  const summary = run('.', 'bun', cli, 'check', 'examples/team-invitations/decisions.md');
+  expect(summary.stdout.toString()).toContain('ok: decisions examples/team-invitations/decisions.md; 10 accepted decisions, 4 open questions, 0 drafts.');
+  const list = run('.', 'bun', cli, 'check', 'examples/team-invitations/decisions.md', '--questions').stdout.toString();
+  expect(list).toContain('# Questions: Team invitations');
+  expect(list).toContain('**Q1.** Which role does an accepted invitation grant?\nRecommended: the workspace\'s default member role.\n');
+  expect(run('.', 'bun', cli, 'check', 'examples/password-reset/decisions.md', '--questions').stdout.toString()).toContain('No open questions.');
+  expect(run('.', 'bun', cli, 'check', 'examples/team-invitations/decisions.md', '--impact', 'D1').stderr.toString()).toContain('Use --impact on a journeys file or the index');
 });

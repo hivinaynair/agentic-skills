@@ -44,6 +44,9 @@ as it is. Keep each ID in one place. Everything else is free prose.
   context an owner needs, the options, a recommendation, who answers (`Owner: PM`,
   or `Owner: unknown`) and optionally what it blocks (`Blocks: J2.S1`). A line may
   wrap; indent the continuation.
+- **Sending questions:** `check docs/decisions.md --questions` (journeys checker)
+  prints the open questions grouped by `Owner:`, each with its recommendation, then
+  the `Assumed:` drafts, as a page to send to whoever answers.
 - **Draft** lines are proposals: your low-stakes assumptions and rules you inferred
   from an answer (`Assumed: …`), a
   proposed success signal or non-goal, or text the owner asked you to write up. They

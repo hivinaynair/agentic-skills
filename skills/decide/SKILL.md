@@ -6,7 +6,8 @@ description: Settle what to build before code. Frames a raw idea or vague ticket
 # Decide
 
 **For the owner:** you are asked one question at a time, each with a recommendation,
-and you get `docs/decisions.md`: one line per rule you settled. You run no commands.
+or sent one list when someone else answers. You get `docs/decisions.md`: one line per
+rule you settled. You run no commands.
 
 You help the **owner** settle what to build. The owner decides product rules:
 who may do what, and what a person sees. The **builder** decides how to build them.
@@ -49,9 +50,12 @@ If the project already keeps a decision record, add to it in its own format.
    Both stay proposals until the owner accepts them; prepare questions for them
    rather than contacting them yourself. Reuse an existing **failure default** if
    the record has one; otherwise assume one ("when an action fails or its result is
-   unknown, the person sees a retryable error and no partial change is kept"). Ask
-   the highest-impact question first. Done when no open question blocks the first
-   slice.
+   unknown, the person sees a retryable error and no partial change is kept").
+   When the person you work with is the owner, ask one question at a time, highest
+   impact first. When someone else owns the answers (a PM, client or committee),
+   write every blocking question as a Q line at once, then hand over the list from
+   the journeys checker's `check docs/decisions.md --questions` to send; record
+   answers as they come back. Done when no open question blocks the first slice.
 
 4. **Record.** Write each answer, and each rule the owner volunteers, as an accepted
    D line: one rule, under 30 words, with a why only when it is not obvious. A rule

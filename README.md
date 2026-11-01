@@ -48,8 +48,9 @@ It is always the same loop; only the start differs.
   problem, who it is for, the first thing they should be able to do and what is out
   of scope. Then map and build **one feature at a time**, not the whole product up front.
 - **A new feature.** Ask *"Use decide to plan CSV export"*, or paste the ticket. It
-  reads the existing code and decisions first, and names who should answer each
-  question (for example the PM).
+  reads the existing code and decisions first. When someone else owns the answers
+  (a PM, a client), you get one list of questions grouped by who answers them, each
+  with a recommendation, ready to paste into Slack or email.
 - **Changing a feature.** Say what you want to change. Before anything is edited, the
   agent tells you which screens, rules and tests the change affects and whether
   something you already approved will need your yes again.
@@ -154,6 +155,7 @@ bun skills/journeys/scripts/journeys.ts check docs/journeys/password-reset.md --
 bun skills/journeys/scripts/journeys.ts check docs/journeys/password-reset.md --impact D6 # before changing D6
 bun skills/journeys/scripts/journeys.ts approve docs/journeys/password-reset.md D11      # record approval
 bun skills/journeys/scripts/journeys.ts check docs/tasks/password-reset.md --status      # build progress
+bun skills/journeys/scripts/journeys.ts check docs/decisions.md --questions               # questions to send
 ```
 
 It is plain code with no AI, so it checks structure: steps nothing leads to, paths
