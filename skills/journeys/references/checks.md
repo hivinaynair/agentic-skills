@@ -21,6 +21,17 @@ the answer holds for every journey (usually `failed`); a journey's own answer wi
 Unknown is open. An exclusion covers only what it names: excluding email still
 leaves a failed save to answer.
 
+## Project checks
+
+The four checks fit any product. A project adds its own where a kind of risk recurs
+across features: `money` for payments, `privacy` for personal data, `offline` for a
+mobile app, `tenant` for shared infrastructure, `market` for behavior that differs
+by country. Define each once in the [project index](format.md#project-index) as a
+question for the owner, then answer it in each journey like the four. Add a check
+only when most specs need it; a one-off risk is an invariant or a question.
+
+## Going deeper
+
 Go deeper where money, access, privacy, irreversible writes or data integrity are
 at stake. Ask what other people can see, what existing data looks like on day one,
 what happens when another system (an admin dashboard, a payment provider) changes

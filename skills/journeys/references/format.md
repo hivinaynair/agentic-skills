@@ -56,8 +56,8 @@ Basis: D3, D7
   lines and table rows both work. `Scope:` lists the decisions and questions this spec
   must settle; each accepted decision must be cited somewhere, and `--ready` fails while
   a listed question is open or a listed line is a draft. `Checks:` here are defaults
-  every journey inherits. `approve` adds `Approved: D<n> <hash>`; `Retired:` lists
-  removed IDs.
+  every journey inherits. `Requires:` adds outcome checks this spec must answer beyond
+  the four defaults. `approve` adds `Approved: D<n> <hash>`; `Retired:` lists removed IDs.
 - **Goals:** `→ J1, J2` (mapped), `→ excluded X<n>` (accepted non-goal),
   `→ elsewhere: <spec>` (covered by another spec) or `→ unresolved: reason`.
   Every journey appears in at least one goal.
@@ -83,6 +83,33 @@ Basis: D3, D7
 the checker warns past that, and about cited decisions over 30 words. Say a shared
 fact once: in the header, the journey, or an invariant.
 
+## Project index
+
+A project with more than one spec keeps an index beside them, normally
+`docs/journeys/index.md`. It lists every feature, written or not, and defines the
+project's extra outcome checks:
+
+```markdown
+# Shop
+
+Decisions: ../decisions.md
+Requires: money
+
+## Checks
+- money: What is charged, refunded or owed when this goes wrong?
+- privacy: Who else can see this person's data?
+
+## Specs
+- [Checkout](checkout.md) · Tasks: ../tasks/checkout.md
+- [Returns](returns.md)
+- Gift cards — planned
+```
+
+`Requires:` makes a check required in every listed spec; a spec's own `Requires:`
+adds one only there. A check defined but not required may still be answered. A spec
+listed in an `index.md` beside it takes these checks in `check` too. An item without
+a link is a planned feature. Any other text is prose, such as release notes.
+
 ## Commands
 
 ```sh
@@ -90,6 +117,7 @@ bun <skill-dir>/scripts/journeys.ts check <file>          # draft: structure, li
 bun <skill-dir>/scripts/journeys.ts check <file> --ready  # plus: complete, accepted, approved
 bun <skill-dir>/scripts/journeys.ts check <file> --review # each step beside the text it rests on
 bun <skill-dir>/scripts/journeys.ts approve <file> D<n>   # stamp owner approval
+bun <skill-dir>/scripts/journeys.ts project <index>       # every spec, plan and link
 ```
 
 Draft `check` warns about open items; `--ready` fails on them. `--ready` requires
@@ -97,6 +125,13 @@ every goal covered, every Basis on accepted decisions, every check answered and 
 current approval. The approval hash covers the structure and the text of every
 cited decision, so editing prose keeps it valid. A passing check shows the spec is
 consistent and approved; tests show the code works.
+
+`project` checks every listed spec and task plan, then what no single file shows:
+`elsewhere:` goals that name a missing spec or journey, journeys files the index does
+not list, and accepted decisions no spec cites (framing lines and approvals are
+exempt). It prints one row per spec: state, approval, open questions and task
+progress. `--ready` also fails on planned features and unready specs; `--json` prints
+the same for CI.
 
 `scripts/pre-commit.sh <file> [--ready]` runs `check` on the staged files from a
 Git hook.

@@ -14,7 +14,8 @@ tracker if it has one; otherwise write `docs/tasks/<feature>.md` in the
 ## Steps
 
 1. **Read.** Read the spec, its decisions and the code it touches, and run
-   `journeys.ts check <journeys file> --ready`. If approval is missing or stale, tell
+   `journeys.ts check <journeys file> --ready`, or `journeys.ts project <index>` when
+   the project keeps one. If approval is missing or stale, tell
    the owner and plan only what they ask for. Done when you know what exists and
    what is missing.
 
@@ -51,7 +52,8 @@ tracker if it has one; otherwise write `docs/tasks/<feature>.md` in the
 
 6. **Check.** Stamp the journeys' approval in the Source line (journeys `approve`
    does this when given the plan) and run
-   `journeys.ts tasks docs/tasks/<feature>.md` from the repository root. Done when it
+   `journeys.ts tasks docs/tasks/<feature>.md` from the repository root. If the
+   project keeps a journeys index, add the plan to the spec's `Tasks:`. Done when it
    passes. It checks structure, so review the slices, notes and tests yourself.
 
 ## Questions and the build

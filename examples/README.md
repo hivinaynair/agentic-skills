@@ -11,7 +11,11 @@ Synthetic features planned with the skills. No application was built for them.
   [decisions.md](team-invitations/decisions.md) has four open questions, so
   [the journeys](team-invitations/journeys/invitations.md) fail `check --ready`.
 
+- **[index.md](index.md)**: a project index listing both, plus a planned feature,
+  for the project check.
+
 ```sh
+bun skills/journeys/scripts/journeys.ts project examples/index.md
 bun skills/journeys/scripts/journeys.ts check examples/password-reset/journeys/password-reset.md --ready
 bun skills/journeys/scripts/journeys.ts check examples/team-invitations/journeys/invitations.md --ready
 ```

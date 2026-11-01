@@ -34,8 +34,8 @@ or as a question when it is about visibility, money or core-flow timing.
    invariants; the builder decides how to hold them. Done when every money, access
    and data-integrity effect has an invariant.
 
-4. **Outcome checks.** Answer [denied, invalid, failed and repeated](references/checks.md)
-   for each journey: cite criteria or decisions, mark n/a with a reason, or mark open
+4. **Outcome checks.** Answer [denied, invalid, failed and repeated](references/checks.md),
+   plus any check the project index requires, for each journey: cite criteria or decisions, mark n/a with a reason, or mark open
    with the blocking Q. Done when every journey answers all four.
 
 5. **Check and review.** List the decisions and questions this feature must settle
@@ -55,7 +55,8 @@ or as a question when it is about visibility, money or core-flow timing.
    so its stamp updates too. Done when `check --ready` passes.
 
 Changing the journeys or the decisions they cite makes the approval stale; repeat
-Ready. If the project keeps an index of journeys, add this file to it. For an
+Ready. With more than one spec, list this file in the [project index](references/format.md#project-index)
+and run `journeys.ts project` on it; fix its errors and any `elsewhere:` it flags. For an
 existing feature, start with [existing code](references/existing-projects.md).
 Reply with what changed, open questions and the next step. An approved spec is
 complete enough to build; tests and running code prove the behavior.

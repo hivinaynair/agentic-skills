@@ -96,7 +96,14 @@ bun skills/journeys/scripts/journeys.ts check docs/journeys/password-reset.md   
 bun skills/journeys/scripts/journeys.ts check docs/journeys/password-reset.md --review # read for meaning
 bun skills/journeys/scripts/journeys.ts check docs/journeys/password-reset.md --ready  # before building
 bun skills/journeys/scripts/journeys.ts approve docs/journeys/password-reset.md D11    # record approval
+bun skills/journeys/scripts/journeys.ts project docs/journeys/index.md                 # the whole project
 ```
+
+For a product with many features, an index (`docs/journeys/index.md`) lists every
+spec, planned or written, with its task plans. `project` checks them all, plus links
+between specs, specs missing from the index and decisions no spec maps, and prints
+one status row per spec (`--json` for CI). The index can also add outcome checks to
+the four defaults where a risk recurs, such as `money`, `privacy` or `offline`.
 
 It needs [Bun](https://bun.sh) 1.4+ and nothing else. It cannot tell whether the
 product idea is right or the code works. `skills/journeys/scripts/pre-commit.sh`
@@ -125,6 +132,8 @@ Start with the [examples folder](examples/):
   approved journeys and tasks.
 - [Team invitations](examples/team-invitations/): a spec that is not ready yet,
   with four open questions, to show what blocked looks like.
+- [Examples index](examples/index.md): both specs and a planned one, for
+  `journeys.ts project`.
 
 Run `bun run verify` to check the skills, tests and examples.
 

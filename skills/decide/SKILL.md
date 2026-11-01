@@ -60,6 +60,8 @@ If the project already keeps a decision record, add to it in its own format.
 
 5. **Report.** Reply with the accepted scope, which paths are ready to map and which
    are blocked on named questions, and the next step, usually the journeys skill.
+   When framing a whole product, propose its features as planned items in the
+   journeys index (`docs/journeys/index.md`), first slice first.
 
 Retries, transactions, idempotency, timeouts, storage and naming are builder
 choices; they belong in tasks. One line per decision: link tickets, ADRs or docs
