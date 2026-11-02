@@ -69,8 +69,9 @@ Basis: D3, D7
   to every step; its `Checks:` override the header's. The first step is the entry;
   name other ways in as prose.
 - **Steps:** `### J<n>.S<n> Title (person|system|external)`. Person steps need
-  `Screen:` (separate several with `;`); `Sees:` names what the person sees. A step
-  `Basis:` adds decisions to the journey's; a resolved Q counts as its answer.
+  `Screen:` (separate several with `;`); `Sees:` names what changes for the person
+  at this step. A step `Basis:` adds decisions to the journey's; a resolved Q counts
+  as its answer. Cite only the decisions the step's criteria follow from.
   `Guards:` names the invariants the step must not break; there is no need to restate them.
 - **Criteria:** `- c<n>: When <condition>: <behavior>.` or `If <condition>: <behavior>.`
   (`While`, `Always:` and `Never:` also work). One observable behavior each.
@@ -83,9 +84,10 @@ Basis: D3, D7
   Ranges such as `D5–D9` or `I1–I4` work in Scope, Basis and Guards.
 
 **Keep it short.** A criterion or invariant is at most 20 words, a `Sees:` at most 12;
-the checker warns past that, and about cited decisions over 30 words. Say a shared
-fact once: in the header, the journey, or an invariant. A long criterion is usually
-two behaviors: split it, or move a shared condition to `Basis:` or an invariant.
+the checker warns past that, about cited decisions over 30 words, and about a step
+resting on more than six decisions. Say a shared fact once: in the header, the
+journey, or an invariant. A long criterion is usually two behaviors: split it, or
+move a shared condition to an invariant.
 Never drop a condition, number or scope to fit; a precise long line beats a vague
 short one.
 

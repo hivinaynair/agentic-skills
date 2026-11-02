@@ -26,14 +26,17 @@ recommendation. The spec is not ready until the owner has answered.
    unresolved. Done when every goal of this feature has a line.
 
 2. **Journeys.** Write each path from the person's first action to every exit.
-   Person steps name the screen and what the person sees, including pending, empty
-   and error states. System steps hold the rules a person never sees directly.
-   Criteria are short: `When <condition>: <behavior>.` One fact lives in one place:
-   decisions every step shares go on the journey's `Basis:`, outcomes every journey
-   shares in the header's `Checks:`, and a "never" rule in an invariant that steps
-   name in `Guards:` rather than restate. Past 20 words, split a criterion in two or
-   move a shared condition to `Basis:` or an invariant; never drop a condition,
-   number or scope to fit. Done when every step reaches an exit.
+   Person steps name the screen and what changes for the person there, not what an
+   earlier step already showed. Pending, empty, denied and error states are branches
+   that reach an outcome: a payment still pending shows "Checking payment", and
+   reopening the order shows the verified result. System steps hold the rules a
+   person never sees directly. Criteria are short: `When <condition>: <behavior>.`
+   One fact lives in one place: decisions every step shares go on the journey's
+   `Basis:`, outcomes every journey shares in the header's `Checks:`, and a "never"
+   rule in an invariant that steps name in `Guards:` rather than restate. A `Basis:`
+   cites only the decisions its criteria follow from. Past 20 words, split a
+   criterion in two or move a shared condition to an invariant; never drop a
+   condition, number or scope to fit. Done when every step reaches an exit.
 
 3. **Invariants.** Write the few "never" rules that hold across paths, such as
    "never two memberships per account". Races, duplicate events and crashes become
@@ -54,8 +57,9 @@ recommendation. The spec is not ready until the owner has answered.
    spec checked by a reviewer that did not write it: a fresh subagent if you can
    start one, given only the decision record, the journeys file and the
    `check --review` output; otherwise reread it as a demanding outsider. It reports
-   every step that does not follow from what it cites, every rule no accepted
-   decision states, and every failure case left vague. Fix the spec, or send new
+   every step that does not follow from what it cites, every cited decision its
+   criteria do not use, every rule no accepted decision states, and every failure
+   case left vague. Fix the spec, or send new
    rules to the owner as questions. When the review passes, add
    `- D<n> accepted — Approved for build: <feature> J1–J<n>, independent review passed`
    and run `approve docs/journeys/<feature>.md D<n>`, naming any task plan after it
