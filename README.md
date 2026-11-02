@@ -14,16 +14,18 @@ plainly when the spec is complete enough to build.
 
 ## How it works
 
-```
- idea or ticket
-      │
-  1 decide ────► docs/decisions.md      the rules         you answer, then approve them
-      │
-  2 journeys ──► docs/journeys/<x>.md   what people see   checked against your rules
-      │
-  3 tasks ─────► docs/tasks/<x>.md      how to build it   each rule gets a test
-      │
-  4 build ─────► code + pull request    one task at a time  evidence for each rule
+```mermaid
+flowchart TD
+    idea([Idea or ticket]) --> decide
+    decide["<b>1 · decide</b><br/>the rules"] -->|you answer, then approve them| journeys
+    journeys["<b>2 · journeys</b><br/>what people see"] -->|checked against your rules| tasks
+    tasks["<b>3 · tasks</b><br/>how to build it"] -->|each rule gets a test| build
+    build["<b>4 · build</b><br/>one task at a time"] --> pr([Code + pull request<br/>evidence for each rule])
+    journeys -.->|fits one pull request| build
+
+    decide --- d[(docs/decisions.md)]
+    journeys --- j[(docs/journeys/feature.md)]
+    tasks --- t[(docs/tasks/feature.md)]
 ```
 
 - **decide** asks you questions, each with a recommendation, writes every answer
