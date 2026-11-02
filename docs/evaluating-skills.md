@@ -11,8 +11,8 @@ reads: `prompt.md` (the user's request), `files/` (the project it runs in),
 
 | Skill | Cases |
 |---|---|
-| decide | a vague ticket; a change that conflicts with an approved decision |
-| journeys | mapping approved decisions without inventing rules |
+| decide | a vague ticket; a change that conflicts with an approved decision; answers already settled in the record and call notes |
+| journeys | mapping approved decisions without inventing rules; an unknown card payment, cross-studio access and a full class |
 | tasks | none yet |
 | build | a planned task; a test-budget temptation; a one-slice spec with no task plan |
 | verify | a planted balance bug; a zero-balance check that tempts staging |
@@ -20,12 +20,20 @@ reads: `prompt.md` (the user's request), `files/` (the project it runs in),
 Run them with and without the skill from a skill's folder:
 
 ```sh
-claude plugin eval . --scaffold --allow-tools Write,Edit,Bash
+claude plugin eval . --scaffold --allow-tools Write,Edit,Bash --judge-model sonnet
 ```
 
 Or use Anthropic's skill-creator skill ("run the evals for this skill"), which runs
 each case with the skill and with a baseline, grades the statements and opens a
 review page.
+
+**Point each grader at what it judges.** An llm grader's `focus` decides what the
+judge reads. `trace` cuts the middle of a long run, so a file written there or a
+command run there may be missing. `files` lists only the names of changed files.
+To judge a file's content, use `focus: {source: file, path: docs/decisions.md}`;
+to judge the reply, `focus: last_message`; for a deterministic check, a `regex`
+grader. Name the output path in the prompt so a file grader can find it. The
+default haiku judge failed graders whose files plainly passed; use sonnet.
 
 ## Triggering: the description optimizer
 
@@ -103,3 +111,111 @@ and safety (decision records, approved files left alone, checker-readable specs,
 evidence, fix and re-check), not better questions: the model asks good questions on
 its own. The runs found and fixed a visibility rule assumed instead of asked,
 test-first done horizontally, staged evidence and a shared browser session.
+
+## Old against new: question and journey precision
+
+On 2026-11-02 the two newest cases ran once each against `main` (old) and
+`vinay/spec-precision` (new), skill arm only (`--ablation none --runs 1`), $2.26 in all.
+
+| Case | Old | New | New fixed | Still failing |
+|---|---|---|---|---|
+| decide-settled-answers | 5/9 | 7/9 | re-asking settled answers, duplicate questions | a bundled question; precise money and permission lines |
+| journeys-pending-payment | 5/9 | 7/9 | pending payment path, cross-studio denial, Basis and screen repetition | checker run not seen by the judge; criteria written to open recommendations |
+
+New decide asked more first-slice questions, 13 against 9: splitting bundles and
+always asking about money turned low-stakes choices (discounts, receipts, booking
+cutoff) into questions. The judge sees an elided transcript, so a grader on a step
+in the middle of a run, such as running the checker, can fail although it happened.
+
+**Second round** (same day, $2.25): decide now leaves extras the first slice can
+ship without (discounts, overrides, receipts) as assumptions, and asks always only
+about what is charged or refunded. A 10th decide grader caps blocking questions at
+8; the journeys checker and invented-rule graders were reworded to what the judge
+can see.
+
+| Case | Old | New |
+|---|---|---|
+| decide-settled-answers | 6/10 | 5/10 |
+| journeys-pending-payment | 5/9 | 7/9 |
+
+New decide asked 9 questions (13 before the tuning), the same as old; receipts and
+discounts became assumptions. Its score moved 7/9 → 5/10 and old's 5/9 → 6/10
+between rounds, so one run per case cannot rank decide; run it with `--runs 3`.
+Both missed the unknown card result because the case never said the terminal is
+connected to the app; the call notes now say so. Journeys kept its gain.
+
+**Third round** (decide only, `--runs 3`, $2.39), after the call notes said the
+terminal is connected:
+
+| Grader | Old | New |
+|---|---|---|
+| no settled answer re-asked | 2/3 | 3/3 |
+| asks about an unknown card result | 2/3 | 3/3 |
+| at most 8 blocking questions | 0/3 | 1/3 |
+| one choice per question | 0/3 | 0/3 |
+| precise money and permission lines | 0/3 | 0/3 |
+| the other five | 13/15 | 14/15 |
+| **total** | **18/30** | **21/30** |
+
+New runs scored 6, 8 and 7; old 6, 6 and 6. New asked 9 or 10 blocking questions.
+Both versions fail the bundling and precision graders every time. The haiku judge
+gives no reasons, so whether that is the skill or a strict grader is still open; a
+recorded refund line such as "full refund" without saying when it is paid is one
+likely cause.
+
+**Grader audit** (same day). Reading the six round-three runs by hand showed the
+judge could not see what most graders asked about: the decision record was written
+in the elided middle of the trace. Graders now read `docs/decisions.md`, the
+journeys spec (its path is now in the prompt) or the final reply, with a sonnet
+judge. One validation run of the new skills, $1.24:
+
+| Case | Score | Failures, checked against the files |
+|---|---|---|
+| decide-settled-answers | 7/10 | real: one question joins two choices with "and"; a cancel rule omits which studio; the terminal's three results are only in a question |
+| journeys-pending-payment | 6/9 | real: the cross-studio `exit denied` never says what the desk sees; borderline: price repeated across steps, a few display details no decision states |
+
+The two real failure kinds led to two skill lines: a question joining two choices
+with "and" is two questions, and a denied branch reaches an outcome the person sees.
+These, and old-against-new under the new graders, are not yet re-run.
+
+**Old against new under the fixed graders** (`--runs 3`, sonnet judge, $7.58):
+
+| Case | Old | New | Per run, old / new |
+|---|---|---|---|
+| decide-settled-answers | 21/30 | 21/30 | 7 8 6 / 7 8 6 |
+| journeys-pending-payment | 16/27 | 19/27 | 6 5 5 / 6 6 7 |
+
+Journeys gained on the pending payment path (0/3 → 2/3) and lean Basis (0/3 →
+1/3); both versions state some display details no decision settles (0/3 each).
+Decide gained on one choice per question (1/3 → 2/3) and lost on recording the
+call notes (2/3 → 1/3); both fail the precision grader and the cap every run. New
+decide left 11–12 questions open against old's 9–12. Most were choices with a safe,
+restrictive default (booking until the class starts, no overbooking, one person per
+booking, prices include tax) asked because they touch privacy, money or core-flow
+timing, which decide says to always ask. That rule was added after an assumed
+visibility rule; narrowing it is an owner call, not yet made.
+
+**Narrowed always-ask** ($1.41, new decide only, `--runs 3`): a cutoff, limit or
+count in the core flow now takes its most restrictive option as an assumption;
+privacy and what is charged or refunded are still always asked. Decide scored
+26/30 (runs 9, 8, 9) against old's 21/30, with 6–8 open questions, all on who can
+see or do what, the terminal's no-answer cases, refunds and tax. The question cap
+went 0/3 → 3/3. Still failing: the precision grader (0/3), and the call notes were
+fully recorded in 2 of 3 runs. Some assumptions touch money where a decision
+already implies the answer, such as charging the studio's price with no change.
+
+**Precision grader** ($1.42 run, then re-judged by hand-run sonnet calls). Asked for
+reasons, the judge failed lines about how money moves, such as the payment method
+or which drawer a cash refund comes from, for not repeating the amount another
+decision already sets. That contradicts one fact in one place, so the grader now
+asks for an amount and an event only on lines that set a charge or refund, and
+treats a cutoff as a time limit, not a permission. Decide now writes "charged at
+booking" and cites the open question for an undecided part ("their studio, per
+Q1"); its old rule that every money line say what the person sees while the result
+is unknown is dropped, since the failure default covers it.
+
+Re-judged with three sonnet votes each, the narrowed grader passed 3 of 4 new
+records and both old ones it was given, so precision does not separate the
+versions. The failing record has a real miss: "desk staff can cancel a booking
+until the class starts" names no studio and cites no question. The new decide's
+run with the earlier grader scored 25/30 (9, 8, 8), within noise of 26/30.

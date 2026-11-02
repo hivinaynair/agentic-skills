@@ -655,6 +655,14 @@ test('length budgets warn once per kind', () => {
   expect(r.warnings).toContain('Cited decisions over 30 words (questions over 60): D1');
 });
 
+test('a step resting on more than six decisions warns', () => {
+  const extra = [4, 5, 6, 7, 8, 9].map(n => `- D${n} accepted — Rule ${n}.`).join('\n');
+  const d = decisionsMd.replace('- D3 accepted', `${extra}\n- D3 accepted`);
+  const wide = base.replace('Basis: D1\n-', 'Basis: D1, D4–D9\n-');
+  expect(result(wide, false, d).warnings).toContain('Basis over 6 decisions; cite only those its criteria follow from: J1.S2');
+  expect(result(base, false, d).warnings.some((w: string) => w.startsWith('Basis over'))).toBe(false);
+});
+
 test('tests can be grouped under their file; manual steps under "manual"', () => {
   const grouped = fullPlan.replace(/Tests:\n- J1\.S1\.c1[\s\S]*?non-admin cannot create\n/, 'Tests:\n- invite.test.ts\n  - J1.S1.c1, J1.S1.c2: admin creates, non-admin refused\n  - J1.S1.c3: malformed email\n  - I1: non-admin cannot create\n')
     .replace('Tests: J1.S2.c1: manual › create an invite and see its link', 'Tests:\n- manual\n  - J1.S2.c1: create an invite and see its link');

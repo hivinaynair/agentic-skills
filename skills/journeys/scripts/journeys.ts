@@ -445,6 +445,9 @@ export function validate(spec: Spec, decisions: Map<string, Decision>, ready = f
   if (long.criteria.length) warnings.push(`Over 20 words, split or shorten: ${listed(long.criteria)}`);
   if (long.sees.length) warnings.push(`Sees over 12 words: ${listed(long.sees)}`);
   if (longDecisions.length) warnings.push(`Cited decisions over 30 words (questions over 60): ${listed(longDecisions)}`);
+  // A step resting on many decisions hides which ones its criteria follow from.
+  const wideBasis = spec.journeys.flatMap(j => j.steps.filter(st => new Set([...j.basis, ...st.basis].filter(r => !r.startsWith('O'))).size > 6).map(st => st.id));
+  if (wideBasis.length) warnings.push(`Basis over 6 decisions; cite only those its criteria follow from: ${listed(wideBasis)}`);
   for (const id of spec.scope) {
     const d = decisions.get(id);
     if (!/^[DXQ]\d+$/.test(id) || !d) err(`Scope: unknown decision ${id}`);

@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: journeys-pending-payment
+expected_outcome: |
+  A desk bookings spec where an unknown card payment is its own path ("Checking payment", then reopening the booking shows confirmed or released), a staff member at another studio and a full class each reach a concrete outcome, each step cites only the decisions it uses, steps say what changes rather than repeating the screen, and a payment confirmed after the hold expired is raised as a question, not decided.
+context:
+  scaffold_script: place-files.sh

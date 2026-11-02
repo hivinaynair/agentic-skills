@@ -37,17 +37,26 @@ If the project already keeps a decision record, add to it in its own format.
    `check <journeys file or index> --impact D52` and say in the question what the
    change would reopen. Then find the missing rules that change what a person can do
    or see in the first slice, including who can see shared data, existing
-   data, and changes made outside the app. Sort each gap:
+   data, and changes made outside the app. Drop a gap that an accepted decision or
+   an earlier answer already settles. A gap outside the first slice is a `deferred`
+   Q or an X line, not a blocker; so is an extra the first slice can ship without,
+   such as discounts, overrides or receipts: assume it is left out. Sort each
+   remaining gap:
    - **Question**, when the answer changes what gets built and you cannot pick
-     safely. Write it for someone who has not read your docs: the context they need,
+     safely. One question settles one choice; split a bundle (a question joining two
+     choices with "and" is two questions), and never ask the same choice twice.
+     Write it for someone who has not read your docs: the context they need,
      the options, your recommendation, and who answers (`Owner: PM`, or
      `Owner: unknown`).
    - **Assumption**, when your choice is low-stakes and easy to change: a `draft`
      D line starting `Assumed:`. The owner accepts or overrides all of them at once
-     when approving the decisions (step 5). Who can see or share what, money, and
-     the timing of the core flow are never low-stakes: always ask. That includes who
-     may see a person's own data (a balance, a history, a profile), even when the
-     answer looks obvious: privacy is the owner's call, and a wrong guess is costly.
+     when approving the decisions (step 5). A cutoff, limit or count in the core
+     flow (book until the class starts, no overbooking, one person per booking)
+     takes its most restrictive option as an assumption. Who can see or share what,
+     and what is charged or refunded, are never low-stakes: always ask. That
+     includes who may see a person's own data (a balance, a history, a profile),
+     even when the answer looks obvious: privacy is the owner's call, and a wrong
+     guess is costly.
 
    Both stay proposals until the owner accepts them; prepare questions for them
    rather than contacting them yourself. Reuse an existing **failure default** if
@@ -60,7 +69,12 @@ If the project already keeps a decision record, add to it in its own format.
    answers as they come back. Done when no open question blocks the first slice.
 
 4. **Record.** Write each answer, and each rule the owner volunteers, as an accepted
-   D line: one rule, under 30 words, with a why only when it is not obvious. A rule
+   D line: one rule, under 30 words, with a why only when it is not obvious. A
+   rule about who may do something names who, which action and whose data, and cites
+   the open question for any part still undecided ("their studio, per Q1"). A money
+   rule names the amount or where it comes from, and the event that charges or
+   refunds it ("charged at booking"). Split a long rule into several lines rather
+   than drop a detail. A rule
    you infer from an answer but the owner did not state is an `Assumed:` draft. Mark
    the question resolved with just `Answered by` and every line it produced
    (`Answered by D21–D24, X3`); the decisions hold the content. When an answer replaces an accepted
