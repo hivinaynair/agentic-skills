@@ -28,7 +28,7 @@ recommendation. The spec is not ready until the owner has answered.
 2. **Journeys.** Write each path from the person's first action to every exit.
    Person steps name the screen and what changes for the person there, not what an
    earlier step already showed. Pending, empty, denied and error states are branches
-   that reach an outcome: a payment still pending shows "Checking payment", and
+   that reach an outcome the person sees: a payment still pending shows "Checking payment", and
    reopening the order shows the verified result. System steps hold the rules a
    person never sees directly. Criteria are short: `When <condition>: <behavior>.`
    One fact lives in one place: decisions every step shares go on the journey's

@@ -1,6 +1,8 @@
 ---
 type: llm
-focus: trace
+focus:
+  source: file
+  path: docs/journeys/desk-bookings.md
 weight: 1
 ---
 

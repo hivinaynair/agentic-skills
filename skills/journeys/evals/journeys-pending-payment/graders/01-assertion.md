@@ -1,6 +1,6 @@
 ---
 type: llm
-focus: trace
+focus: files
 weight: 1
 ---
 

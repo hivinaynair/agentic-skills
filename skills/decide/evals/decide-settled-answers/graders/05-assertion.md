@@ -1,7 +1,9 @@
 ---
 type: llm
-focus: trace
+focus:
+  source: file
+  path: docs/decisions.md
 weight: 1
 ---
 
-Waitlists and gift cards are recorded as out of scope or deferred (an X line or a deferred question), not as questions that block the first slice.
+Waitlists and gift cards are X lines or deferred Q lines, not open questions.

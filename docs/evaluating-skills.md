@@ -20,12 +20,20 @@ reads: `prompt.md` (the user's request), `files/` (the project it runs in),
 Run them with and without the skill from a skill's folder:
 
 ```sh
-claude plugin eval . --scaffold --allow-tools Write,Edit,Bash
+claude plugin eval . --scaffold --allow-tools Write,Edit,Bash --judge-model sonnet
 ```
 
 Or use Anthropic's skill-creator skill ("run the evals for this skill"), which runs
 each case with the skill and with a baseline, grades the statements and opens a
 review page.
+
+**Point each grader at what it judges.** An llm grader's `focus` decides what the
+judge reads. `trace` cuts the middle of a long run, so a file written there or a
+command run there may be missing. `files` lists only the names of changed files.
+To judge a file's content, use `focus: {source: file, path: docs/decisions.md}`;
+to judge the reply, `focus: last_message`; for a deterministic check, a `regex`
+grader. Name the output path in the prompt so a file grader can find it. The
+default haiku judge failed graders whose files plainly passed; use sonnet.
 
 ## Triggering: the description optimizer
 
@@ -154,3 +162,18 @@ Both versions fail the bundling and precision graders every time. The haiku judg
 gives no reasons, so whether that is the skill or a strict grader is still open; a
 recorded refund line such as "full refund" without saying when it is paid is one
 likely cause.
+
+**Grader audit** (same day). Reading the six round-three runs by hand showed the
+judge could not see what most graders asked about: the decision record was written
+in the elided middle of the trace. Graders now read `docs/decisions.md`, the
+journeys spec (its path is now in the prompt) or the final reply, with a sonnet
+judge. One validation run of the new skills, $1.24:
+
+| Case | Score | Failures, checked against the files |
+|---|---|---|
+| decide-settled-answers | 7/10 | real: one question joins two choices with "and"; a cancel rule omits which studio; the terminal's three results are only in a question |
+| journeys-pending-payment | 6/9 | real: the cross-studio `exit denied` never says what the desk sees; borderline: price repeated across steps, a few display details no decision states |
+
+The two real failure kinds led to two skill lines: a question joining two choices
+with "and" is two questions, and a denied branch reaches an outcome the person sees.
+These, and old-against-new under the new graders, are not yet re-run.

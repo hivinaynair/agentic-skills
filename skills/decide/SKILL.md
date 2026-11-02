@@ -43,8 +43,8 @@ If the project already keeps a decision record, add to it in its own format.
    such as discounts, overrides or receipts: assume it is left out. Sort each
    remaining gap:
    - **Question**, when the answer changes what gets built and you cannot pick
-     safely. One question settles one choice; split a bundle, and never ask the same
-     choice twice. Write it for someone who has not read your docs: the context they need,
+     safely. One question settles one choice; split a bundle (a question joining two
+     choices with "and" is two questions), and never ask the same choice twice. Write it for someone who has not read your docs: the context they need,
      the options, your recommendation, and who answers (`Owner: PM`, or
      `Owner: unknown`).
    - **Assumption**, when your choice is low-stakes and easy to change: a `draft`

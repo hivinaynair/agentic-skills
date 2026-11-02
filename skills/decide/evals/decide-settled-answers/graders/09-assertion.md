@@ -1,7 +1,7 @@
 ---
 type: llm
-focus: trace
+focus: last_message
 weight: 1
 ---
 
-Every question is written as a Q line in docs/decisions.md with a recommendation and an owner (Maya or Arjun), and the reply gives a list to send them.
+The final reply lists the open questions grouped by who answers them (Maya, Arjun), each with a recommendation, ready to send.

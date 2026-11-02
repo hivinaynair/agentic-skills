@@ -5,6 +5,6 @@ timeout_seconds: 1200
 allowed_tools: [Read, Glob, Grep, Skill, Write, Edit, Bash]
 ---
 
-Maya has approved the desk bookings decisions in docs/decisions.md. Map the journeys for desk bookings so we can plan the build.
+Maya has approved the desk bookings decisions in docs/decisions.md. Map the journeys for desk bookings in docs/journeys/desk-bookings.md so we can plan the build.
 
 Input files: docs/decisions.md

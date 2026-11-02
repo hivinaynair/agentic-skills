@@ -1,7 +1,9 @@
 ---
 type: llm
-focus: trace
+focus:
+  source: file
+  path: docs/decisions.md
 weight: 1
 ---
 
-The answers in the call notes are written into docs/decisions.md as decision lines (draft or accepted), not asked again.
+The call-note answers are decision lines (D or X, draft or accepted): prices set per studio, card through the counter terminal or cash, the terminal reporting approved, declined or no answer, and the 12-hour refund rule.

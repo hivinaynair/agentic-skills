@@ -1,7 +1,9 @@
 ---
 type: llm
-focus: trace
+focus:
+  source: file
+  path: docs/decisions.md
 weight: 1
 ---
 
-No two questions ask the same choice in different words.
+No two Q lines ask the same choice in different words.

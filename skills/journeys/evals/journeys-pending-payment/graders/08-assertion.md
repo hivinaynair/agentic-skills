@@ -1,7 +1,7 @@
 ---
 type: llm
-focus: trace
+focus: last_message
 weight: 1
 ---
 
-The final reply reports the journeys checker's result on the spec, and that result has no errors.
+The final reply says the journeys checker's draft check (without --ready) passes with no errors. A --ready check failing only on open questions or a missing approval is expected and does not fail this.

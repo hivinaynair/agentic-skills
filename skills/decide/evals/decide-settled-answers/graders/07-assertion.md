@@ -1,7 +1,9 @@
 ---
 type: llm
-focus: trace
+focus:
+  source: file
+  path: docs/decisions.md
 weight: 1
 ---
 
-The response asks, rather than assumes, what the desk sees and whether the spot is held while a card payment's result is unknown.
+An open Q line asks, rather than a D line assumes, what happens when the terminal reports no answer for a card payment.
