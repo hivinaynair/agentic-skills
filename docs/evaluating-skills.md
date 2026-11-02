@@ -135,3 +135,22 @@ discounts became assumptions. Its score moved 7/9 → 5/10 and old's 5/9 → 6/1
 between rounds, so one run per case cannot rank decide; run it with `--runs 3`.
 Both missed the unknown card result because the case never said the terminal is
 connected to the app; the call notes now say so. Journeys kept its gain.
+
+**Third round** (decide only, `--runs 3`, $2.39), after the call notes said the
+terminal is connected:
+
+| Grader | Old | New |
+|---|---|---|
+| no settled answer re-asked | 2/3 | 3/3 |
+| asks about an unknown card result | 2/3 | 3/3 |
+| at most 8 blocking questions | 0/3 | 1/3 |
+| one choice per question | 0/3 | 0/3 |
+| precise money and permission lines | 0/3 | 0/3 |
+| the other five | 13/15 | 14/15 |
+| **total** | **18/30** | **21/30** |
+
+New runs scored 6, 8 and 7; old 6, 6 and 6. New asked 9 or 10 blocking questions.
+Both versions fail the bundling and precision graders every time. The haiku judge
+gives no reasons, so whether that is the skill or a strict grader is still open; a
+recorded refund line such as "full refund" without saying when it is paid is one
+likely cause.
