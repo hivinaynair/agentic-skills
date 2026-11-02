@@ -15,7 +15,7 @@ reads: `prompt.md` (the user's request), `files/` (the project it runs in),
 | journeys | mapping approved decisions without inventing rules |
 | tasks | none yet |
 | build | a planned task; a test-budget temptation; a one-slice spec with no task plan |
-| verify (team kit) | a planted balance bug; a zero-balance check that tempts staging |
+| verify | a planted balance bug; a zero-balance check that tempts staging |
 
 Run them with and without the skill from a skill's folder:
 
@@ -92,7 +92,8 @@ were left as they are. The three misses read files first and had not called a
 skill within two turns: build's *"start on the first task that can start now in
 docs/tasks/wishlist.md"* (2 of 3) and journeys' *"check that every approved decision
 for subscriptions is covered by some step"* (1 of 3). The 40 near-miss prompts
-(should not trigger) were not run in this setup.
+(should not trigger) were not run in this setup, and verify, then part of the team
+kit, was not installed for this run.
 
 ## What the results so far say
 

@@ -1,8 +1,8 @@
 # Agentic Skills
 
-Four skills for AI coding agents. Before any code is written, they turn your idea
+Five skills for AI coding agents. Before any code is written, they turn your idea
 or ticket into a short spec you approve; then they build it task by task, with a
-test proving every rule.
+test proving every rule, and show you it working in a browser before the pull request.
 
 ## The problem
 
@@ -20,7 +20,9 @@ flowchart TD
     decide["<b>1 · decide</b><br/>the rules"] -->|you answer, then approve them| journeys
     journeys["<b>2 · journeys</b><br/>what people see"] -->|checked against your rules| tasks
     tasks["<b>3 · tasks</b><br/>how to build it"] -->|each rule gets a test| build
-    build["<b>4 · build</b><br/>one task at a time"] --> pr([Code + pull request<br/>evidence for each rule])
+    build["<b>4 · build</b><br/>one task at a time"] -->|a change people can see| verify
+    verify["<b>5 · verify</b><br/>checked in a browser"] --> pr([Pull request<br/>video and evidence for each rule])
+    build -->|no visible change| pr
     journeys -.->|fits one pull request| build
 
     decide --- d[(docs/decisions.md)]
@@ -39,6 +41,33 @@ flowchart TD
   can skip tasks; build writes its one-task plan itself): the planned tests first, then the code,
   then the evidence, then a pull request naming the rules it implements. A bug that
   breaks an approved rule is fixed the same way.
+- **verify** opens the app in a real browser and checks every rule on screen before
+  the pull request; see below.
+
+## Seeing it work before review
+
+Tests prove the code; verify proves what a person sees. For any change people can
+see, build hands over to verify, which drives a real browser with
+[agent-browser](https://github.com/vercel-labs/agent-browser):
+
+1. **Check.** It opens the app (a preview deploy or local, never production) and
+   checks every criterion the change touches, including the not allowed, bad input,
+   failure and repeat cases, with a screenshot of each.
+2. **Fix and re-check.** A failure means a code fix and then every criterion checked
+   again, at most three rounds. It may change only product code, never the rules or
+   tests; a rule that looks wrong goes back to you as a question.
+3. **Explore** (money, permissions, data). agent-browser's `dogfood` skill clicks
+   around the changed area like a user. Bugs this change caused get fixed; behavior
+   no rule decides becomes a question; older bugs are listed, not fixed.
+4. **Record.** Only once everything passes, it records one clean video of the main
+   path and a failure case, under a minute, with a screenshot per criterion.
+5. **Hand over.** The pull request's Walkthrough section gets the video and one line
+   per criterion with its result and screenshot.
+
+So the reviewer watches the change working before reading its code. In CI,
+[agentic-team-kit](https://github.com/hivinaynair/agentic-team-kit) adds Playwright
+journey tests that record every journey on every push and comment the results on
+the pull request.
 
 ## What you do
 
@@ -104,13 +133,15 @@ Code that is `.claude/skills/` in your project, or `~/.claude/skills/` for every
 ```sh
 git clone https://github.com/hivinaynair/agentic-skills.git
 mkdir -p .claude/skills
-cp -R agentic-skills/skills/decide agentic-skills/skills/journeys agentic-skills/skills/tasks agentic-skills/skills/build .claude/skills/
+cp -R agentic-skills/skills/{decide,journeys,tasks,build,verify} .claude/skills/
 ```
 
 Then ask in plain words: *"Use decide to shape this idea"*, *"Map the journeys for
-password reset"*, *"Plan the tasks for the approved journeys"*, *"Build the next task"*. If your agent has no
-skill folder, point it at a skill's `SKILL.md` file directly. The checker needs
-[Bun](https://bun.sh) 1.4+ and nothing else.
+password reset"*, *"Plan the tasks for the approved journeys"*, *"Build the next task"*,
+*"Verify this in the browser"*. If your agent has no skill folder, point it at a
+skill's `SKILL.md` file directly. The checker needs [Bun](https://bun.sh) 1.4+ and
+nothing else; verify needs agent-browser 0.41.0 (`npm i -g agent-browser@0.41.0`)
+and `ffmpeg`.
 
 ## Examples
 
@@ -121,10 +152,12 @@ skill folder, point it at a skill's `SKILL.md` file directly. The checker needs
 
 ## For a team
 
-[team-kit](team-kit/) is a starter for a team using agents across Claude Code,
-Cursor and Copilot: one `AGENTS.md` every tool reads, a guide that routes each change
-by risk (only money, permissions, data and cross-feature work get a spec), a PR
-template, a CI check for specs and a script that installs these skills for every tool.
+[agentic-team-kit](https://github.com/hivinaynair/agentic-team-kit) is a starter
+for a company repository whose team uses agents across Claude Code, Cursor and
+Copilot: one `AGENTS.md` every tool reads, a guide that routes each change by risk
+(only money, permissions, data and cross-feature work get a spec), a PR template
+with a Walkthrough section, CI that checks specs and records Playwright journey
+tests, and a script that installs these skills for every tool.
 
 ## Evidence so far
 

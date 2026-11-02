@@ -91,9 +91,9 @@ Chrome or Chromium. For the full command reference matching that version, read
 
 7. **Hand it over.** Fill the PR's **Walkthrough** section: the video, then one
    line per criterion with its result and screenshot. For a risky change, fill
-   **Exploratory check** with the dogfood report and the sorted findings. Attach the files where the
-   team keeps PR media (see `docs/ai-workflow.md`); if you cannot upload, give the
-   person the file paths and the finished section to paste.
+   **Exploratory check** with the dogfood report and the sorted findings. Attach the
+   files where the team keeps PR media (see `AGENTS.md` or the team guide); if you
+   cannot upload, give the person the file paths and the finished section to paste.
 
 In your reply, say plainly what you changed in the code to make a criterion pass:
 the person asked for a check and should not discover a fix in the diff.
