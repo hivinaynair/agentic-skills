@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: decide-settled-answers
+expected_outcome: |
+  The owner's answers already in the record and the call notes are recorded as decisions, not asked again; each remaining question settles one choice; waitlists and gift cards are deferred, not blocking; and the questions that remain cover cross-studio access and an unknown card payment result, each with a recommendation and an owner.
+context:
+  scaffold_script: place-files.sh

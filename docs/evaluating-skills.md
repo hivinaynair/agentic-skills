@@ -11,8 +11,8 @@ reads: `prompt.md` (the user's request), `files/` (the project it runs in),
 
 | Skill | Cases |
 |---|---|
-| decide | a vague ticket; a change that conflicts with an approved decision |
-| journeys | mapping approved decisions without inventing rules |
+| decide | a vague ticket; a change that conflicts with an approved decision; answers already settled in the record and call notes |
+| journeys | mapping approved decisions without inventing rules; an unknown card payment, cross-studio access and a full class |
 | tasks | none yet |
 | build | a planned task; a test-budget temptation; a one-slice spec with no task plan |
 | verify | a planted balance bug; a zero-balance check that tempts staging |
@@ -103,3 +103,18 @@ and safety (decision records, approved files left alone, checker-readable specs,
 evidence, fix and re-check), not better questions: the model asks good questions on
 its own. The runs found and fixed a visibility rule assumed instead of asked,
 test-first done horizontally, staged evidence and a shared browser session.
+
+## Old against new: question and journey precision
+
+On 2026-11-02 the two newest cases ran once each against `main` (old) and
+`vinay/spec-precision` (new), skill arm only (`--ablation none --runs 1`), $2.26 in all.
+
+| Case | Old | New | New fixed | Still failing |
+|---|---|---|---|---|
+| decide-settled-answers | 5/9 | 7/9 | re-asking settled answers, duplicate questions | a bundled question; precise money and permission lines |
+| journeys-pending-payment | 5/9 | 7/9 | pending payment path, cross-studio denial, Basis and screen repetition | checker run not seen by the judge; criteria written to open recommendations |
+
+New decide asked more first-slice questions, 13 against 9: splitting bundles and
+always asking about money turned low-stakes choices (discounts, receipts, booking
+cutoff) into questions. The judge sees an elided transcript, so a grader on a step
+in the middle of a run, such as running the checker, can fail although it happened.
