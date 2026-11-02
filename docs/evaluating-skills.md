@@ -203,3 +203,19 @@ see or do what, the terminal's no-answer cases, refunds and tax. The question ca
 went 0/3 → 3/3. Still failing: the precision grader (0/3), and the call notes were
 fully recorded in 2 of 3 runs. Some assumptions touch money where a decision
 already implies the answer, such as charging the studio's price with no change.
+
+**Precision grader** ($1.42 run, then re-judged by hand-run sonnet calls). Asked for
+reasons, the judge failed lines about how money moves, such as the payment method
+or which drawer a cash refund comes from, for not repeating the amount another
+decision already sets. That contradicts one fact in one place, so the grader now
+asks for an amount and an event only on lines that set a charge or refund, and
+treats a cutoff as a time limit, not a permission. Decide now writes "charged at
+booking" and cites the open question for an undecided part ("their studio, per
+Q1"); its old rule that every money line say what the person sees while the result
+is unknown is dropped, since the failure default covers it.
+
+Re-judged with three sonnet votes each, the narrowed grader passed 3 of 4 new
+records and both old ones it was given, so precision does not separate the
+versions. The failing record has a real miss: "desk staff can cancel a booking
+until the class starts" names no studio and cites no question. The new decide's
+run with the earlier grader scored 25/30 (9, 8, 8), within noise of 26/30.

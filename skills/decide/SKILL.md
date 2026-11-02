@@ -70,9 +70,11 @@ If the project already keeps a decision record, add to it in its own format.
 
 4. **Record.** Write each answer, and each rule the owner volunteers, as an accepted
    D line: one rule, under 30 words, with a why only when it is not obvious. A
-   permission rule names who, which action and whose data; a money rule names the
-   amount, when it is charged or refunded, and what the person sees while the result
-   is unknown. Split a long rule into several lines rather than drop a detail. A rule
+   rule about who may do something names who, which action and whose data, and cites
+   the open question for any part still undecided ("their studio, per Q1"). A money
+   rule names the amount or where it comes from, and the event that charges or
+   refunds it ("charged at booking"). Split a long rule into several lines rather
+   than drop a detail. A rule
    you infer from an answer but the owner did not state is an `Assumed:` draft. Mark
    the question resolved with just `Answered by` and every line it produced
    (`Answered by D21–D24, X3`); the decisions hold the content. When an answer replaces an accepted
