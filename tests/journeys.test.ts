@@ -780,6 +780,12 @@ test('extra checks: required by the index or the spec, optional when only define
   // Defined but not required: may be answered; a typo still fails.
   expect(run(answered.replace('- money:', '- privacy: n/a — no personal data\n- money:')).errors).toEqual([]);
   expect(run(answered.replace('- money:', '- monye:')).errors.join()).toContain('unknown check monye');
+  // An answered optional check is validated like a required one.
+  const optional = (answer: string) => run(answered.replace('- money:', `- privacy: ${answer}\n- money:`));
+  expect(optional('D999').errors.join()).toContain('J1/privacy');
+  expect(optional('J9.S9.c9').errors.join()).toContain('J1/privacy: unknown check ref J9.S9.c9');
+  expect(optional('open').errors.join()).toContain('J1/privacy: open needs a reason');
+  expect(optional('open — undecided').warnings).toContain('J1/privacy: check is open');
   // A spec opts into a check with Requires.
   const spec = answered.replace('Decisions: decisions.md\n', 'Decisions: decisions.md\nRequires: privacy\n');
   expect(run(spec).warnings).toContain('J1: missing privacy check');
