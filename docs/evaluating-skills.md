@@ -177,3 +177,20 @@ judge. One validation run of the new skills, $1.24:
 The two real failure kinds led to two skill lines: a question joining two choices
 with "and" is two questions, and a denied branch reaches an outcome the person sees.
 These, and old-against-new under the new graders, are not yet re-run.
+
+**Old against new under the fixed graders** (`--runs 3`, sonnet judge, $7.58):
+
+| Case | Old | New | Per run, old / new |
+|---|---|---|---|
+| decide-settled-answers | 21/30 | 21/30 | 7 8 6 / 7 8 6 |
+| journeys-pending-payment | 16/27 | 19/27 | 6 5 5 / 6 6 7 |
+
+Journeys gained on the pending payment path (0/3 → 2/3) and lean Basis (0/3 →
+1/3); both versions state some display details no decision settles (0/3 each).
+Decide gained on one choice per question (1/3 → 2/3) and lost on recording the
+call notes (2/3 → 1/3); both fail the precision grader and the cap every run. New
+decide left 11–12 questions open against old's 9–12. Most were choices with a safe,
+restrictive default (booking until the class starts, no overbooking, one person per
+booking, prices include tax) asked because they touch privacy, money or core-flow
+timing, which decide says to always ask. That rule was added after an assumed
+visibility rule; narrowing it is an owner call, not yet made.
