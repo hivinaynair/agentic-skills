@@ -84,7 +84,10 @@ Basis: D3, D7
 
 **Keep it short.** A criterion or invariant is at most 20 words, a `Sees:` at most 12;
 the checker warns past that, and about cited decisions over 30 words. Say a shared
-fact once: in the header, the journey, or an invariant.
+fact once: in the header, the journey, or an invariant. A long criterion is usually
+two behaviors: split it, or move a shared condition to `Basis:` or an invariant.
+Never drop a condition, number or scope to fit; a precise long line beats a vague
+short one.
 
 ## Commands
 
