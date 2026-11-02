@@ -61,8 +61,38 @@ shutil.rmtree(isolated_root, ignore_errors=True)
 With the fix (2026-11-01), every description triggered correctly on round one, so
 the optimizer kept them all: decide, journeys, tasks and verify 36/36 on training
 runs, build 35/36, and all five 8/8 on held-out prompts. Each skill was tested
-alone; whether the right one of our skills wins when all are installed together has
-not been measured yet.
+alone there; routing between them is below.
+
+## Routing: the right skill among ours
+
+With decide, journeys, tasks and build all in one scratch folder's
+`.claude/skills/`, each of the 40 should-trigger prompts ran 3 times, one at a time:
+
+```sh
+claude -p "<prompt>" --output-format stream-json --verbose --max-turns 2 \
+  --setting-sources project --strict-mcp-config
+```
+
+`--setting-sources project` keeps your own `~/.claude` skills and plugins out, so
+only these four and Claude Code's built-in skills compete. Run it from a terminal,
+or with a clean environment: inside the desktop app the inherited variables point
+the child at the app's session. The result is the first Skill tool call in the stream.
+
+Results on 2026-11-01 (claude-opus-5-5):
+
+| Expected ↓ / chosen → | decide | journeys | tasks | build | none |
+|---|---|---|---|---|---|
+| decide | 30 | 0 | 0 | 0 | 0 |
+| journeys | 0 | 29 | 0 | 0 | 1 |
+| tasks | 0 | 0 | 30 | 0 | 0 |
+| build | 0 | 0 | 0 | 28 | 2 |
+
+No prompt went to another of our skills or to a built-in one, so the descriptions
+were left as they are. The three misses read files first and had not called a
+skill within two turns: build's *"start on the first task that can start now in
+docs/tasks/wishlist.md"* (2 of 3) and journeys' *"check that every approved decision
+for subscriptions is covered by some step"* (1 of 3). The 40 near-miss prompts
+(should not trigger) were not run in this setup.
 
 ## What the results so far say
 
