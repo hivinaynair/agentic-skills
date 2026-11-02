@@ -394,7 +394,9 @@ export function validate(spec: Spec, decisions: Map<string, Decision>, ready = f
   for (const name of Object.keys(spec.checks)) if (!known.has(name)) unknownCheck('Header', name);
   for (const j of spec.journeys) {
     for (const name of Object.keys(j.checks)) if (!known.has(name)) unknownCheck(j.id, name);
-    for (const name of required) {
+    // Validate every answered check, optional ones too; only required ones may not be missing.
+    const answered = [...Object.keys(spec.checks), ...Object.keys(j.checks)].filter(name => known.has(name));
+    for (const name of new Set([...required, ...answered])) {
       const c = j.checks[name] ?? spec.checks[name];
       if (!c) { gate(`${j.id}: missing ${name} check`); continue; }
       if (c.status !== 'covered' && !c.reason) err(`${j.id}/${name}: ${c.status} needs a reason`);
