@@ -44,16 +44,19 @@ If the project already keeps a decision record, add to it in its own format.
    remaining gap:
    - **Question**, when the answer changes what gets built and you cannot pick
      safely. One question settles one choice; split a bundle (a question joining two
-     choices with "and" is two questions), and never ask the same choice twice. Write it for someone who has not read your docs: the context they need,
+     choices with "and" is two questions), and never ask the same choice twice.
+     Write it for someone who has not read your docs: the context they need,
      the options, your recommendation, and who answers (`Owner: PM`, or
      `Owner: unknown`).
    - **Assumption**, when your choice is low-stakes and easy to change: a `draft`
      D line starting `Assumed:`. The owner accepts or overrides all of them at once
-     when approving the decisions (step 5). Who can see or share what, what is
-     charged or refunded, and the timing of the core flow are never low-stakes:
-     always ask. That includes who
-     may see a person's own data (a balance, a history, a profile), even when the
-     answer looks obvious: privacy is the owner's call, and a wrong guess is costly.
+     when approving the decisions (step 5). A cutoff, limit or count in the core
+     flow (book until the class starts, no overbooking, one person per booking)
+     takes its most restrictive option as an assumption. Who can see or share what,
+     and what is charged or refunded, are never low-stakes: always ask. That
+     includes who may see a person's own data (a balance, a history, a profile),
+     even when the answer looks obvious: privacy is the owner's call, and a wrong
+     guess is costly.
 
    Both stay proposals until the owner accepts them; prepare questions for them
    rather than contacting them yourself. Reuse an existing **failure default** if

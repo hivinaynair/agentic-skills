@@ -194,3 +194,12 @@ restrictive default (booking until the class starts, no overbooking, one person 
 booking, prices include tax) asked because they touch privacy, money or core-flow
 timing, which decide says to always ask. That rule was added after an assumed
 visibility rule; narrowing it is an owner call, not yet made.
+
+**Narrowed always-ask** ($1.41, new decide only, `--runs 3`): a cutoff, limit or
+count in the core flow now takes its most restrictive option as an assumption;
+privacy and what is charged or refunded are still always asked. Decide scored
+26/30 (runs 9, 8, 9) against old's 21/30, with 6–8 open questions, all on who can
+see or do what, the terminal's no-answer cases, refunds and tax. The question cap
+went 0/3 → 3/3. Still failing: the precision grader (0/3), and the call notes were
+fully recorded in 2 of 3 runs. Some assumptions touch money where a decision
+already implies the answer, such as charging the studio's price with no change.
