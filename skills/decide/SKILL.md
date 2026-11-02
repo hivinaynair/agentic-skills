@@ -39,7 +39,9 @@ If the project already keeps a decision record, add to it in its own format.
    or see in the first slice, including who can see shared data, existing
    data, and changes made outside the app. Drop a gap that an accepted decision or
    an earlier answer already settles. A gap outside the first slice is a `deferred`
-   Q or an X line, not a blocker. Sort each remaining gap:
+   Q or an X line, not a blocker; so is an extra the first slice can ship without,
+   such as discounts, overrides or receipts: assume it is left out. Sort each
+   remaining gap:
    - **Question**, when the answer changes what gets built and you cannot pick
      safely. One question settles one choice; split a bundle, and never ask the same
      choice twice. Write it for someone who has not read your docs: the context they need,
@@ -47,8 +49,9 @@ If the project already keeps a decision record, add to it in its own format.
      `Owner: unknown`).
    - **Assumption**, when your choice is low-stakes and easy to change: a `draft`
      D line starting `Assumed:`. The owner accepts or overrides all of them at once
-     when approving the decisions (step 5). Who can see or share what, money, and
-     the timing of the core flow are never low-stakes: always ask. That includes who
+     when approving the decisions (step 5). Who can see or share what, what is
+     charged or refunded, and the timing of the core flow are never low-stakes:
+     always ask. That includes who
      may see a person's own data (a balance, a history, a profile), even when the
      answer looks obvious: privacy is the owner's call, and a wrong guess is costly.
 

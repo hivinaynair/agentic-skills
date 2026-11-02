@@ -118,3 +118,20 @@ New decide asked more first-slice questions, 13 against 9: splitting bundles and
 always asking about money turned low-stakes choices (discounts, receipts, booking
 cutoff) into questions. The judge sees an elided transcript, so a grader on a step
 in the middle of a run, such as running the checker, can fail although it happened.
+
+**Second round** (same day, $2.25): decide now leaves extras the first slice can
+ship without (discounts, overrides, receipts) as assumptions, and asks always only
+about what is charged or refunded. A 10th decide grader caps blocking questions at
+8; the journeys checker and invented-rule graders were reworded to what the judge
+can see.
+
+| Case | Old | New |
+|---|---|---|
+| decide-settled-answers | 6/10 | 5/10 |
+| journeys-pending-payment | 5/9 | 7/9 |
+
+New decide asked 9 questions (13 before the tuning), the same as old; receipts and
+discounts became assumptions. Its score moved 7/9 → 5/10 and old's 5/9 → 6/10
+between rounds, so one run per case cannot rank decide; run it with `--runs 3`.
+Both missed the unknown card result because the case never said the terminal is
+connected to the app; the call notes now say so. Journeys kept its gain.

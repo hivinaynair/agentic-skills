@@ -4,4 +4,4 @@ focus: trace
 weight: 1
 ---
 
-The transcript shows the journeys checker run on the spec and its last run reports no errors.
+The final reply reports the journeys checker's result on the spec, and that result has no errors.

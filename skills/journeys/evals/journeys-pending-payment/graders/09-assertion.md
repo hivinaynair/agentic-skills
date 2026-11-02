@@ -4,4 +4,4 @@ focus: trace
 weight: 1
 ---
 
-Every rule in the spec traces to a decision in docs/decisions.md; no behaviour outside the decisions is stated as settled.
+No behaviour outside docs/decisions.md is stated as settled: anything the decisions do not cover is an open question or an Assumed: draft, and a step written to a recommendation cites that open question.
