@@ -36,7 +36,9 @@ Chrome or Chromium. For the full command reference matching that version, read
    journeys the change touches (`J3.S2.c1: …`), including the not allowed, bad
    input, failure and repeat cases. Without one, take the ticket's acceptance
    criteria and write them as `When <condition>: <result>.` Done when each
-   criterion is one line you can check on screen.
+   criterion is one line you can check on screen. For a Paper handoff, also read
+   [Paper coverage](references/paper-coverage.md) and include each approved
+   artboard in the same browser pass.
 
 2. **Run the app.** If the team deploys a preview per branch, push the branch and
    wait for its URL; a preview behind Vercel login needs the bundled
@@ -47,17 +49,21 @@ Chrome or Chromium. For the full command reference matching that version, read
 3. **Check every criterion.** Give every path as an absolute path (see Known
    issues).
    ```sh
-   ab="agent-browser --session verify-<branch>"   # unique per branch (see Known issues)
-   out="$PWD/.verify/<branch>"; mkdir -p "$out"
-   $ab open <url>
-   $ab snapshot -i                      # elements by ref, e.g. @e3
-   $ab fill @e3 "500"; $ab click @e2
-   $ab wait --text "Enter between"      # the criterion's expected result
-   $ab get text @e5                     # or read the value it names
-   $ab screenshot "$out/J3.S2.c2.png"
+   app_url="http://localhost:3000"      # Use the URL of the running test app
+   session="verify-$(basename "$PWD")-$$"
+   out="$PWD/.verify/$session"; mkdir -p "$out"
+   ab() { agent-browser --session "$session" "$@"; }
+   ab open "$app_url"
+   ab snapshot -i                       # elements by ref, e.g. @e3
+   ab fill @e3 "500"; ab click @e2
+   ab wait --text "Enter between"       # the criterion's expected result
+   ab get text @e5                      # or read the value it names
+   ab screenshot "$out/J3.S2.c2.png"
    ```
    Mark each criterion pass or fail against what the screen shows, with its
-   screenshot. Done when every criterion has a result.
+   screenshot. For Paper, record each approved artboard's result and run the
+   coverage checker even if a state is blocked. Done when every criterion has
+   a result.
 
 4. **Fix and check again.** For each failure, find the cause in the code, fix it,
    run the project's tests, and check **every** criterion again, not only the one
@@ -82,15 +88,16 @@ Chrome or Chromium. For the full command reference matching that version, read
    with a screenshot after each state; wait for each state to show before the
    screenshot.
    ```sh
-   $ab record start "$out/walkthrough.mp4" --cursor --contact-sheet
+   ab record start "$out/walkthrough.mp4" --cursor --contact-sheet
    # …the same actions as step 3, screenshot after each state…
-   $ab record stop; $ab close
+   ab record stop; ab close
    ```
    Rely on the screenshots, not the contact sheet (see Known issues). Keep the video
    under a minute.
 
 7. **Hand it over.** Fill the PR's **Walkthrough** section: the video, then one
-   line per criterion with its result and screenshot. For a risky change, fill
+   line per criterion with its result and screenshot. For Paper, run the coverage
+   checker before reporting completion and link the report. For a risky change, fill
    **Exploratory check** with the dogfood report and the sorted findings. Attach the
    files where the team keeps PR media (see `AGENTS.md` or the team guide); if you
    cannot upload, give the person the file paths and the finished section to paste.
@@ -108,7 +115,7 @@ Check these again when moving to a newer version.
   screenshot silently lands in agent-browser's temporary folder. Use absolute paths.
 - Sessions are shared by name across every agent on the machine. Two agents both
   using `--session verify` drive the same browser: commands interleave, recordings
-  land in the other's folder and one `close` ends both. Name the session after the
-  branch, and `close` only your own.
+  land in the other's folder and one `close` ends both. Choose a unique session
+  per run, reuse it across commands, and `close` only your own.
 - The contact sheet keeps only a few frames and can skip a short-lived state such as
   an error message. Take a screenshot of every state instead.

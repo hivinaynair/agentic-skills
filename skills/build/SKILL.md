@@ -1,6 +1,6 @@
 ---
 name: build
-description: "Implements one planned task test-first (or a whole one-slice spec, writing its one-task plan itself), or fixes one bug against an approved criterion: one criterion at a time (failing test, least code, next), only the tests the plan names, evidence recorded, and a pull request naming the criteria it implements. Use when asked to build, implement or code the next task or slice from a task plan or a small approved spec, work test-first or TDD on a spec'd feature, pick up a ticket that has an approved spec, or fix a bug that breaks a criterion in the spec."
+description: "Implement an approved task test-first, fix a bug against an approved criterion, or build an approved Paper handoff from its link. Use when asked to build a task or slice, implement a small approved spec, or build a linked Paper design."
 compatibility: "Needs the journeys skill installed beside it (its scripts/journeys.ts checker) and Bun 1.4 or later."
 ---
 
@@ -16,14 +16,18 @@ conventions in `AGENTS.md`, and test-first practice. This skill keeps the work t
 to the spec. The checker is the journeys skill's `journeys/scripts/journeys.ts`,
 beside this skill's folder.
 
+For a request like `Build <Paper page link>`, start with the
+[Paper implementation intake](references/paper-implementation.md).
+
 ## Rules
 
 - The spec is fixed. Never change a criterion, a decision, a planned test name or
   the spec to make code pass. If a criterion proves wrong or impossible, stop and
   raise a Q line for the owner, with a recommendation, as the decide skill does; the
   task waits, Blocked (Q<n>).
-- One task per pull request. Build only the criteria and invariants the task owns;
-  anything else you notice becomes a note in the PR, not a change.
+- One task per pull request by default. Follow the host project's delivery scope
+  when the user authorizes a larger approved handoff. Build only the criteria
+  and invariants owned by the work in scope.
 - Done needs evidence: the command run and its result, nothing skipped.
 
 ## Steps
@@ -42,12 +46,13 @@ beside this skill's folder.
    the code they name. Mark it In progress in the plan's index. Done when you can
    list the criteria you will build and the tests that prove them.
 
-2. **Build one criterion at a time.** Take the task's planned tests in order. For
-   each: write that one test under exactly its planned name, in the layer it names;
-   run it and see it fail for the reason the criterion gives; write the least code
-   that makes it pass; run all of the task's tests. Then the next. Writing every test
-   first and all the code after tests the shape you imagined, not what the code
-   turned out to need. Done when every planned test passes.
+2. **Build one criterion at a time.** Take the planned checks in order. For an
+   automated test, write it under its planned name in the named layer, or reuse
+   the named existing test. See it fail for the criterion's reason, make the
+   smallest fix, and rerun the task's tests. For a `manual` entry, reproduce the
+   failure when reachable, make the fix, then perform the named steps and record
+   the observed result against its IDs. Use the browser pass below for manual UI
+   checks. Done when every planned check passes.
 
 3. **Tidy.** With every test passing, simplify the code this task touched: names,
    duplication, dead branches. Add no behavior, and keep every test passing.
@@ -58,11 +63,13 @@ beside this skill's folder.
 
 5. **Verify in the browser.** For a change people can see, run the verify skill if
    the project has it: every criterion checked on screen, fixed until it passes,
-   then a walkthrough recorded. Done when every criterion shows as passing.
+   then a walkthrough recorded. Include approved Paper states in that same pass
+   when the change has a Paper handoff. Done when every required check passes.
 
 6. **Record.** In the plan, mark the task Done and add
    `Evidence: <command> — <result>` for each command from steps 4 and 5. Run
-   `journeys.ts check docs/tasks/<feature>.md`; it confirms the named tests exist.
+   `journeys.ts check docs/tasks/<feature>.md`; it confirms the named automated
+   tests exist. Include the observed result of each manual check in the evidence.
    Done when it passes.
 
 7. **Open the pull request** with the project's template: its route, the criterion

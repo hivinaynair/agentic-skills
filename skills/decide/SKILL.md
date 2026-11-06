@@ -59,9 +59,11 @@ If the project already keeps a decision record, add to it in its own format.
      guess is costly.
 
    Both stay proposals until the owner accepts them; prepare questions for them
-   rather than contacting them yourself. Reuse an existing **failure default** if
-   the record has one; otherwise assume one ("when an action fails or its result is
-   unknown, the person sees a retryable error and no partial change is kept").
+   rather than contacting them yourself. Reuse the record's failure rule. When
+   rollback is confirmed and no rule exists, propose a retryable error as a draft.
+   Handle an unknown result separately. Reuse the approved recovery rule, or ask
+   what the person sees while the result is unconfirmed and when another attempt
+   is safe. Resolve the authoritative outcome before suggesting a fresh attempt.
    When the person you work with is the owner, ask one question at a time, highest
    impact first. When someone else owns the answers (a PM, client or committee),
    write every blocking question as a Q line at once, then hand over the list from

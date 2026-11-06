@@ -19,7 +19,7 @@ as it is. Keep each ID in one place. Everything else is free prose.
 - D5 accepted — Only admins can invite. Why: membership is an admin power.
 - D6 superseded — Links expire after 48 hours.
 - D7 accepted — Links expire after 72 hours. Supersedes: D6
-- D8 accepted — Failure default: the person sees a retryable error and no partial change is kept.
+- D8 accepted — After a confirmed rollback, the person sees a retryable error and no change was saved.
 - D9 accepted — Accepted invites grant the member role.
 - D10 accepted — Approved for build: invitations J1–J3.
 - D11 draft — Assumed: the join page shows the inviter's name.
