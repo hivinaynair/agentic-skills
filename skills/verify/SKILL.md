@@ -36,9 +36,10 @@ Chrome or Chromium. For the full command reference matching that version, read
    journeys the change touches (`J3.S2.c1: …`), including the not allowed, bad
    input, failure and repeat cases. Without one, take the ticket's acceptance
    criteria and write them as `When <condition>: <result>.` Done when each
-   criterion is one line you can check on screen. For a Paper handoff, also read
-   [Paper coverage](references/paper-coverage.md) and include each approved
-   artboard in the same browser pass.
+   criterion is one line you can check on screen. For a design handoff, read
+   [design coverage](references/design-coverage.md) and include each approved
+   design in the same browser pass. If the changed UI has a loading skeleton,
+   include its transition to the loaded layout.
 
 2. **Run the app.** If the team deploys a preview per branch, push the branch and
    wait for its URL; a preview behind Vercel login needs the bundled
@@ -61,9 +62,11 @@ Chrome or Chromium. For the full command reference matching that version, read
    ab screenshot "$out/J3.S2.c2.png"
    ```
    Mark each criterion pass or fail against what the screen shows, with its
-   screenshot. For Paper, record each approved artboard's result and run the
-   coverage checker even if a state is blocked. Done when every criterion has
-   a result.
+   screenshot. To check a skeleton, trigger the real loading state and capture
+   it and the loaded state at the same viewport. Compare stable regions such
+   as headers, controls, rows and cards for unintended shifts. For design
+   handoffs, record each approved design's result and run the coverage checker
+   even if a state is blocked. Done when every criterion has a result.
 
 4. **Fix and check again.** For each failure, find the cause in the code, fix it,
    run the project's tests, and check **every** criterion again, not only the one
@@ -96,8 +99,8 @@ Chrome or Chromium. For the full command reference matching that version, read
    under a minute.
 
 7. **Hand it over.** Fill the PR's **Walkthrough** section: the video, then one
-   line per criterion with its result and screenshot. For Paper, run the coverage
-   checker before reporting completion and link the report. For a risky change, fill
+   line per criterion with its result and screenshot. For design handoffs, link
+   the coverage report. For a risky change, fill
    **Exploratory check** with the dogfood report and the sorted findings. Attach the
    files where the team keeps PR media (see `AGENTS.md` or the team guide); if you
    cannot upload, give the person the file paths and the finished section to paste.

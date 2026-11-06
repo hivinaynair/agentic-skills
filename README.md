@@ -143,14 +143,10 @@ skill's `SKILL.md` file directly. The checker needs [Bun](https://bun.sh) 1.4+ a
 nothing else; verify needs agent-browser 0.41.0 (`npm i -g agent-browser@0.41.0`)
 and `ffmpeg`.
 
-If you design in Paper, also copy [`paper-handoff`](skills/paper-handoff/SKILL.md)
-into your skill folder. With Paper editing access, ask *"Finalize the Admissions
-designs for build"*. The skill names the approved artboards in Paper and adds a
-Ready for build card covering the full handoff and the states to verify. It
-moves clearly superseded boards to an archive page.
-Ask `Build <Paper page link>` to implement that page's approved designs.
-[Paper coverage](skills/verify/references/paper-coverage.md) checks required
-devices before coding and browser evidence for every approved artboard at the end.
+To build from approved designs, share the references, the required devices and
+states, and the steps or fixtures to reach each state. [Design coverage](skills/verify/references/design-coverage.md)
+checks required devices before coding and browser evidence for every approved
+design at the end.
 
 ## Examples
 

@@ -68,7 +68,7 @@ async function checkCoverage(approved: Set<string>, reportPath: string) {
       issues.push("Each coverage row must name an artboard");
       continue;
     }
-    const { artboard, status, paperReference, browserScreenshot } = row;
+    const { artboard, status, designReference, browserScreenshot } = row;
     if (!approved.has(artboard)) {
       issues.push(`Unexpected artboard ${artboard}`);
       continue;
@@ -84,8 +84,8 @@ async function checkCoverage(approved: Set<string>, reportPath: string) {
     } else if (status !== "matched") {
       issues.push(`${artboard}: expected matched, differs, or blocked`);
     } else {
-      if (!nonEmpty(paperReference))
-        issues.push(`${artboard}: missing Paper reference`);
+      if (!nonEmpty(designReference))
+        issues.push(`${artboard}: missing design reference`);
       const screenshot = nonEmpty(browserScreenshot)
         ? await stat(resolve(directory, browserScreenshot)).catch(
             () => undefined,
@@ -110,7 +110,7 @@ try {
   const [inventory, report] = Bun.argv.slice(2);
   if (!inventory || !report || Bun.argv.length !== 4) {
     throw new Error(
-      "Usage: bun check-paper-coverage.ts <approved.json> <coverage.json|--inventory-only>",
+      "Usage: bun check-design-coverage.ts <approved.json> <coverage.json|--inventory-only>",
     );
   }
   const approved = await readApproved(inventory);

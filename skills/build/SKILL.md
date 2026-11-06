@@ -1,6 +1,6 @@
 ---
 name: build
-description: "Implement an approved task test-first, fix a bug against an approved criterion, or build an approved Paper handoff from its link. Use when asked to build a task or slice, implement a small approved spec, or build a linked Paper design."
+description: "Implement an approved task test-first, fix a bug against an approved criterion, or build an approved design handoff. Use when asked to build a task or slice, implement a small approved spec, or build from approved designs."
 compatibility: "Needs the journeys skill installed beside it (its scripts/journeys.ts checker) and Bun 1.4 or later."
 ---
 
@@ -16,8 +16,8 @@ conventions in `AGENTS.md`, and test-first practice. This skill keeps the work t
 to the spec. The checker is the journeys skill's `journeys/scripts/journeys.ts`,
 beside this skill's folder.
 
-For a request like `Build <Paper page link>`, start with the
-[Paper implementation intake](references/paper-implementation.md).
+For a request to build approved designs, start with the
+[design implementation intake](references/design-implementation.md).
 
 ## Rules
 
@@ -63,8 +63,8 @@ For a request like `Build <Paper page link>`, start with the
 
 5. **Verify in the browser.** For a change people can see, run the verify skill if
    the project has it: every criterion checked on screen, fixed until it passes,
-   then a walkthrough recorded. Include approved Paper states in that same pass
-   when the change has a Paper handoff. Done when every required check passes.
+   then a walkthrough recorded. Include approved design states in the same
+   pass. Done when every required check passes.
 
 6. **Record.** In the plan, mark the task Done and add
    `Evidence: <command> — <result>` for each command from steps 4 and 5. Run

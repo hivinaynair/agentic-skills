@@ -5,10 +5,10 @@ import { join } from "node:path";
 
 const checker = join(
   import.meta.dir,
-  "../skills/verify/scripts/check-paper-coverage.ts",
+  "../skills/verify/scripts/check-design-coverage.ts",
 );
-const desktop = "Admissions · Enroll · Desktop · New customer";
-const phone = "Admissions · Enroll · Phone · New customer";
+const desktop = "Account settings · Desktop · Loaded";
+const phone = "Account settings · Phone · Loaded";
 const artboards = [
   { name: desktop, device: "Desktop" },
   { name: phone, device: "Phone" },
@@ -17,7 +17,7 @@ const inventory = { requiredDevices: ["Desktop", "Phone"], artboards };
 const desktopMatch = {
   artboard: desktop,
   status: "matched",
-  paperReference: "https://example.test/paper/admissions",
+  designReference: "https://example.test/design/account-settings",
   browserScreenshot: "desktop.png",
 };
 const phoneMatch = {
@@ -64,7 +64,7 @@ test.each([
     error: "",
   },
 ])("$name", async ({ results, error, approved = inventory }) => {
-  const directory = await mkdtemp(join(tmpdir(), "paper-coverage-"));
+  const directory = await mkdtemp(join(tmpdir(), "design-coverage-"));
   try {
     const approvedPath = join(directory, "approved.json");
     const report = join(directory, "coverage.json");
