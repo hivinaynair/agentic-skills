@@ -1,6 +1,6 @@
 # Agentic Skills
 
-Five skills for AI coding agents. Before any code is written, they turn your idea
+Five core skills for AI coding agents. Before any code is written, they turn your idea
 or ticket into a short spec you approve; then they build it task by task, with a
 test proving every rule, and show you it working in a browser before the pull request.
 
@@ -142,6 +142,12 @@ password reset"*, *"Plan the tasks for the approved journeys"*, *"Build the next
 skill's `SKILL.md` file directly. The checker needs [Bun](https://bun.sh) 1.4+ and
 nothing else; verify needs agent-browser 0.41.0 (`npm i -g agent-browser@0.41.0`)
 and `ffmpeg`.
+
+If you design in Paper, also copy [`paper-handoff`](skills/paper-handoff/SKILL.md)
+into your skill folder. With Paper editing access, ask *"Finalize the Admissions
+designs for build"*. The skill names the approved artboards in Paper and adds a
+Ready for build card covering the full handoff and the states to verify. It
+moves clearly superseded boards to an archive page.
 
 ## Examples
 

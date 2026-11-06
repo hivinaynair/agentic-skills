@@ -1,7 +1,8 @@
 # Agentic Skills
 
-This repository contains decide, journeys, tasks, build and verify, plus the journeys
-checker, tests and synthetic examples; the team starter lives in agentic-team-kit.
+This repository contains decide, journeys, tasks, build, verify and paper-handoff,
+plus the journeys checker, tests and synthetic examples. The team starter lives
+in agentic-team-kit.
 Read README.md before changing the workflow.
 
 - Keep each skill self-contained, short and in plain prose; respect host-project conventions.
