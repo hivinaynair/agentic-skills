@@ -7,8 +7,13 @@ const checker = join(
   import.meta.dir,
   "../skills/verify/scripts/check-paper-coverage.ts",
 );
-const desktop = "Admissions · Worklist · Desktop · Populated";
-const phone = "Admissions · Worklist · Phone · Loading";
+const desktop = "Admissions · Enroll · Desktop · New customer";
+const phone = "Admissions · Enroll · Phone · New customer";
+const artboards = [
+  { name: desktop, device: "Desktop" },
+  { name: phone, device: "Phone" },
+];
+const inventory = { requiredDevices: ["Desktop", "Phone"], artboards };
 const desktopMatch = {
   artboard: desktop,
   status: "matched",
@@ -45,19 +50,37 @@ test.each([
     results: [desktopMatch, phoneMatch],
     error: "",
   },
-])("$name", async ({ results, error }) => {
+  {
+    name: "rejects a desktop-only inventory when phone is required",
+    approved: { ...inventory, artboards: artboards.slice(0, 1) },
+    error: "Missing approved artboard for required device Phone",
+  },
+  {
+    name: "accepts an explicitly desktop-only scope",
+    approved: {
+      requiredDevices: ["Desktop"],
+      artboards: artboards.slice(0, 1),
+    },
+    error: "",
+  },
+])("$name", async ({ results, error, approved = inventory }) => {
   const directory = await mkdtemp(join(tmpdir(), "paper-coverage-"));
   try {
-    const approved = join(directory, "approved.json");
+    const approvedPath = join(directory, "approved.json");
     const report = join(directory, "coverage.json");
     await Promise.all([
-      writeFile(approved, JSON.stringify([desktop, phone])),
-      writeFile(report, JSON.stringify(results)),
+      writeFile(approvedPath, JSON.stringify(approved)),
+      writeFile(report, JSON.stringify(results ?? [])),
       writeFile(join(directory, "desktop.png"), "desktop screenshot fixture"),
       writeFile(join(directory, "phone.png"), "phone screenshot fixture"),
     ]);
     const result = Bun.spawnSync(
-      [process.execPath, checker, approved, report],
+      [
+        process.execPath,
+        checker,
+        approvedPath,
+        results ? report : "--inventory-only",
+      ],
       {
         cwd: tmpdir(),
       },
@@ -66,7 +89,7 @@ test.each([
     if (error) expect(result.stderr.toString()).toContain(error);
     else
       expect(result.stdout.toString()).toContain(
-        "2/2 approved artboards matched",
+        results ? "2/2 approved artboards matched" : "Approved inventory valid",
       );
   } finally {
     await rm(directory, { recursive: true, force: true });

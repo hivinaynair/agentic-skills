@@ -12,8 +12,10 @@ inspecting or editing the file.
 ## Confirm the scope
 
 Use the user's direction and the design conversation to identify the feature,
-primary Paper page, related pages, and approved artboards. Inspect those pages
-in Paper. Distinguish design variants from states that should ship. When
+primary Paper page, and approved artboards. Include additional pages only when
+they are part of the agreed feature scope. Establish the required devices from
+the user or project rules before checking which artboards exist. Inspect the
+scoped pages in Paper and distinguish variants from states that should ship. When
 approval or a choice between conflicting variants is unclear, ask about the
 specific gap and keep going on the confirmed parts.
 
@@ -22,7 +24,7 @@ specific gap and keep going on the confirmed parts.
 Rename each approved artboard in place, preserving its artwork and identity.
 Use a unique name within the handoff in the form
 `Feature · Stage or screen · Device · State`. For example,
-`Admissions · Details & Docs · Desktop · Populated`. Paper's rename tool
+`Admissions · Enroll · Desktop · New customer`. Paper's rename tool
 truncates names over 50 characters. Shorten feature or stage labels deliberately
 so the device and state still fit, and keep the full labels in the coverage
 notes. Drop qualifiers like `Improved` and use an actual state such as
@@ -43,8 +45,9 @@ Create or update one `Ready for build · Feature` artboard beside the approved
 designs on the primary Paper page. Use editable text layers and readable
 grouping. For large sets, group entries by stage or journey within the card.
 
-- **Scope.** Name what the complete handoff covers. Point to relevant shared
-  components or tokens and record any approved visual exceptions.
+- **Scope.** Name the feature and pages in scope, the required devices, and any
+  device the user explicitly excluded. Point to relevant shared components or
+  tokens and record approved visual exceptions.
 - **Coverage.** List every approved artboard by its exact name. For each, record
   its Paper page link if different, app route or entry point, verification viewport,
   test role and fixture or steps that reach the state, and the visual details
@@ -56,9 +59,10 @@ grouping. For large sets, group entries by stage or journey within the card.
   link approved decisions or journeys where available. Flag unresolved rules
   or unconfirmed reproduction steps explicitly.
 
-Keep unresolved designs out of the approved list. If the approved scope itself
-cannot be established, label the card `Handoff draft · Feature` and list the
-blocking questions. Reuse the existing card for the same scope on reruns.
+Check the approved boards against the required device coverage for each screen.
+Keep unresolved designs out of the approved list. If required boards are
+missing or the scope is unsettled, label the card `Handoff draft · Feature` and
+list the gaps. Reuse the existing card for the same scope on reruns.
 
 ## Check and return
 

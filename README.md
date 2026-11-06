@@ -148,8 +148,9 @@ into your skill folder. With Paper editing access, ask *"Finalize the Admissions
 designs for build"*. The skill names the approved artboards in Paper and adds a
 Ready for build card covering the full handoff and the states to verify. It
 moves clearly superseded boards to an archive page.
-During implementation, [Paper coverage](skills/verify/references/paper-coverage.md)
-checks that every approved artboard has a matched browser result and evidence.
+Ask `Build <Paper page link>` to implement that page's approved designs.
+[Paper coverage](skills/verify/references/paper-coverage.md) checks required
+devices before coding and browser evidence for every approved artboard at the end.
 
 ## Examples
 
