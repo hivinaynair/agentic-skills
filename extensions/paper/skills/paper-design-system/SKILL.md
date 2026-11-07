@@ -93,10 +93,18 @@ finds no literal values.
 Write or update `DESIGN.md` in the [agent-ready format](references/design-md.md):
 token front matter named as in code, then the rules agents need most. Tokens
 are normative and prose gives context. When the `@google/design.md` CLI is
-available, run its `lint`.
+available, run its `lint`. Then run, from this skill's folder:
+
+```sh
+bun scripts/check-design-md.ts <path to DESIGN.md>
+```
+
+It fails on record IDs, links to feature records, demo data, sign-ins and more
+than 1,500 words. It cannot judge meaning, so also read each line against the
+test in the reference.
 
 `DESIGN.md` holds only visual rules that apply across features, and every
-agent reads all of it, so keep it under about 1,500 words. Record each fact
+agent reads all of it, so keep it under 1,500 words. Record each fact
 once, preferably in a table. It carries no business logic: permissions,
 statuses and what they mean, limits, validation, money and tax rules, and
 demo data stay in the decision record, journeys, `PRODUCT.md` or `AGENTS.md`,
@@ -109,7 +117,7 @@ into its record, then remove it from `DESIGN.md`.
 ## 5. Check and return
 
 Compare the theme file, Paper's tokens and the `DESIGN.md` front matter; all
-three agree. Screenshot each page and review consistency across components:
+three agree, and the `DESIGN.md` check passes. Screenshot each page and review consistency across components:
 heights, radii, focus rings, label placement. Call `finish_working_on_nodes`
 with the boards you edited.
 

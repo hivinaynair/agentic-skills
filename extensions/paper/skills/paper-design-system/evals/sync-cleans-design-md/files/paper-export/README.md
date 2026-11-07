@@ -1,0 +1,1 @@
+Paper file: Brightline — Product (https://app.paper.design/file/BRIGHT/p-sys). Exported with get_basic_info and get_tokens because Paper MCP is not connected in this environment. The file has Foundations and Components pages built by the design system skill.

@@ -1,0 +1,5 @@
+{ "file": "Brightline — Product", "url": "https://app.paper.design/file/BRIGHT/p-sys",
+  "pages": [
+    {"name": "Foundations", "artboards": ["Colour", "Type", "Space and shape", "Controls"]},
+    {"name": "Components", "artboards": ["Forms", "Surfaces and overlays", "Data and feedback"]}
+  ] }
