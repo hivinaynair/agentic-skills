@@ -18,7 +18,7 @@ the code by name, and a `DESIGN.md` every design and build agent reads first.
 | Token values | The code's theme file (`globals.css` or equivalent) | Paper tokens, `DESIGN.md` front matter |
 | Usage rules | `DESIGN.md` prose | Usage lines on the Paper cards |
 | Component anatomy and variants | The code components | Paper component cards |
-| Product policy | The decision record | Nothing here |
+| Business logic and product policy | The decision record and journeys | Nothing here, not even by ID |
 | New compositions not yet in code | Paper, until a handoff builds them | `DESIGN.md` inventory as `New` |
 
 Keep each fact in its source and copy it outward. A mirror that disagrees with
@@ -43,7 +43,8 @@ component with its variants.
 
 Settle the token set in the code's names: shadcn's semantic colours
 (`background`, `foreground`, `primary`, `muted-foreground`, `border`, `ring`,
-plus status colours the product needs), one `radius` base, a type scale, a
+plus status tones such as `success` and `warning`, named for the tone rather
+than a domain status), one `radius` base, a type scale, a
 spacing scale, control heights per device, container widths and breakpoints.
 Use one colour format. Check every foreground against its background at WCAG
 AA. Derive brand choices from the inputs; for a refresh, change only what the
@@ -94,13 +95,16 @@ token front matter named as in code, then the rules agents need most. Tokens
 are normative and prose gives context. When the `@google/design.md` CLI is
 available, run its `lint`.
 
-`DESIGN.md` holds only rules that apply across features, and every agent
-reads all of it, so keep it under about 1,500 words. Record each fact once,
-preferably in a table. A rule about one screen or flow goes in its own record
-instead: behaviour in the decision record or journeys, visuals on its Paper
-board, and interaction a board cannot show in the feature's handoff. Past
-experiments go in a design archive. On a rerun, move any feature rule you
-find into its record, then remove it from `DESIGN.md`.
+`DESIGN.md` holds only visual rules that apply across features, and every
+agent reads all of it, so keep it under about 1,500 words. Record each fact
+once, preferably in a table. It carries no business logic: permissions,
+statuses and what they mean, limits, validation, money and tax rules, and
+demo data stay in the decision record, journeys, `PRODUCT.md` or `AGENTS.md`,
+uncited. A rule about one screen or flow goes in its own record instead:
+behaviour in the decision record or journeys, visuals on its Paper board, and
+interaction a board cannot show in the feature's handoff. Past experiments go
+in a design archive. On a rerun, move any business or feature rule you find
+into its record, then remove it from `DESIGN.md`.
 
 ## 5. Check and return
 

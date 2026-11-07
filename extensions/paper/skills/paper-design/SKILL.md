@@ -48,8 +48,9 @@ boards that depend on an open answer as drafts.
 
 Record what the owner settles where it belongs: behaviour as decisions or
 journey criteria, visual detail on the board and its usage line, and
-interaction a board cannot show in the handoff notes. Only a rule that changes
-every feature goes into `DESIGN.md`, through the paper-design-system skill.
+interaction a board cannot show in the handoff notes. Only a visual rule that
+changes every feature goes into `DESIGN.md`, through the paper-design-system
+skill; business rules never do.
 
 ## Design
 
