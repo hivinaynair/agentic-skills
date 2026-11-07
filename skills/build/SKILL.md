@@ -29,6 +29,8 @@ For a request to build approved designs, start with the
   when the user authorizes a larger approved handoff. Build only the criteria
   and invariants owned by the work in scope.
 - Done needs evidence: the command run and its result, nothing skipped.
+- When something repeatedly costs time, name one concrete change that would help
+  the next build, keep going on the approved scope, and include it in the PR.
 
 ## Steps
 

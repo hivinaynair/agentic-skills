@@ -62,9 +62,13 @@ Chrome or Chromium. For the full command reference matching that version, read
    ab screenshot "$out/J3.S2.c2.png"
    ```
    Mark each criterion pass or fail against what the screen shows, with its
-   screenshot. To check a skeleton, trigger the real loading state and capture
-   it and the loaded state at the same viewport. Compare stable regions such
-   as headers, controls, rows and cards for unintended shifts. For design
+   screenshot. To check a skeleton, trigger the real loading state, with the
+   project's test delays or browser request controls, on a fresh load and on
+   in-app navigation when both can show it. Capture it and the loaded state at
+   the same viewport on each required device. Confirm the fallback shows while
+   content is pending and leaves when it arrives, and compare stable regions
+   such as headers, controls, rows and cards for unintended shifts. Report any
+   fallback you could not reach. For design
    handoffs, record each approved design's result and run the coverage checker
    even if a state is blocked. Done when every criterion has a result.
 

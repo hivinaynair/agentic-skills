@@ -10,6 +10,12 @@ Before coding, freeze the board list and run the inventory check. Report missing
 devices, states, routes or setup, and continue with independent work in the
 approved scope.
 
+For a large handoff, run independent discovery in parallel when the harness has
+subagents: reading the designs, mapping the affected routes and components, and
+finding the browser setup and fixtures. Ask each for concise references and
+blockers, give design-tool reads to a worker with that tool's access, and keep
+one owner for the board list and shared code.
+
 ## Compose from the host system
 
 Build each screen from the host's components and tokens, in the order the
