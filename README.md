@@ -143,10 +143,13 @@ skill's `SKILL.md` file directly. The checker needs [Bun](https://bun.sh) 1.4+ a
 nothing else; verify needs agent-browser 0.41.0 (`npm i -g agent-browser@0.41.0`)
 and `ffmpeg`.
 
-To build from approved designs, share the references, the required devices and
-states, and the steps or fixtures to reach each state. [Design coverage](skills/verify/references/design-coverage.md)
-checks required devices before coding and browser evidence for every approved
-design at the end.
+To build from approved designs, hand the build a [handoff file](skills/verify/references/design-coverage.md):
+every approved state per device, its route and setup, a component map and any
+approved exceptions. The checker rejects an incomplete handoff before coding and
+requires browser evidence for every approved design at the end.
+
+Designing in Paper? The optional [Paper extension](extensions/paper/) designs the
+approved journeys and writes that handoff file for you.
 
 ## Examples
 

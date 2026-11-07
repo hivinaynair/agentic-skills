@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: handoff-flags-gaps
+expected_outcome: |
+  A handoff file in docs/design/handoff/ lists the approved boards with routes and the demo seed setup, and the card is a draft that names every gap: missing Phone Empty and Loading boards, combined error states, the untraced GST field, literal values and a drawn checkbox, token drift, and the open self-approval question.
+context:
+  scaffold_script: place-files.sh

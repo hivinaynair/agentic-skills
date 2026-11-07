@@ -1,0 +1,22 @@
+[
+ {"query": "Set up our design system in Paper from the brand guide in docs/brand and our shadcn components", "should_trigger": true},
+ {"query": "We just added Sheet and Combobox from shadcn, update the Paper components page", "should_trigger": true},
+ {"query": "Create a style guide in Paper: colours, type, spacing, controls, using our globals.css tokens", "should_trigger": true},
+ {"query": "Our Paper tokens and globals.css have drifted, sync them and fix DESIGN.md", "should_trigger": true},
+ {"query": "build a component library page in paper for the temple app, mirror @repo/ui", "should_trigger": true},
+ {"query": "Rebrand the app: new logo and a teal primary. Update tokens in code and Paper and the component cards", "should_trigger": true},
+ {"query": "Write a DESIGN.md agents can follow, from what's in Paper and our theme file", "should_trigger": true},
+ {"query": "Audit the Paper design system: which shadcn components have no card?", "should_trigger": true},
+ {"query": "Start a design system for the new admin console in Paper, dark rail, same brand as the web app", "should_trigger": true},
+ {"query": "Make Paper tokens from our Tailwind @theme so designs use the same names", "should_trigger": true},
+ {"query": "Design the enrolment screen in Paper", "should_trigger": false},
+ {"query": "The Admissions designs are final, prepare the handoff", "should_trigger": false},
+ {"query": "Add a new shadcn Calendar component to src/components/ui", "should_trigger": false},
+ {"query": "Fix the button padding in button.tsx", "should_trigger": false},
+ {"query": "Make the landing page hero bolder", "should_trigger": false},
+ {"query": "Migrate the CSS modules in packages to Tailwind", "should_trigger": false},
+ {"query": "Verify the calendar build matches the Paper boards", "should_trigger": false},
+ {"query": "Map the journeys for the refund flow", "should_trigger": false},
+ {"query": "Export the Paper style guide page as a PDF for the client", "should_trigger": false},
+ {"query": "What colour is our primary button?", "should_trigger": false}
+]

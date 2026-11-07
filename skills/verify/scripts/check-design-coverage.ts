@@ -1,6 +1,13 @@
 import { stat } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
+type Handoff = {
+  boards: Set<string>;
+  exceptions: Map<string, Set<string>>;
+};
+
+const componentUses = new Set(["reuse", "restyle", "new"]);
+
 function nonEmpty(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
@@ -9,53 +16,147 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function isArtboard(value: unknown): value is { name: string; device: string } {
-  return isRecord(value) && nonEmpty(value.name) && nonEmpty(value.device);
+function stringList(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(nonEmpty);
 }
 
-async function readApproved(inventoryPath: string) {
-  const inventory: unknown = await Bun.file(inventoryPath).json();
-  if (!isRecord(inventory)) {
-    throw new Error(
-      "Approved inventory must declare requiredDevices and artboards",
-    );
+function checkBoards(artboards: unknown, issues: string[]) {
+  if (!Array.isArray(artboards) || !artboards.length) {
+    throw new Error("Handoff must list artboards with names and devices");
   }
-  const { requiredDevices, artboards } = inventory;
+  const boards = new Map<string, Record<string, unknown>>();
+  for (const board of artboards) {
+    if (!isRecord(board) || !nonEmpty(board.name) || !nonEmpty(board.device)) {
+      throw new Error("Handoff must list artboards with names and devices");
+    }
+    if (boards.has(board.name)) {
+      throw new Error("Approved artboard names must be unique");
+    }
+    boards.set(board.name, board);
+  }
+  for (const [name, board] of boards) {
+    if (!nonEmpty(board.route)) issues.push(`${name}: missing route`);
+    if (!nonEmpty(board.setup)) issues.push(`${name}: missing setup`);
+    if (board.criteria !== undefined && !stringList(board.criteria)) {
+      issues.push(`${name}: criteria must be a list of IDs`);
+    }
+    if (board.loadingFor !== undefined) {
+      const loaded = boards.get(String(board.loadingFor));
+      if (!loaded) {
+        issues.push(
+          `${name}: loadingFor names unknown board ${board.loadingFor}`,
+        );
+      } else if (loaded.device !== board.device) {
+        issues.push(`${name}: loadingFor must pair boards on one device`);
+      }
+    }
+  }
+  return boards;
+}
+
+function checkComponents(components: unknown, issues: string[]) {
+  if (components === undefined) return;
+  if (!Array.isArray(components)) {
+    issues.push("components must be a list");
+    return;
+  }
+  for (const entry of components) {
+    if (!isRecord(entry) || !nonEmpty(entry.design)) {
+      issues.push("Each component must name its design component");
+    } else if (!componentUses.has(String(entry.use))) {
+      issues.push(`${entry.design}: use must be reuse, restyle or new`);
+    } else if (entry.use !== "new" && !nonEmpty(entry.code)) {
+      issues.push(`${entry.design}: ${entry.use} needs the code it maps to`);
+    }
+  }
+}
+
+function checkExceptions(
+  exceptions: unknown,
+  boards: Map<string, unknown>,
+  issues: string[],
+) {
+  const approved = new Map<string, Set<string>>();
+  if (exceptions === undefined) return approved;
+  if (!Array.isArray(exceptions)) {
+    issues.push("exceptions must be a list");
+    return approved;
+  }
+  for (const entry of exceptions) {
+    if (!isRecord(entry) || !nonEmpty(entry.id) || !nonEmpty(entry.detail)) {
+      issues.push("Each exception needs an id and detail");
+      continue;
+    }
+    if (approved.has(entry.id)) {
+      issues.push(`Duplicate exception ${entry.id}`);
+      continue;
+    }
+    if (!stringList(entry.artboards) || !entry.artboards.length) {
+      issues.push(`${entry.id}: list the artboards it applies to`);
+      continue;
+    }
+    for (const name of entry.artboards) {
+      if (!boards.has(name)) issues.push(`${entry.id}: unknown artboard ${name}`);
+    }
+    approved.set(entry.id, new Set(entry.artboards));
+  }
+  return approved;
+}
+
+async function readHandoff(handoffPath: string): Promise<Handoff> {
+  const handoff: unknown = await Bun.file(handoffPath).json();
+  if (!isRecord(handoff)) {
+    throw new Error("Handoff must declare requiredDevices and artboards");
+  }
+  const { requiredDevices, viewports, clock } = handoff;
   if (
     !Array.isArray(requiredDevices) ||
     !requiredDevices.length ||
     !requiredDevices.every(nonEmpty)
   ) {
-    throw new Error("Approved inventory must list its required devices");
+    throw new Error("Handoff must list its required devices");
+  }
+  const issues: string[] = [];
+  const boards = checkBoards(handoff.artboards, issues);
+
+  const coveredDevices = new Set(
+    [...boards.values()].map(({ device }) => device),
+  );
+  for (const device of requiredDevices) {
+    if (!coveredDevices.has(device)) {
+      issues.push(`Missing approved artboard for required device ${device}`);
+    }
+  }
+  if (viewports !== undefined) {
+    if (!isRecord(viewports)) {
+      issues.push("viewports must map devices to sizes");
+    } else {
+      for (const [device, size] of Object.entries(viewports)) {
+        if (!(typeof size === "string" && /^\d+x\d+$/.test(size))) {
+          issues.push(`${device}: viewport must look like 1440x900`);
+        }
+      }
+    }
   }
   if (
-    !Array.isArray(artboards) ||
-    !artboards.length ||
-    !artboards.every(isArtboard)
+    clock !== undefined &&
+    !(nonEmpty(clock) && !Number.isNaN(Date.parse(clock)))
   ) {
-    throw new Error("Approved inventory must list artboard names and devices");
+    issues.push("clock must be an ISO date and time");
   }
-  const approved = new Set(artboards.map(({ name }) => name));
-  if (approved.size !== artboards.length) {
-    throw new Error("Approved artboard names must be unique");
-  }
-  const coveredDevices = new Set(artboards.map(({ device }) => device));
-  const missingDevices = requiredDevices.filter(
-    (device) => !coveredDevices.has(device),
-  );
-  if (missingDevices.length) {
-    throw new Error(
-      missingDevices
-        .map(
-          (device) => `Missing approved artboard for required device ${device}`,
-        )
-        .join("\n"),
-    );
-  }
-  return approved;
+  checkComponents(handoff.components, issues);
+  const exceptions = checkExceptions(handoff.exceptions, boards, issues);
+  if (issues.length) throw new Error(issues.join("\n"));
+  return { boards: new Set(boards.keys()), exceptions };
 }
 
-async function checkCoverage(approved: Set<string>, reportPath: string) {
+async function hasScreenshot(directory: string, path: unknown) {
+  if (!nonEmpty(path)) return false;
+  const file = await stat(resolve(directory, path)).catch(() => undefined);
+  return Boolean(file?.isFile() && file.size > 0);
+}
+
+async function checkCoverage(handoff: Handoff, reportPath: string) {
   const report: unknown = await Bun.file(reportPath).json();
   if (!Array.isArray(report))
     throw new Error("Coverage report must be an array");
@@ -68,8 +169,8 @@ async function checkCoverage(approved: Set<string>, reportPath: string) {
       issues.push("Each coverage row must name an artboard");
       continue;
     }
-    const { artboard, status, designReference, browserScreenshot } = row;
-    if (!approved.has(artboard)) {
+    const { artboard, status } = row;
+    if (!handoff.boards.has(artboard)) {
       issues.push(`Unexpected artboard ${artboard}`);
       continue;
     }
@@ -81,43 +182,49 @@ async function checkCoverage(approved: Set<string>, reportPath: string) {
 
     if (status === "blocked" || status === "differs") {
       issues.push(`${artboard}: ${status}`);
-    } else if (status !== "matched") {
-      issues.push(`${artboard}: expected matched, differs, or blocked`);
-    } else {
-      if (!nonEmpty(designReference))
-        issues.push(`${artboard}: missing design reference`);
-      const screenshot = nonEmpty(browserScreenshot)
-        ? await stat(resolve(directory, browserScreenshot)).catch(
-            () => undefined,
-          )
-        : undefined;
-      if (!screenshot?.isFile() || screenshot.size === 0) {
-        issues.push(`${artboard}: browser screenshot is missing or empty`);
+      continue;
+    }
+    if (status === "deviation") {
+      const allowed = handoff.exceptions.get(String(row.exception));
+      if (!allowed?.has(artboard)) {
+        issues.push(
+          `${artboard}: deviation needs an exception that lists this board`,
+        );
       }
+      if (!nonEmpty(row.note)) issues.push(`${artboard}: deviation needs a note`);
+    } else if (status !== "matched") {
+      issues.push(
+        `${artboard}: expected matched, deviation, differs, or blocked`,
+      );
+      continue;
+    }
+    if (!nonEmpty(row.designReference))
+      issues.push(`${artboard}: missing design reference`);
+    if (!(await hasScreenshot(directory, row.browserScreenshot))) {
+      issues.push(`${artboard}: browser screenshot is missing or empty`);
     }
   }
-  for (const artboard of approved) {
+  for (const artboard of handoff.boards) {
     if (!seen.has(artboard)) issues.push(`Missing result for ${artboard}`);
   }
 
   if (issues.length) throw new Error(issues.join("\n"));
-  console.log(
-    `${approved.size}/${approved.size} approved artboards matched with evidence`,
-  );
+  const total = handoff.boards.size;
+  console.log(`${total}/${total} approved artboards matched with evidence`);
 }
 
 try {
-  const [inventory, report] = Bun.argv.slice(2);
-  if (!inventory || !report || Bun.argv.length !== 4) {
+  const [handoffPath, report] = Bun.argv.slice(2);
+  if (!handoffPath || !report || Bun.argv.length !== 4) {
     throw new Error(
-      "Usage: bun check-design-coverage.ts <approved.json> <coverage.json|--inventory-only>",
+      "Usage: bun check-design-coverage.ts <handoff.json> <coverage.json|--inventory-only>",
     );
   }
-  const approved = await readApproved(inventory);
+  const handoff = await readHandoff(handoffPath);
   if (report === "--inventory-only") {
-    console.log(`Approved inventory valid for ${approved.size} artboards`);
+    console.log(`Handoff valid for ${handoff.boards.size} artboards`);
   } else {
-    await checkCoverage(approved, report);
+    await checkCoverage(handoff, report);
   }
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);

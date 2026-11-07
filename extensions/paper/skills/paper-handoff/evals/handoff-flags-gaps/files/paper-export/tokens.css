@@ -1,0 +1,13 @@
+:root {
+  --background: #fbfaf7;
+  --foreground: #1c1c1a;
+  --card: #ffffff;
+  --card-border: #cfcdc4;
+  --muted-foreground: #66675f;
+  --primary: #1f5596;
+  --primary-foreground: #ffffff;
+  --border: #e6e4dd;
+  --input: #8a8b82;
+  --destructive: #8c1d2f;
+  --radius: 8px;
+}

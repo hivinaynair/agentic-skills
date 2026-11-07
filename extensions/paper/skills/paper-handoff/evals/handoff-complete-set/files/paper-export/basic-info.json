@@ -1,0 +1,11 @@
+{ "page": "Expenses", "url": "https://app.paper.design/file/BRIGHT/p-exp",
+  "artboards": [
+    {"name": "Expenses · List · Desktop · Loaded", "width": 1440},
+    {"name": "Expenses · List · Phone · Loaded", "width": 390},
+    {"name": "Expenses · List · Desktop · Loading", "width": 1440},
+    {"name": "Expenses · List · Phone · Loading", "width": 390},
+    {"name": "Expenses · List · Desktop · Empty", "width": 1440},
+    {"name": "Expenses · List · Phone · Empty", "width": 390},
+    {"name": "Expenses · Approve · Desktop · Confirm", "width": 1440},
+    {"name": "Expenses · Approve · Phone · Confirm", "width": 390}
+  ] }

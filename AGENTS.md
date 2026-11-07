@@ -6,6 +6,8 @@ in agentic-team-kit.
 Read README.md before changing the workflow.
 
 - Keep each skill self-contained, short and in plain prose; respect host-project conventions.
+- Keep core skills tool-independent. Tool-specific skills live in `extensions/<tool>/`
+  and reach core skills by name, never the other way round.
 - Keep owner decisions, observations, open questions and builder mechanics separate.
 - A passing checker shows consistency and approval, not product correctness.
 - Preserve stable IDs and unrelated work. Re-read files before editing.

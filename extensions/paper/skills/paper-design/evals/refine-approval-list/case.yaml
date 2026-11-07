@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: refine-approval-list
+expected_outcome: |
+  design-plan.md plans Desktop and Phone boards with Loading and Empty states, named Feature · Screen · Device · State and composed from the code components; it asks about self-approval (Q1), flags the untraced GST field, the literal values and drawn checkbox, the token drift and the combined error board, and keeps one primary action with the approver shown after approval.
+context:
+  scaffold_script: place-files.sh

@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: handoff-complete-set
+expected_outcome: |
+  A Ready for build handoff file lists all eight boards with Desktop and Phone viewports, the /expenses route, the demo seed, the 2026-03-14 clock, loading pairs, a component map to src/components/ui and the expense row, and journey criteria, without inventing gaps.
+context:
+  scaffold_script: place-files.sh

@@ -1,0 +1,16 @@
+:root {
+  --background: #fbfaf7;
+  --foreground: #1c1c1a;
+  --card: #ffffff;
+  --muted-foreground: #66675f;
+  --primary: #1d4e89;
+  --primary-foreground: #ffffff;
+  --border: #e6e4dd;
+  --input: #8a8b82;
+  --destructive: #8c1d2f;
+  --warning: #87510c;
+  --success: #24613b;
+  --radius: 8px;
+  --spacing-control: 32px;
+  --spacing-control-phone: 44px;
+}

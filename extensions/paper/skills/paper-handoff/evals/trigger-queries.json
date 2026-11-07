@@ -1,0 +1,22 @@
+[
+ {"query": "The Admissions designs in Paper are final, prepare the handoff", "should_trigger": true},
+ {"query": "Finalize the Calendar boards for build", "should_trigger": true},
+ {"query": "Write the Ready for build card for the student workflow page", "should_trigger": true},
+ {"query": "I approved the settings designs, get them ready for the builder", "should_trigger": true},
+ {"query": "Rename the approved Paper artboards and archive the old variants", "should_trigger": true},
+ {"query": "Check whether the marketing Paper page is ready to hand off", "should_trigger": true},
+ {"query": "Create the handoff file for the approved payments designs", "should_trigger": true},
+ {"query": "Paper designs signed off, do the handoff so we can start building tomorrow", "should_trigger": true},
+ {"query": "Rerun the Paper handoff for Packages, I added the phone boards", "should_trigger": true},
+ {"query": "Are the Expenses boards complete enough to build? Write it up on the card", "should_trigger": true},
+ {"query": "Design the enrolment screen in Paper", "should_trigger": false},
+ {"query": "Build the approved Paper handoff for Calendar", "should_trigger": false},
+ {"query": "Refine the worklist rows in Paper", "should_trigger": false},
+ {"query": "Verify the built calendar against the designs", "should_trigger": false},
+ {"query": "Hand off this bug to another engineer", "should_trigger": false},
+ {"query": "Write a handoff note for my teammate about the database migration", "should_trigger": false},
+ {"query": "Plan the tasks for the approved journeys", "should_trigger": false},
+ {"query": "Clarify this ticket about refunds", "should_trigger": false},
+ {"query": "Delete the archived Paper boards", "should_trigger": false},
+ {"query": "Open a pull request for the calendar build", "should_trigger": false}
+]

@@ -1,0 +1,2 @@
+{ "name": "brightline", "private": true,
+  "scripts": { "dev": "next dev", "seed:demo": "bun scripts/seed-demo.ts", "test": "bun test" } }

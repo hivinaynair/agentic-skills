@@ -1,0 +1,22 @@
+[
+ {"query": "Design the enrolment screen in Paper from the approved journeys, desktop and phone", "should_trigger": true},
+ {"query": "Refine the Admissions worklist boards in Paper, the row actions feel cluttered", "should_trigger": true},
+ {"query": "The phone version of the payment step in Paper is missing its error state, add it", "should_trigger": true},
+ {"query": "Polish the calendar page in Paper so a receptionist can find the next lesson faster", "should_trigger": true},
+ {"query": "Redesign the settings flow in Paper, keep our tokens and components", "should_trigger": true},
+ {"query": "Can you make the student detail drawer simpler in the Paper file?", "should_trigger": true},
+ {"query": "Draw the empty, loading and denied states for the expenses list in Paper", "should_trigger": true},
+ {"query": "Here's the Paper link for the dashboard, the hierarchy is off, fix it", "should_trigger": true},
+ {"query": "Mock up a new reports page in Paper based on journey J12", "should_trigger": true},
+ {"query": "Update the Paper boards after we changed D41 to allow partial refunds", "should_trigger": true},
+ {"query": "The designs in Paper are final, prepare the handoff for build", "should_trigger": false},
+ {"query": "Build the approved Paper designs for the calendar", "should_trigger": false},
+ {"query": "Fix the button padding in src/components/ui/button.tsx", "should_trigger": false},
+ {"query": "Map the journeys for password reset", "should_trigger": false},
+ {"query": "Verify the checkout flow in the browser and record a video", "should_trigger": false},
+ {"query": "Export our Figma file to PNGs", "should_trigger": false},
+ {"query": "Write the decision for how long reset links last", "should_trigger": false},
+ {"query": "Migrate the CSS modules in the packages feature to Tailwind", "should_trigger": false},
+ {"query": "Plan the tasks for the approved enrolment journeys", "should_trigger": false},
+ {"query": "What fonts does our landing page use?", "should_trigger": false}
+]

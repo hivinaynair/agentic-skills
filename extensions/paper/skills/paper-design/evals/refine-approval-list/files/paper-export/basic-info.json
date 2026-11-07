@@ -1,0 +1,12 @@
+{ "page": "Expenses", "url": "https://app.paper.design/file/BRIGHT/p-exp",
+  "artboards": [
+    {"name": "Expenses · List · Desktop · Loaded", "width": 1440},
+    {"name": "Expenses · List · Phone · Loaded", "width": 390},
+    {"name": "Expenses · List · Desktop · Empty", "width": 1440},
+    {"name": "Expenses · Approve · Desktop · Confirm", "width": 1440},
+    {"name": "Expenses · Approve · Phone · Confirm", "width": 390},
+    {"name": "Expenses · Submit · Desktop · Errors", "width": 1440},
+    {"name": "Expenses · Submit · Phone · Errors", "width": 390},
+    {"name": "Expenses list v2 improved", "width": 1366},
+    {"name": "Reference · Built app expenses list", "width": 1366}
+  ] }

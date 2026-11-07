@@ -1,0 +1,1 @@
+Paper file: Brightline — Product (https://app.paper.design/file/BRIGHT/p-exp). Exported with get_basic_info, get_tokens, get_jsx (tailwind) and list_comment_threads because Paper MCP is not connected in this environment.
