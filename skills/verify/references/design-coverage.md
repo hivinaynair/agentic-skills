@@ -29,7 +29,8 @@ explicitly.
       "device": "Desktop",
       "route": "/settings/account",
       "setup": "bun run seed:demo; sign in as owner@demo.test",
-      "criteria": ["J4.S1.c1"]
+      "criteria": ["J4.S1.c1"],
+      "notes": ["Saving keeps focus on the edited field (J4.S1.c3)"]
     },
     {
       "name": "Account settings · Desktop · Loading",
@@ -62,6 +63,8 @@ explicitly.
   kept host control, a literal value with no token, a new token.
 - `criteria` names the journey criteria a board shows; `loadingFor` pairs a
   loading board with its loaded board.
+- `notes` lists behaviour the design cannot show for that board (focus,
+  scrolling, transitions), each citing its decision or journey ID.
 
 From the verify skill's directory, run the inventory check before editing. It
 rejects missing devices, boards without a route or setup, and dangling

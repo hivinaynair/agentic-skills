@@ -50,3 +50,18 @@ What each section must carry for agents:
 - **Copy:** vocabulary, casing, and words the product avoids.
 - **Known deviations:** dated notes on anything in code that does not yet
   follow this file, so agents do not copy it.
+
+## What stays out
+
+The file is a system brief, read in full by every design and build agent.
+Each line should hold for any screen in the product.
+
+| Content | Its home |
+|---|---|
+| A rule for one screen, flow or fixture (a catalogue list height, a payment summary layout) | The feature's journeys, decisions and Paper boards |
+| Interaction a board cannot show (reveal and focus, sticky footers, scroll behaviour) for one feature | That feature's handoff notes, with decision or journey IDs |
+| Product policy (who may do what, what counts as paid) | The decision record, cited here by ID when the system relies on it |
+| Past experiments, superseded proposals, change history | A design archive |
+
+The test for a line is whether removing it would change a screen in another
+feature. If it would not, the line belongs in that feature's records.

@@ -102,6 +102,14 @@ test.each([
     error: "Button · primary: reuse needs the code it maps to",
   },
   {
+    name: "rejects notes that are not a list",
+    approved: {
+      ...inventory,
+      artboards: [{ ...artboards[0], notes: "Focus returns to the row" }, artboards[1]],
+    },
+    error: `${desktop}: notes must be a list of sentences`,
+  },
+  {
     name: "accepts a deviation approved by an exception",
     approved: { ...inventory, exceptions: [keptDateInput] },
     results: [

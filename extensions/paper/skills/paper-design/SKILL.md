@@ -43,6 +43,11 @@ answer and say what each answer changes. Keep going on the confirmed parts.
 Gaps in behaviour go through the project's decide or journeys workflow; mark
 boards that depend on an open answer as drafts.
 
+Record what the owner settles where it belongs: behaviour as decisions or
+journey criteria, visual detail on the board and its usage line, and
+interaction a board cannot show in the handoff notes. Only a rule that changes
+every feature goes into `DESIGN.md`, through the paper-design-system skill.
+
 ## Design
 
 Compose from the library page and the host's existing layouts and terms. For a

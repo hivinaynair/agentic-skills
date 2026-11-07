@@ -68,7 +68,9 @@ boards on the primary page, with editable text grouped by journey stage:
   handoff file path.
 - **Behaviour the canvas cannot show.** Scrolling, focus, transitions, and where
   a drawer returns on close, each with its decision or journey IDs. Keep
-  behaviour changes apart from presentation changes.
+  behaviour changes apart from presentation changes. Write each into the
+  board's `notes` in the handoff file too, so it lives with the feature rather
+  than in `DESIGN.md`.
 - **Gaps.** Every failed gate.
 
 With any gap, title the card `Handoff draft · Feature`. Reuse the existing card

@@ -91,6 +91,14 @@ token front matter named as in code, then the rules agents need most. Tokens
 are normative and prose gives context. When the `@google/design.md` CLI is
 available, run its `lint`.
 
+`DESIGN.md` holds only rules that apply across features, and every agent
+reads all of it, so keep it under about 1,500 words. Record each fact once,
+preferably in a table. A rule about one screen or flow goes in its own record
+instead: behaviour in the decision record or journeys, visuals on its Paper
+board, and interaction a board cannot show in the feature's handoff. Past
+experiments go in a design archive. On a rerun, move any feature rule you
+find into its record, then remove it from `DESIGN.md`.
+
 ## 5. Check and return
 
 Compare the theme file, Paper's tokens and the `DESIGN.md` front matter; all

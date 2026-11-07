@@ -40,6 +40,9 @@ function checkBoards(artboards: unknown, issues: string[]) {
     if (board.criteria !== undefined && !stringList(board.criteria)) {
       issues.push(`${name}: criteria must be a list of IDs`);
     }
+    if (board.notes !== undefined && !stringList(board.notes)) {
+      issues.push(`${name}: notes must be a list of sentences`);
+    }
     if (board.loadingFor !== undefined) {
       const loaded = boards.get(String(board.loadingFor));
       if (!loaded) {
