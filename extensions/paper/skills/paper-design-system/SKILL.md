@@ -26,7 +26,10 @@ its source is drift to fix, never a second opinion.
 
 ## 1. Gather
 
-Load the Paper guide with `get_guide` (`paper-mcp-instructions`), then
+When the project's `AGENTS.md` names a design skill, such as Impeccable, load
+it with the context files it names before any Paper call; its brand and
+critique guidance shapes the foundations and the review. Then load the Paper
+guide with `get_guide` (`paper-mcp-instructions`), then
 `get_basic_info` for the file. Read `PRODUCT.md` for the audience and tone,
 any existing `DESIGN.md`, the theme file, `components.json` and the component
 folder. When the shadcn MCP or skill is installed, use it to list the installed

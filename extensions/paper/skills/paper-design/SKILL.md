@@ -15,16 +15,19 @@ screen gets one clear job, a familiar layout, and a visible next step.
 
 ## Load the context
 
-1. Load the Paper guide with `get_guide` (`paper-mcp-instructions`), then
+1. **Design skill first.** When the project's `AGENTS.md` (or equivalent) names
+   a design skill, such as Impeccable, load it with the mode and context files
+   it names before any Paper call, and use it for the design and review below.
+   Done when it is loaded, or when the project names none.
+2. Load the Paper guide with `get_guide` (`paper-mcp-instructions`), then
    `get_basic_info` for the file and the scoped pages. The host's design system
    (`DESIGN.md` or its equivalent) is the brief: its tokens, type, components
    and tone replace the guide's new-design brief, mood and palette steps.
-   Load the host's design skill too, such as Impeccable, if installed.
-2. Read the journey index and the journeys in scope, then trace their rules and
+3. Read the journey index and the journeys in scope, then trace their rules and
    open questions in the decision record. Accepted decisions say what happens;
    journeys say what each person sees and does. Current screens and older
    boards are evidence.
-3. Read the [canvas conventions](references/paper-canvas.md). Check that
+4. Read the [canvas conventions](references/paper-canvas.md). Check that
    Paper's tokens and library page mirror the code, and fix the drift first.
    With no library page or no `DESIGN.md`, run the
    [paper-design-system](../paper-design-system/SKILL.md) skill before
@@ -83,8 +86,8 @@ consistency. Run the lint from the canvas conventions. Fix the blocking and majo
 issues together, then confirm them in one final pass. Call
 `finish_working_on_nodes` when you are done editing.
 
-Return the Paper link, what changed on each device, the decision and journey
-IDs, open questions and any missing states. Once the owner approves the designs
+Return the Paper link, the design skill you used, what changed on each device,
+the decision and journey IDs, open questions and any missing states. Once the owner approves the designs
 for build, run the [paper-handoff](../paper-handoff/SKILL.md) skill; when the
 request already includes finalising, run it in the same pass. Code starts with a
 separate build request.
