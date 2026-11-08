@@ -58,6 +58,10 @@ Compose from the library page and the host's existing layouts and terms. For a
 refinement, keep existing steps and states unless the scope changes them, and
 edit boards in place.
 
+- **The system's rules first.** Follow every rule in the `Do's and Don'ts` of
+  `DESIGN.md` without being asked: matching sizes for controls side by side,
+  one centre line per row, square icon buttons, phone targets of 44px and the
+  rest. The owner should never have to point one out.
 - **One job per screen.** One primary action, named with a verb and noun. Group
   secondary actions out of the main path.
 - **Recognition over recall.** Visible field labels, plain words the actor uses,
@@ -83,7 +87,8 @@ tell where they are, what needs attention and what to do next, and recover from 
 failure without guessing? Check that every board on the scoped pages, existing
 ones included, shows one state. Rate each usability issue by severity, from
 cosmetic to blocking, and check hierarchy, type, spacing, alignment, contrast and control
-consistency. Run the lint from the canvas conventions. Fix the blocking and major
+consistency. Run the lint and the rule checks from the canvas conventions on
+every changed board. Fix the blocking and major
 issues together, then confirm them in one final pass. Call
 `finish_working_on_nodes` when you are done editing.
 

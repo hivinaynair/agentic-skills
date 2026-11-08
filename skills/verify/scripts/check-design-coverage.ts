@@ -7,6 +7,45 @@ type Handoff = {
 };
 
 const componentUses = new Set(["reuse", "restyle", "new"]);
+const fields = {
+  handoff: new Set([
+    "feature",
+    "page",
+    "designSource",
+    "status",
+    "gaps",
+    "requiredDevices",
+    "viewports",
+    "clock",
+    "components",
+    "exceptions",
+    "artboards",
+  ]),
+  artboard: new Set([
+    "name",
+    "device",
+    "route",
+    "setup",
+    "criteria",
+    "notes",
+    "loadingFor",
+  ]),
+  component: new Set(["design", "code", "use"]),
+  exception: new Set(["id", "artboards", "detail"]),
+};
+
+function checkFields(
+  record: Record<string, unknown>,
+  kind: keyof typeof fields,
+  label: string,
+  issues: string[],
+) {
+  for (const key of Object.keys(record)) {
+    if (!fields[kind].has(key)) {
+      issues.push(`${label}: unknown ${kind} field ${key}`);
+    }
+  }
+}
 
 function nonEmpty(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
@@ -35,6 +74,7 @@ function checkBoards(artboards: unknown, issues: string[]) {
     boards.set(board.name, board);
   }
   for (const [name, board] of boards) {
+    checkFields(board, "artboard", name, issues);
     if (!nonEmpty(board.route)) issues.push(`${name}: missing route`);
     if (!nonEmpty(board.setup)) issues.push(`${name}: missing setup`);
     if (board.criteria !== undefined && !stringList(board.criteria)) {
@@ -66,7 +106,10 @@ function checkComponents(components: unknown, issues: string[]) {
   for (const entry of components) {
     if (!isRecord(entry) || !nonEmpty(entry.design)) {
       issues.push("Each component must name its design component");
-    } else if (!componentUses.has(String(entry.use))) {
+      continue;
+    }
+    checkFields(entry, "component", entry.design, issues);
+    if (!componentUses.has(String(entry.use))) {
       issues.push(`${entry.design}: use must be reuse, restyle or new`);
     } else if (entry.use !== "new" && !nonEmpty(entry.code)) {
       issues.push(`${entry.design}: ${entry.use} needs the code it maps to`);
@@ -90,6 +133,7 @@ function checkExceptions(
       issues.push("Each exception needs an id and detail");
       continue;
     }
+    checkFields(entry, "exception", entry.id, issues);
     if (approved.has(entry.id)) {
       issues.push(`Duplicate exception ${entry.id}`);
       continue;
@@ -120,6 +164,18 @@ async function readHandoff(handoffPath: string): Promise<Handoff> {
     throw new Error("Handoff must list its required devices");
   }
   const issues: string[] = [];
+  checkFields(handoff, "handoff", "Handoff", issues);
+  const { status, gaps } = handoff;
+  if (status !== undefined && status !== "ready" && status !== "draft") {
+    issues.push("status must be ready or draft");
+  }
+  if (gaps !== undefined && !stringList(gaps)) {
+    issues.push("gaps must be a list of sentences");
+  } else if (status === "ready" && gaps?.length) {
+    issues.push("A ready handoff cannot list gaps; mark it draft");
+  } else if (status !== "draft" && gaps?.length) {
+    issues.push("A handoff with gaps must be marked draft");
+  }
   const boards = checkBoards(handoff.artboards, issues);
 
   const coveredDevices = new Set(

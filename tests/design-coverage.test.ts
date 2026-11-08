@@ -110,6 +110,40 @@ test.each([
     error: `${desktop}: notes must be a list of sentences`,
   },
   {
+    name: "rejects a handoff field outside the format",
+    approved: { ...inventory, ownerAnswers: ["Q1: desktop only"] },
+    error: "Handoff: unknown handoff field ownerAnswers",
+  },
+  {
+    name: "rejects a board field outside the format",
+    approved: {
+      ...inventory,
+      artboards: [{ ...artboards[0], decision: "Staff only" }, artboards[1]],
+    },
+    error: `${desktop}: unknown artboard field decision`,
+  },
+  {
+    name: "accepts a draft page handoff that lists its gaps",
+    approved: {
+      ...inventory,
+      feature: "Account",
+      page: "Account settings",
+      status: "draft",
+      gaps: ["Phone Empty board is missing"],
+    },
+    error: "",
+  },
+  {
+    name: "rejects gaps on a handoff not marked draft",
+    approved: { ...inventory, status: "ready", gaps: ["Phone Empty missing"] },
+    error: "A ready handoff cannot list gaps",
+  },
+  {
+    name: "rejects gaps with no status",
+    approved: { ...inventory, gaps: ["Phone Empty missing"] },
+    error: "A handoff with gaps must be marked draft",
+  },
+  {
     name: "accepts a deviation approved by an exception",
     approved: { ...inventory, exceptions: [keptDateInput] },
     results: [

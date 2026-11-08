@@ -1,7 +1,9 @@
 # Build from approved designs
 
-Start from the [handoff file](../../verify/references/design-coverage.md). Given
-only a design link or card, find the handoff file it names. Without one, gather
+Start from the [handoff file](../../verify/references/design-coverage.md), one
+per design page. Given only a design link or card, find the handoff file it
+names. A `draft` handoff needs the owner's go-ahead before building; its
+`gaps` stay open and go in your report. Without one, gather
 the approved designs, devices, routes and setup from the request and repository
 into that format, and ask about whatever stays unclear. Build the requested
 scope and treat other designs as references.
@@ -37,6 +39,11 @@ values from the export or the handoff, never by measuring a screenshot. The host
 per-feature stylesheet or literal value appears only where `exceptions` lists
 it. Before verifying, scan the diff for new stylesheets and literal colours,
 sizes or spacing, and fold each into a token or report it as a design gap.
+
+Follow the host design system's rules (the `Do's and Don'ts` in `DESIGN.md`
+or its equivalent) even where a design breaks them, and report the design gap.
+Where a rule can live in a shared component, such as one button size for every
+action row or dialog footer, put it there instead of styling each screen.
 
 A depicted field, action or status the code and accepted decisions lack is new
 behaviour. Stop on it and raise the question as the build skill does.

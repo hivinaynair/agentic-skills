@@ -2,16 +2,20 @@
 
 The **handoff file** is the contract between the approved designs and the build.
 The design handoff writes it, the build reads it, and verify checks the result
-against it. Keep it in the host repository, by default at
-`docs/design/handoff/<feature>.json`. When the handoff has none, reconcile the
+against it. One file covers one design page or section, so each can be marked
+ready on its own. Keep it in the host repository, by default at
+`docs/design/handoff/<page>.json`. When the handoff has none, reconcile the
 approved designs and the notes into one before editing the app. Keep the board
 list fixed through retries. For a request to verify a subset, record its scope
 explicitly.
 
 ```json
 {
-  "feature": "Account settings",
+  "feature": "Account",
+  "page": "Account settings",
   "designSource": "https://example.test/design/account-settings",
+  "status": "draft",
+  "gaps": ["No Phone board for the Loading state"],
   "requiredDevices": ["Desktop", "Phone"],
   "viewports": { "Desktop": "1440x900", "Phone": "390x844" },
   "clock": "2026-11-10T09:30:00+05:30",
@@ -50,6 +54,12 @@ explicitly.
 }
 ```
 
+- `page` names the design page and `designSource` links it. `status` is
+  `ready`, or `draft` with each unmet readiness check in `gaps`; a draft is
+  built only with the owner's go-ahead, and its gaps stay open.
+- The file holds only the fields shown here. Owner answers, device policy and
+  other decisions belong in the decision record; the checker rejects any other
+  field.
 - `requiredDevices` comes from the approved scope and project rules. Each
   device needs at least one board. `viewports` gives the browser size per device;
   without one, use 1440x900 for Desktop and 390x844 for Phone.
@@ -67,8 +77,8 @@ explicitly.
   scrolling, transitions), each citing its decision or journey ID.
 
 From the verify skill's directory, run the inventory check before editing. It
-rejects missing devices, boards without a route or setup, and dangling
-references.
+rejects missing devices, boards without a route or setup, dangling references,
+unknown fields, and gaps on a handoff not marked draft.
 
 ```sh
 bun scripts/check-design-coverage.ts /path/to/handoff.json --inventory-only

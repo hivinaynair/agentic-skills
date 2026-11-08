@@ -47,9 +47,10 @@ What each section must carry for agents:
   card, variants and sizes, and when to pick it over its neighbours. New
   screens compose these; a new component is added to code before screens use
   it.
-- **Do's and Don'ts:** checkable rules: no literal values or palette classes,
-  one primary action per screen, status as text with any colour, visible
-  labels, the shared empty, loading, error and denied states.
+- **Do's and Don'ts:** checkable rules, one table row each with its check:
+  the [baseline craft rules](craft-rules.md) with the product's values filled
+  in, then no literal values or palette classes and the shared empty, loading,
+  error and denied states.
 - **Copy:** voice, casing, punctuation, and how labels, buttons and errors
   are phrased. Domain terms and their meanings live in `PRODUCT.md` or the
   project's glossary.

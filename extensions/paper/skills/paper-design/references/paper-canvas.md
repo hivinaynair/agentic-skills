@@ -58,7 +58,9 @@ board shows one state. Desktop boards use the host's desktop width (default
 runs long.
 
 `get_basic_info` lists only the first 100 boards of a page, so keep pages
-small: one journey stage or area per page, around 40 boards. Put research,
+small: one journey stage or area per page, around 40 boards. Each design page
+is handed off on its own, with its own card and handoff file, so keep a
+page's boards to the flow it ships. Put research,
 flow maps and captures of the built app on their own pages, named
 `Reference · <Feature>`, with boards named `Reference · <Feature> · <what>`.
 Paper Snapshot captures the running app as editable layers.
@@ -73,6 +75,23 @@ sweeps, `find_nodes` with a literal colour or size is cheaper. Rebind each
 literal to its token or record it as a proposed exception, and replace each
 drawn control with its library clone. A board you have not read is unlinted:
 report it as such, never as clean.
+
+Then check the board against the `Do's and Don'ts` in `DESIGN.md` marked for
+Paper. For the [baseline craft rules](../../paper-design-system/references/craft-rules.md),
+read the JSX and, for sizes, `get_computed_styles` on the clones:
+
+- **Rows of controls.** In each `flex` row that is not `flex-col`, every
+  control clone has the same size specimen and computed height, and the row
+  uses `items-center`. `Button · default · lg` beside `Button · outline · sm`
+  fails.
+- **Icon buttons.** Equal computed width and height.
+- **Phone boards.** Controls at least 44px high, at least 8px apart.
+- **Hierarchy.** At most one primary specimen per board or dialog, and
+  destructive specimens only on confirming actions.
+- **Type.** At most four distinct text sizes per board.
+- **Tables.** Cells holding numbers use `text-right`.
+
+Fix each failure on the board, or list it with the rule it breaks.
 
 ## Comments carry open questions
 

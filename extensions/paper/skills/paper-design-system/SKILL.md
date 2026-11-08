@@ -92,7 +92,9 @@ finds no literal values.
 
 Write or update `DESIGN.md` in the [agent-ready format](references/design-md.md):
 token front matter named as in code, then the rules agents need most. Tokens
-are normative and prose gives context. When the `@google/design.md` CLI is
+are normative and prose gives context. Seed `Do's and Don'ts` from the
+[baseline craft rules](references/craft-rules.md) with the product's values,
+keeping any rule the owner changed or dropped as they left it. When the `@google/design.md` CLI is
 available, run its `lint`. Then run, from this skill's folder:
 
 ```sh

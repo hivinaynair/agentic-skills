@@ -62,7 +62,13 @@ Chrome or Chromium. For the full command reference matching that version, read
    ab screenshot "$out/J3.S2.c2.png"
    ```
    Mark each criterion pass or fail against what the screen shows, with its
-   screenshot. To check a skeleton, trigger the real loading state, with the
+   screenshot. On each changed screen, at each required device's viewport, run
+   the read-only layout audit from this skill's directory and treat each issue
+   as a failure (see [layout audit](references/layout-audit.md)):
+   ```sh
+   ab eval "$(bun scripts/layout-audit.ts --snippet)"
+   ```
+   To check a skeleton, trigger the real loading state, with the
    project's test delays or browser request controls, on a fresh load and on
    in-app navigation when both can show it. Capture it and the loaded state at
    the same viewport on each required device. Confirm the fallback shows while

@@ -22,11 +22,22 @@ flowchart LR
   `scripts/check-design-md.ts`. Rerun it to sync after code or brand changes.
 - **paper-design** designs or refines screens from the decisions and journeys,
   every device and state in scope, composed from a Paper library that mirrors
-  your code components and tokens. It reviews usability by severity and lints
-  the boards for literal values before you review them.
+  your code components and tokens. It reviews usability by severity and
+  checks the boards for literal values and the design rules before you review
+  them.
 - **paper-handoff** names and archives the boards, runs the readiness gates
-  (devices, states, components, tokens, behaviour, reach, open questions),
-  writes `docs/design/handoff/<feature>.json` and a Ready for build card.
+  (devices, states, components, tokens, design rules, behaviour, reach, open
+  questions), and writes a `docs/design/handoff/<page>.json` file and a Ready
+  for build card for each design page, so each page ships when it is ready.
+
+## Design rules
+
+`DESIGN.md` carries the rules every design and build agent follows, seeded
+from the [baseline craft rules](skills/paper-design-system/references/craft-rules.md)
+(matching controls side by side, square icon buttons, 44px phone targets and
+more). Each rule names its check: the Paper lint before review and handoff,
+the verify skill's layout audit in the browser, or a shared code component.
+When you correct the same detail twice, add it as a rule.
 
 ## Install
 
