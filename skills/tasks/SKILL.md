@@ -1,6 +1,6 @@
 ---
 name: tasks
-description: "Plans how to build an approved spec: slices a person can use, in a working order, with what can run in parallel, builder notes for each invariant and external system, and a named test for every criterion. Use when asked to plan the implementation, break a feature into tasks or tickets, or sequence the build of an approved journey spec, in a new or existing codebase. Skip for trivial edits and for specs that fit one pull request, which the build skill plans itself."
+description: "Plans an approved app release or feature in usable slices, with dependencies, builder notes and a named test for every criterion. Use when asked to plan implementation, break an app or feature into tasks, or sequence an approved build in a new or existing codebase. Skip for trivial edits and for specs that fit one pull request, which the build skill plans itself."
 compatibility: "Needs the journeys skill installed beside it (its scripts/journeys.ts checker) and Bun 1.4 or later."
 ---
 
@@ -9,11 +9,15 @@ compatibility: "Needs the journeys skill installed beside it (its scripts/journe
 **For the owner:** you are asked only the product questions the plan uncovers. You get
 `docs/tasks/<feature>.md`: the build in usable pieces, each rule with the test that proves it.
 
-You plan how the **builder** delivers an agreed spec: slices a person can use, in a
+You plan how the **builder** delivers the agreed scope: slices a person can use, in a
 working order, with a named test proving every criterion. Follow the project's
 tracker if it has one; otherwise write `docs/tasks/<feature>.md` in the
 [task record](references/task-record.md) format. The checker is the journeys skill's
 `journeys/scripts/journeys.ts`, beside this skill's folder.
+
+For an app release, use the journeys index to plan every included feature, keeping
+one task file per feature. Slices organize the work within the approved scope;
+they need no separate owner approval.
 
 Use this skill when planning pays off: several slices, work in parallel, shared
 schema or migrations, or an external system such as payments. A spec that fits one
@@ -22,23 +26,27 @@ one-task plan itself.
 
 ## Steps
 
-1. **Read.** Read the spec, its decisions and the code it touches, and run
-   `journeys.ts check <journeys file> --ready`. If approval is missing or stale, say
-   so and plan only what you are asked for. Done when you know what exists and
+1. **Read.** Read the scope, completion condition, journeys, decisions and affected
+   code. Run `journeys.ts check <journeys file or app index> --ready` for the requested
+   scope. If approval is missing or stale, say so and plan only what you are asked
+   for. Done when you know what exists and
    what is missing.
 
 2. **Slice.** Group criteria into outcomes a person can use end to end, and give
    each criterion and invariant one owning task. Fold foundations into the first
    slice; reuse working code, marking criteria it already meets on this journey's
    path `Built`. Plan the delivery work too: landing the spec and decisions,
-   migrations, configuration and the project's own gates. Done when everything in
-   scope has an owner.
+   migrations, configuration and the project's own gates. For an app, include a
+   final integration and delivery check against its completion condition. Done when
+   everything in scope has an owner.
 
 3. **Order.** Name the contract each dependency needs and whether agreeing on it is
    enough to start. Say when each task starts and, where tasks share files, schema or
    migrations, which merges after which. Put shared schema in one early migration
    where you can, and say which tasks must ship together so nobody meets a dead end.
-   Done when every task has a start and a merge order.
+   Link dependencies across feature plans by file, task and required contract;
+   keep local task IDs in `Needs`, and unmet outside dependencies in a Blocked reason.
+   Done when every task has a start and a merge order across the requested scope.
 
 4. **Builder notes.** For each invariant, say how the builder holds it: transactions,
    idempotency, retries, ordering. A "same transaction" claim names how the project's
@@ -61,14 +69,16 @@ one-task plan itself.
 6. **Check.** Stamp the journeys' approval in the Source line (journeys `approve`
    does this when given the plan) and run
    `journeys.ts check docs/tasks/<feature>.md` from the repository root. If the
-   project keeps a journeys index, add the plan to the spec's `Tasks:`. Done when it
-   passes. It checks structure, so review the slices, notes and tests yourself.
+   project keeps a journeys index, add each plan to its spec's `Tasks:` and check the
+   index too. Done when every included feature has a checked plan. It checks
+   structure, so review the slices, notes and tests yourself.
 
 ## Questions and the build
 
 A product choice the spec leaves open (a status, a label, an edge case) becomes a Q
 line in the decision record, never a builder note. An open question marks the tasks
-that depend on it Blocked (Q<n>); split a task so only those criteria wait.
+that depend on it Blocked (Q<n>); split a task so only those criteria wait. Continue
+independent work within the requested scope.
 
 During the build, a task is Done only with `Evidence:`: the command run and its
 result, nothing skipped. If a criterion proves wrong or impossible, stop it and raise
@@ -77,7 +87,10 @@ criterion's task, test and status.
 
 Detail every task that can start now; later ones get a short entry that still names
 its tests. Say each fact once: dependencies, order and status in the index, the rest
-in the task section; test names under 10 words, builder notes under 25. Link criterion IDs rather than copying their text. Stop when the next
-slice is actionable, and reply with the next work, what runs in parallel and
-blockers. Implementing waits for the user; the build skill then builds one task at a
-time. Committing and dispatching agents wait for the user too.
+in the task section; test names under 10 words, builder notes under 25. Link criterion
+IDs rather than copying their text. Planning is complete when the whole requested
+scope has owners, tests and an order, with the next slice actionable. For a
+planning-only request, report the plan and blockers. When building is already
+requested, continue with the build skill through that scope without asking per
+slice. Git, deployment and agent dispatch follow the project's rules and the user's
+existing authorization.

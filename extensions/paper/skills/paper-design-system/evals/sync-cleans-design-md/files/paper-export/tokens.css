@@ -1,0 +1,14 @@
+:root {
+  --color-background: #fbfaf7;
+  --color-foreground: #1c1c1a;
+  --color-primary: #1f5596;
+  --color-primary-foreground: #ffffff;
+  --color-muted-foreground: #66675f;
+  --color-border: #e6e4dd;
+  --color-destructive: #8c1d2f;
+  --color-warning: #87510c;
+  --color-success: #24613b;
+  --radius-lg: 8px;
+  --spacing-control: 32px;
+  --spacing-control-phone: 44px;
+}

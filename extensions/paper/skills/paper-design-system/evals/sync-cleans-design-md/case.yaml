@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: sync-cleans-design-md
+expected_outcome: |
+  DESIGN.md and the Paper sync plan take primary #1d4e89 from globals.css. DESIGN.md keeps the visual system (control heights, radii, status as text, one primary action, tones) and loses everything else: decision and journey IDs, expense statuses mapped to colours, the ₹50,000 limit, bulk-approve and dialog rules, the Expenses list layout, the self-approval rule (Q1 is open) and the demo seed and sign-ins, which move to AGENTS.md. The reply says where each removed rule went and raises self-approval against Q1.
+context:
+  scaffold_script: place-files.sh

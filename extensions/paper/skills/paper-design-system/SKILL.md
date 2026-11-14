@@ -18,7 +18,7 @@ the code by name, and a `DESIGN.md` every design and build agent reads first.
 | Token values | The code's theme file (`globals.css` or equivalent) | Paper tokens, `DESIGN.md` front matter |
 | Usage rules | `DESIGN.md` prose | Usage lines on the Paper cards |
 | Component anatomy and variants | The code components | Paper component cards |
-| Product policy | The decision record | Nothing here |
+| Business logic and product policy | The decision record and journeys | Nothing here, not even by ID |
 | New compositions not yet in code | Paper, until a handoff builds them | `DESIGN.md` inventory as `New` |
 
 Keep each fact in its source and copy it outward. A mirror that disagrees with
@@ -33,17 +33,19 @@ guide with `get_guide` (`paper-mcp-instructions`), then
 `get_basic_info` for the file. Read `PRODUCT.md` for the audience and tone,
 any existing `DESIGN.md`, the theme file, `components.json` and the component
 folder. When the shadcn MCP or skill is installed, use it to list the installed
-components, style and registries. Ask the owner, in one message, only for the
+components, style and registries. For a screen task, cover only the tokens,
+components and variants it uses; a full library inventory belongs to a full-system
+request. Ask the owner, in one message, only for the
 brand inputs you could not find.
 
-Done when you can list the brand inputs, the code's tokens and every installed
-component with its variants.
+Done when you can list the brand inputs and the tokens and components in scope.
 
 ## 2. Foundations
 
 Settle the token set in the code's names: shadcn's semantic colours
 (`background`, `foreground`, `primary`, `muted-foreground`, `border`, `ring`,
-plus status colours the product needs), one `radius` base, a type scale, a
+plus status tones such as `success` and `warning`, named for the tone rather
+than a domain status), one `radius` base, a type scale, a
 spacing scale, control heights per device, container widths and breakpoints.
 Use one colour format. Check every foreground against its background at WCAG
 AA. Derive brand choices from the inputs; for a refresh, change only what the
@@ -66,7 +68,7 @@ one-line rule for when to use it.
 
 Draw a `Components` page with one board per category (Forms, Navigation,
 Surfaces and overlays, Data and feedback, Layout and media, then
-product-specific groups). Give every installed component one card:
+product-specific groups). Give every component in scope one card:
 
 - a frame named `Component / <Name>`, where `<Name>` is the code's export
   (`Checkbox`, `DropdownMenu`), with a heading naming its code path;
@@ -83,7 +85,7 @@ success states on a `States` board.
 When the app has a component gallery route, capturing it with Paper Snapshot
 is a fast start; rename the captured layers to this naming afterwards.
 
-Done when every installed component has a card, every card maps to code or is
+Done when every component in scope has a card, every card maps to code or is
 marked `New`, and the lint in the [canvas conventions](../paper-design/references/paper-canvas.md)
 finds no literal values.
 
@@ -91,21 +93,34 @@ finds no literal values.
 
 Write or update `DESIGN.md` in the [agent-ready format](references/design-md.md):
 token front matter named as in code, then the rules agents need most. Tokens
-are normative and prose gives context. When the `@google/design.md` CLI is
-available, run its `lint`.
+are normative and prose gives context. Seed `Do's and Don'ts` from the
+[baseline craft rules](references/craft-rules.md) with the product's values,
+keeping any rule the owner changed or dropped as they left it. When the `@google/design.md` CLI is
+available, run its `lint`. Then run, from this skill's folder:
 
-`DESIGN.md` holds only rules that apply across features, and every agent
-reads all of it, so keep it under about 1,500 words. Record each fact once,
-preferably in a table. A rule about one screen or flow goes in its own record
-instead: behaviour in the decision record or journeys, visuals on its Paper
-board, and interaction a board cannot show in the feature's handoff. Past
-experiments go in a design archive. On a rerun, move any feature rule you
-find into its record, then remove it from `DESIGN.md`.
+```sh
+bun scripts/check-design-md.ts <path to DESIGN.md>
+```
+
+It fails on record IDs, links to feature records, demo data, sign-ins and more
+than 1,500 words. It cannot judge meaning, so also read each line against the
+test in the reference.
+
+`DESIGN.md` holds only visual rules that apply across features, and every
+agent reads all of it, so keep it under 1,500 words. Record each fact
+once, preferably in a table. It carries no business logic: permissions,
+statuses and what they mean, limits, validation, money and tax rules, and
+demo data stay in the decision record, journeys, `PRODUCT.md` or `AGENTS.md`,
+uncited. A rule about one screen or flow goes in its own record instead:
+behaviour in the decision record or journeys, visuals on its Paper board, and
+interaction a board cannot show in the feature's handoff. Past experiments go
+in a design archive. On a rerun, move any business or feature rule you find
+into its record, then remove it from `DESIGN.md`.
 
 ## 5. Check and return
 
 Compare the theme file, Paper's tokens and the `DESIGN.md` front matter; all
-three agree. Screenshot each page and review consistency across components:
+three agree, and the `DESIGN.md` check passes. Screenshot each page and review consistency across components:
 heights, radii, focus rings, label placement. Call `finish_working_on_nodes`
 with the boards you edited.
 
