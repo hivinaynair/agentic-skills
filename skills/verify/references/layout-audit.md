@@ -18,9 +18,10 @@ viewport, checking:
   least 8px apart;
 - table cells holding numbers are right-aligned.
 
-Run it on each changed screen and state at each required device's viewport.
+Run it once on each changed screen/state/device, sharing the result across criteria.
 An issue on a screen this change touched is a failure: fix it in the code and
-check again within the usual three rounds. One that was there before is listed
+check affected states and shared-component dependents within the usual three rounds.
+One that was there before is listed
 as found, not fixed. When the host's `DESIGN.md` sets other values, such as a
 different minimum target, follow it and say so in the report.
 

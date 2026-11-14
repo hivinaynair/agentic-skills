@@ -28,7 +28,9 @@ flowchart LR
 - **paper-handoff** names and archives the boards, runs the readiness gates
   (devices, states, components, tokens, design rules, behaviour, reach, open
   questions), and writes a `docs/design/handoff/<page>.json` file and a Ready
-  for build card for each design page, so each page ships when it is ready.
+  for build card for each design page, plus a feature scope manifest. The manifest
+  reconciles the full source inventory and required states with every page handoff;
+  ready boards carry cached exports and hashed PNG references for browser comparison.
 
 ## Design rules
 
@@ -66,3 +68,7 @@ paper-handoff (a set with planted gaps, a complete set), paper-design (a
 refinement) and paper-design-system (a sync that clears business rules out of
 `DESIGN.md`) also have behaviour cases. They run on a synthetic Paper export,
 so they test judgement, not canvas edits.
+`bun run verify` also exercises omitted screens, device gaps, stale captures and
+pixel mismatches with synthetic PNGs. It does not establish live design-tool access
+or real-app fidelity. Existing installed skill copies must be refreshed together
+with the checker and its `png-diff.ts` helper; old handoffs need the new reference fields.

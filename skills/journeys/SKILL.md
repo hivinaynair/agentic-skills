@@ -1,6 +1,6 @@
 ---
 name: journeys
-description: "Maps how people move through a feature as screens, steps and testable criteria that follow the owner's approved decisions, including what happens when someone is not allowed, enters bad input, hits a failure or repeats an action, then passes an independent review and a checker before build. Use after decisions exist, when asked to map user journeys or flows, write user stories or acceptance criteria, check a spec is ready to build, or reconstruct how an existing feature behaves from its code. Not for visual design or wireframes."
+description: "Maps how people move through an app release or feature as screens, steps and testable criteria that follow the owner's approved decisions, including what happens when someone is not allowed, enters bad input, hits a failure or repeats an action, then passes an independent review and a checker before build. Use after decisions exist, when asked to map user journeys or flows, write user stories or acceptance criteria, check an app or feature spec is ready to build, or reconstruct how an existing feature behaves from its code. Not for visual design or wireframes."
 compatibility: "Needs Bun 1.4 or later for the checker in scripts/journeys.ts."
 ---
 
@@ -8,22 +8,28 @@ compatibility: "Needs Bun 1.4 or later for the checker in scripts/journeys.ts."
 
 **For the owner:** you approve nothing here. The journeys must follow the decisions you
 approved; you are asked again only when they need a rule you have not decided. You get
-`docs/journeys/<feature>.md`. The agent runs the checker.
+`docs/journeys/<feature>.md` per feature, plus an index for a whole app.
+The agent runs the checker.
 
 You map each person's path through a feature, from their goal to every outcome
 they can see. Write one Markdown file per feature, `docs/journeys/<feature>.md`,
-in the [journey format](references/format.md). Every step rests on owner decisions
-in the project's decision record. Never add a rule: when a step needs one that no
+in the [journey format](references/format.md), within the app release or feature scope
+settled by decide. If that boundary is unclear, settle it with decide first.
+Every step rests on owner decisions in the project's decision record. Never add
+a rule: when a step needs one that no
 accepted decision states, record it as a Q line or an `Assumed:` draft and send it
 to the owner as the decide skill does: one list of questions, each with a
 recommendation. The spec is not ready until the owner has answered.
 
 ## Steps
 
-1. **Goals.** List every actor goal for this feature from the decisions and sources,
-   including recovery goals such as a link that stopped working. Mark each one mapped
-   to journeys, excluded by an accepted X, covered elsewhere (another spec), or
-   unresolved. Done when every goal of this feature has a line.
+1. **Goals.** List every actor goal within the agreed scope from the decisions and
+   sources, including setup, administration and recovery where relevant. For an app,
+   cover every included feature in the index and its own journey file. For a feature,
+   inspect affected existing journeys and link to behavior covered elsewhere.
+   Mark each goal mapped to journeys, excluded by an accepted X, covered elsewhere
+   (another spec), or
+   unresolved. Done when every goal in scope has a line in a feature file.
 
 2. **Journeys.** Write each path from the person's first action to every exit.
    Person steps name the screen and what changes for the person there, not what an
@@ -51,7 +57,9 @@ recommendation. The spec is not ready until the owner has answered.
    on a `Scope:` line. Run `bun <skill-dir>/scripts/journeys.ts check docs/journeys/<feature>.md`
    and fix every error. Then run `check --review` and read each step beside the text
    it rests on: every criterion follows from it, each criterion is one behavior, and
-   nothing contradicts another decision. Fix the spec or ask. Done when both pass.
+   nothing contradicts another decision. Review connections between journeys too:
+   shared data, permissions and changes made by another actor or external system.
+   Fix the spec or ask. Done when the check and review pass and the connections agree.
 
 6. **Independent review.** When `check --ready` fails only on approval, have the
    spec checked by a reviewer that did not write it: a fresh subagent if you can
@@ -68,8 +76,12 @@ recommendation. The spec is not ready until the owner has answered.
    a gate.
 
 Changing the journeys or the decisions they cite makes the approval stale; repeat
-the review. When the project grows past one spec, list this file in the
+the review. With several specs or whole-app scope, list each included feature in the
 [project index](references/format.md#when-your-project-grows) and `check` the index too; fix
-its errors and any `elsewhere:` it flags. For an existing feature, start with [existing code](references/existing-projects.md).
-Reply with what changed, open questions and the next step. An approved spec is
+its errors and any `elsewhere:` it flags. Whole-app scope is ready only when every
+included feature is mapped and reviewed and `check <index> --ready` passes; one ready
+feature is not app readiness. Deferred ideas stay outside the index's `## Specs` list.
+For feature scope, check the affected specs for readiness; unrelated planned features
+do not block it. For an existing feature, start with [existing code](references/existing-projects.md).
+Reply with the scope covered, open questions and the next step. Readiness means
 complete enough to build; tests and running code prove the behavior.

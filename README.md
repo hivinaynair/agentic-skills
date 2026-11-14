@@ -35,12 +35,15 @@ flowchart TD
 - **journeys** writes each path a person takes, screen by screen, including what
   they see when something goes wrong. A separate review checks it follows your
   rules exactly; if it needs a rule you have not decided, you get one more question.
-- **tasks** splits the build into pieces a person can use and names the test that
-  proves each rule.
-- **build** implements one task at a time (a small spec that fits one pull request
-  can skip tasks; build writes its one-task plan itself): the planned tests first, then the code,
-  then the evidence, then a pull request naming the rules it implements. A bug that
-  breaks an approved rule is fixed the same way.
+- **tasks** plans the entire approved app or feature in pieces a person can use,
+  orders dependencies across features and names the test that proves each rule.
+- **build** carries out the requested scope one task at a time (a small spec that
+  fits one pull request can skip tasks; build writes its one-task plan itself):
+  the planned tests first, then the code,
+  then the evidence, then a pull request naming the rules it implements. It continues
+  through the approved scope without asking you to approve each slice, then checks
+  the combined app against the agreed completion condition. A bug that breaks an
+  approved rule is fixed the same way.
 - **verify** opens the app in a real browser and checks every rule on screen before
   the pull request; see below.
 
@@ -52,17 +55,18 @@ see, build hands over to verify, which drives a real browser with
 
 1. **Check.** It opens the app (a preview deploy or local, never production) and
    checks every criterion the change touches, including the not allowed, bad input,
-   failure and repeat cases, with a screenshot of each.
-2. **Fix and re-check.** A failure means a code fix and then every criterion checked
-   again, at most three rounds. It may change only product code, never the rules or
+   failure and repeat cases. One screen/state/device capture can prove several criteria.
+2. **Fix and re-check.** A failure means a code fix and affected states and shared
+   components checked again, at most three rounds, then one final acceptance batch.
+   It may change only product code, never the rules or
    tests; a rule that looks wrong goes back to you as a question.
 3. **Explore** (money, permissions, data). agent-browser's `dogfood` skill clicks
    around the changed area like a user. Bugs this change caused get fixed; behavior
    no rule decides becomes a question; older bugs are listed, not fixed.
-4. **Record.** Only once everything passes, it records one clean video of the main
-   path and a failure case, under a minute, with a screenshot per criterion.
-5. **Hand over.** The pull request's Walkthrough section gets the video and one line
-   per criterion with its result and screenshot.
+4. **Record when requested.** After acceptance, it records one short video of the
+   main path and a failure case for the delivery, reusing the existing screenshots.
+5. **Hand over.** The pull request gets one row per state/device with its criteria
+   and evidence, plus the requested video.
 
 So the reviewer watches the change working before reading its code. In CI,
 [agentic-team-kit](https://github.com/hivinaynair/agentic-team-kit) adds Playwright
@@ -81,10 +85,12 @@ your approval no longer applies.
 It is always the same loop; only the start differs.
 
 - **A new product.** Ask *"Use decide to shape this idea."* It first pins down the
-  problem, who it is for, the first thing they should be able to do and what is out
-  of scope. Then map and build **one feature at a time**, not the whole product up front.
+  problem, who it is for, the version to ship and what is out of scope. Decide
+  settles the rules for that release; journeys maps every included feature and how
+  they connect. Approve the scope once, then build it in usable slices.
 - **A new feature.** Ask *"Use decide to plan CSV export"*, or paste the ticket. It
-  reads the existing code and decisions first. When someone else owns the answers
+  scopes that change and reads the existing code, decisions and affected journeys.
+  Unrelated features stay outside the scope. When someone else owns the answers
   (a PM, a client), you get one list of questions grouped by who answers them, each
   with a recommendation, ready to paste into Slack or email.
 - **Changing a feature.** Say what you want to change. Before anything is edited, the
@@ -143,10 +149,12 @@ skill's `SKILL.md` file directly. The checker needs [Bun](https://bun.sh) 1.4+ a
 nothing else; verify needs agent-browser 0.41.0 (`npm i -g agent-browser@0.41.0`)
 and `ffmpeg`.
 
-To build from approved designs, hand the build a [handoff file](skills/verify/references/design-coverage.md):
-every approved state per device, its route and setup, a component map and any
-approved exceptions. The checker rejects an incomplete handoff before coding and
-requires browser evidence for every approved design at the end.
+To build approved designs, provide a [scope manifest and page handoffs](skills/verify/references/design-coverage.md):
+an independent board inventory, required screen/state/device pairs, pinned design
+captures and exports, routes, setup and approved exceptions. The checker catches
+omitted boards and device states, stale evidence and PNG differences. Build compares
+a representative desktop/phone pair early, then uses focused checks until one full
+final evidence pass. Pixel checks support visual review; they do not prove usability.
 
 Designing in Paper? The optional [Paper extension](extensions/paper/) designs the
 approved journeys and writes that handoff file for you.

@@ -28,14 +28,17 @@ screen gets one clear job, a familiar layout, and a visible next step.
    journeys say what each person sees and does. Current screens and older
    boards are evidence.
 4. Read the [canvas conventions](references/paper-canvas.md). Check that
-   Paper's tokens and library page mirror the code, and fix the drift first.
+   the tokens and library components used in scope mirror the code; resolve drift
+   before approval. Keep unrelated library work outside this task.
    With no library page or no `DESIGN.md`, run the
    [paper-design-system](../paper-design-system/SKILL.md) skill before
    designing screens.
 
-Write a short working note: the actor, their task, the decision and journey IDs,
-and the screens, devices and states in scope. Done when every state in scope
-traces to a journey step or a failure path.
+Keep a small source inventory alongside the design records: required screen/state
+pairs from the journeys, required devices, and each board's stable ID, screen, state
+and device. List exclusions with their approved reason. Reconcile all scoped pages
+against it, including boards missing on every device; a truncated canvas listing
+is not the inventory. Done when every required state has a board or a named gap.
 
 ## Ask only what matters
 
@@ -91,6 +94,11 @@ consistency. Run the lint and the rule checks from the canvas conventions on
 every changed board. Fix the blocking and major
 issues together, then confirm them in one final pass. Call
 `finish_working_on_nodes` when you are done editing.
+
+Before approval, reconcile the inventory with the finished boards. Resolve conflicts
+with the host system now: approved composition, type, spacing and responsive layout
+will be the build's visual target. The builder may reuse code, but may not substitute
+a different layout or silently round values.
 
 Return the Paper link, the design skill you used, what changed on each device,
 the decision and journey IDs, open questions and any missing states. Once the owner approves the designs

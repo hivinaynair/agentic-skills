@@ -1,6 +1,8 @@
 # Task record
 
 One Markdown file per feature, unless the project has its own tracker.
+For an app, link every plan from the journeys index. Qualify references across
+plans with the file and task ID; task IDs are local to each plan.
 
 ```markdown
 # Invitations tasks
@@ -34,6 +36,8 @@ Tests:
   updates it when given the plan. When the journeys change, the `tasks` check reports
   the plan as stale.
 - **Target** is where the slice must work to count as done: local, deployed or a pilot.
+  Use the agreed scope's target consistently across its plans. Record final
+  integration and delivery checks as delivery-only work (`Covers: none`).
 - **Covers** names journeys, steps, criterion IDs or invariants; a journey or step
   means all of its criteria. Notes in parentheses are ignored. Each criterion has one
   owning task; a later task that changes it says so in its builder notes. When only

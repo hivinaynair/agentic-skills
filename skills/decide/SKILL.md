@@ -1,6 +1,6 @@
 ---
 name: decide
-description: "Settles what to build before any code: frames a raw idea or vague ticket, asks the product questions that block the first slice (each with a recommendation, sent as one list when a PM, client or committee owns the answers), records each answer as a one-line decision, and gets the decisions approved for build. Use whenever someone shares a ticket, PRD, feature request or idea whose rules are not settled, asks to plan or scope a feature or write requirements, or wants to change an approved decision, even if they never say \"decide\". Not for one-line fixes or purely technical choices."
+description: "Settles what to build before any code: scopes an app release or feature, asks the product questions that block that scope (each with a recommendation, sent as one list when a PM, client or committee owns the answers), records each answer as a one-line decision, and gets the decisions approved for build. Use whenever someone shares a ticket, PRD, feature request or idea whose rules are not settled, asks to scope an app or feature or write requirements, or wants to change an approved decision, even if they never say \"decide\". Not for one-line fixes or purely technical choices."
 ---
 
 # Decide
@@ -18,12 +18,19 @@ If the project already keeps a decision record, add to it in its own format.
 
 ## Steps
 
-1. **Read.** Read the request, the existing record and the code or docs it touches.
-   Done when you can say what is decided, what the code does today, and what is missing.
+1. **Read and scope.** Read the request, the existing record and the code or docs it
+   touches. Infer whether the scope is a whole app release or a feature/change;
+   ask only when unclear. Whole-app scope means the agreed version to ship.
+   Record its intended outcome, included capabilities and completion condition as
+   decisions, with exclusions as X lines; unstated choices stay draft until approved.
+   For an app, inventory all actors and goals, including setup, administration and
+   recovery where relevant. For a feature, inspect its dependencies and affected
+   existing rules. Done when the boundary is explicit and you can say what is
+   decided, what exists and what is missing.
 
 2. **Frame** (raw ideas and vague tickets). When the request does not yet say who it
    is for, what problem it solves and what outcome would satisfy it, settle five
-   things: problem, primary user, first usable outcome, non-goals and success signal.
+   things: problem, primary user, intended outcome, non-goals and success signal.
    For a ticket, take what the ticket and project already establish, and separate
    firm requirements from suggested solutions, assumptions and contradictions; ask
    only for what is missing. Propose a missing success signal or an obvious non-goal
@@ -36,11 +43,11 @@ If the project already keeps a decision record, add to it in its own format.
    too ("Replace D52 with …?"). When journeys exist, run the journeys checker's
    `check <journeys file or index> --impact D52` and say in the question what the
    change would reopen. Then find the missing rules that change what a person can do
-   or see in the first slice, including who can see shared data, existing
+   or see within the agreed scope, including who can see shared data, existing
    data, and changes made outside the app. Drop a gap that an accepted decision or
-   an earlier answer already settles. A gap outside the first slice is a `deferred`
-   Q or an X line, not a blocker; so is an extra the first slice can ship without,
-   such as discounts, overrides or receipts: assume it is left out. Sort each
+   an earlier answer already settles. A gap outside the agreed scope is a `deferred`
+   Q or an X line, not a blocker; propose leaving unrequested extras out as draft
+   X lines. Included capabilities remain in scope even when built later. Sort each
    remaining gap:
    - **Question**, when the answer changes what gets built and you cannot pick
      safely. One question settles one choice; split a bundle (a question joining two
@@ -68,7 +75,7 @@ If the project already keeps a decision record, add to it in its own format.
    impact first. When someone else owns the answers (a PM, client or committee),
    write every blocking question as a Q line at once, then hand over the list from
    the journeys checker's `check docs/decisions.md --questions` to send; record
-   answers as they come back. Done when no open question blocks the first slice.
+   answers as they come back. Done when no open question blocks the agreed scope.
 
 4. **Record.** Write each answer, and each rule the owner volunteers, as an accepted
    D line: one rule, under 30 words, with a why only when it is not obvious. A
@@ -85,20 +92,20 @@ If the project already keeps a decision record, add to it in its own format.
    once a journey file exists, record it there as an O line. Done when every answer
    from this session is a line.
 
-5. **Approve.** When no open question blocks the first slice, give the owner its
-   decisions as one list: the rules, the non-goals and every `Assumed:` line. Ask
-   "Approve these decisions for build?" On yes, mark the assumptions accepted
+5. **Approve.** When no open question blocks the agreed scope, give the owner its
+   decisions as one list: the scope, rules, non-goals and every `Assumed:` line. Ask
+   "Approve these decisions for build?" On yes, mark the drafts accepted
    (recording any override) and add
-   `- D<n> accepted — Decisions approved for build: <feature> (D<a>–D<b>)`. This is
+   `- D<n> accepted — Decisions approved for build: <scope name> (D<a>–D<b>)`. This is
    the owner's sign-off; the journeys are then checked against these decisions
-   without them. Done when no draft or open question is left in the slice.
+   without them. Done when no draft or open question is left in scope.
 
 6. **Report.** Reply with the accepted scope, which paths are ready to map and which
    are blocked on named questions, and the next step, usually the journeys skill.
-   When framing a whole product, propose its features as planned items in the
-   journeys index (`docs/journeys/index.md`), first slice first.
+   For a whole app, list every included feature as a planned item in the journeys
+   index (`docs/journeys/index.md`); keep deferred ideas outside its `## Specs` list.
 
 Retries, transactions, idempotency, timeouts, storage and naming are builder
 choices; they belong in tasks. One line per decision: link tickets, ADRs or docs
-for longer reasoning. Stop when the first slice is unblocked; excluding or
-deferring something is a complete answer.
+for longer reasoning. Stop when the agreed scope is settled. Tasks may divide an
+approved app into build slices without requiring a new owner approval per slice.

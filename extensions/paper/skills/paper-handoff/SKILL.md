@@ -9,7 +9,8 @@ compatibility: "Part of the Paper extension. Needs the core verify skill install
 Turn the approved boards into handoffs the build agent can follow without the
 design chat: one per Paper design page, each a handoff file in the repository,
 in the format of the verify skill's `references/design-coverage.md`, and a
-Ready for build card on that page. Load the Paper guide with
+feature scope manifest linking every handoff to the source inventory. Add a
+Ready for build card on each page. Load the Paper guide with
 `get_guide` (`paper-mcp-instructions`) before reading or editing the file, and
 follow the [canvas conventions](../paper-design/references/paper-canvas.md).
 
@@ -22,6 +23,10 @@ page gets its own handoff, gated and marked ready on its own; a request for a
 whole feature produces one per page. A board is handed off with the page it
 sits on: move a board that belongs to another page's flow before handing off,
 and keep a board shared by several pages on the one page that owns it.
+
+Start from the design inventory and required states, not a selected handful of
+boards. Read every scoped page completely, using the tree or paged reads when a
+listing is truncated. Reconcile board IDs and exclusions before freezing the scope.
 
 Take the required devices from accepted decisions or project rules before
 checking which boards exist. Tell apart variants and states that ship. When
@@ -43,7 +48,8 @@ Each gate passes, or its failure becomes a listed gap. A gate passes only for
 boards you have read: a board whose layers or styles you could not read is a
 gap under every gate that needs them, never a pass.
 
-1. **Devices.** Every screen has a board on each required device.
+1. **Devices.** Every required screen/state has a board on each required device,
+   or an explicitly approved device exclusion.
 2. **States.** Each board shows one state. Every screen that loads data has a
    loading board paired with its loaded board.
 3. **Components.** Every control is a named library clone, and every library
@@ -72,18 +78,24 @@ by default `docs/design/handoff/<page-slug>.json` (`New booking` becomes
 `designSource`, and lists that page's approved boards, the device viewports,
 clock, the components those boards use and their exceptions. Set `status` to
 `ready`, or to `draft` with every failed gate in `gaps`. The file holds only
-the format's fields; the checker rejects any other. Run the inventory check
-for each file from the verify skill's directory:
+the format's fields. For each board, cache its JSX, relevant computed styles and
+tokens in a design export and save a PNG reference at the intended capture size.
+Record its stable ID, screen/state and reference SHA-256. Reuse unchanged exports
+and captures; refresh only changed boards. A page link alone is not a baseline.
+
+Write `<feature>-scope.json` linking every page handoff and the independent source
+inventory, including its required states and approved exclusions. Run from verify:
 
 ```sh
-bun scripts/check-design-coverage.ts <handoff file> --inventory-only
+bun scripts/check-design-coverage.ts <scope file> --inventory-only
+bun scripts/check-design-coverage.ts <scope file> --ready
 ```
 
 On each design page, create or update one `Ready for build · <Page>` board
 beside its approved boards, with editable text grouped by journey stage:
 
 - **Scope.** The page, required devices, any device a decision excludes (with
-  its ID), and the handoff file path.
+  its ID), the handoff and scope manifest paths, and included board count.
 - **Behaviour the canvas cannot show.** Scrolling, focus, transitions, and where
   a drawer returns on close, each with its decision or journey IDs. Keep
   behaviour changes apart from presentation changes. Write each into the
@@ -100,7 +112,9 @@ has its own.
 
 Read the names, cards and handoff files back. Each approved board appears in
 exactly one file, its page's, and resolves there; superseded boards sit in the
-archive; every inventory check passes. Screenshot each card for legibility and
+archive; every inventory entry is included or explicitly excluded, and both scope
+checks pass before claiming ready. Draft inventories can be checked but cannot
+establish completion. Screenshot each changed card for legibility and
 clipping, then call `finish_working_on_nodes`.
 
 Return one line per page: its Paper link, handoff file path, ready or draft,

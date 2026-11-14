@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { png } from "./png-fixture";
 
 const checker = join(
   import.meta.dir,
@@ -10,21 +11,27 @@ const checker = join(
 const desktop = "Account settings · Desktop · Loaded";
 const phone = "Account settings · Phone · Loaded";
 const reach = { route: "/settings/account", setup: "bun run seed:demo" };
+const image = png(8, 6);
+const designHash = new Bun.CryptoHasher("sha256").update(image).digest("hex");
+const reference = { screen: "Account settings", state: "Loaded", designScreenshot: "design.png", designHash, designExport: "styles.json" };
 const artboards = [
-  { name: desktop, device: "Desktop", ...reach },
-  { name: phone, device: "Phone", ...reach },
+  { id: "desktop", name: desktop, device: "Desktop", ...reach, ...reference },
+  { id: "phone", name: phone, device: "Phone", ...reach, ...reference },
 ];
-const inventory = { requiredDevices: ["Desktop", "Phone"], artboards };
+const inventory = { status: "ready", requiredDevices: ["Desktop", "Phone"], viewports: { Desktop: "8x6", Phone: "8x6" }, artboards };
 const desktopMatch = {
   artboard: desktop,
   status: "matched",
   designReference: "https://example.test/design/account-settings",
   browserScreenshot: "desktop.png",
+  boardId: "desktop", revision: "build-a", route: reach.route, viewport: "8x6",
+  visualReview: { layout: "pass", typography: "pass", spacing: "pass", controls: "pass", content: "pass" },
 };
 const phoneMatch = {
   ...desktopMatch,
   artboard: phone,
   browserScreenshot: "phone.png",
+  boardId: "phone",
 };
 const keptDateInput = {
   id: "E1",
@@ -140,7 +147,7 @@ test.each([
   },
   {
     name: "rejects gaps with no status",
-    approved: { ...inventory, gaps: ["Phone Empty missing"] },
+    approved: { ...inventory, status: undefined, gaps: ["Phone Empty missing"] },
     error: "A handoff with gaps must be marked draft",
   },
   {
@@ -169,8 +176,10 @@ test.each([
     await Promise.all([
       writeFile(approvedPath, JSON.stringify(approved)),
       writeFile(report, JSON.stringify(results ?? [])),
-      writeFile(join(directory, "desktop.png"), "desktop screenshot fixture"),
-      writeFile(join(directory, "phone.png"), "phone screenshot fixture"),
+      writeFile(join(directory, "desktop.png"), image),
+      writeFile(join(directory, "phone.png"), image),
+      writeFile(join(directory, "design.png"), image),
+      writeFile(join(directory, "styles.json"), '{"layout":"exported"}'),
     ]);
     const result = Bun.spawnSync(
       [
@@ -178,6 +187,7 @@ test.each([
         checker,
         approvedPath,
         results ? report : "--inventory-only",
+        ...(results ? ["--revision", "build-a"] : []),
       ],
       {
         cwd: tmpdir(),
@@ -187,7 +197,7 @@ test.each([
     if (error) expect(result.stderr.toString()).toContain(error);
     else
       expect(result.stdout.toString()).toContain(
-        results ? "approved artboards matched" : "Handoff valid",
+        results ? "pixel comparison passed" : "Handoff valid",
       );
   } finally {
     await rm(directory, { recursive: true, force: true });

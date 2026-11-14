@@ -33,11 +33,12 @@ guide with `get_guide` (`paper-mcp-instructions`), then
 `get_basic_info` for the file. Read `PRODUCT.md` for the audience and tone,
 any existing `DESIGN.md`, the theme file, `components.json` and the component
 folder. When the shadcn MCP or skill is installed, use it to list the installed
-components, style and registries. Ask the owner, in one message, only for the
+components, style and registries. For a screen task, cover only the tokens,
+components and variants it uses; a full library inventory belongs to a full-system
+request. Ask the owner, in one message, only for the
 brand inputs you could not find.
 
-Done when you can list the brand inputs, the code's tokens and every installed
-component with its variants.
+Done when you can list the brand inputs and the tokens and components in scope.
 
 ## 2. Foundations
 
@@ -67,7 +68,7 @@ one-line rule for when to use it.
 
 Draw a `Components` page with one board per category (Forms, Navigation,
 Surfaces and overlays, Data and feedback, Layout and media, then
-product-specific groups). Give every installed component one card:
+product-specific groups). Give every component in scope one card:
 
 - a frame named `Component / <Name>`, where `<Name>` is the code's export
   (`Checkbox`, `DropdownMenu`), with a heading naming its code path;
@@ -84,7 +85,7 @@ success states on a `States` board.
 When the app has a component gallery route, capturing it with Paper Snapshot
 is a fast start; rename the captured layers to this naming afterwards.
 
-Done when every installed component has a card, every card maps to code or is
+Done when every component in scope has a card, every card maps to code or is
 marked `New`, and the lint in the [canvas conventions](../paper-design/references/paper-canvas.md)
 finds no literal values.
 

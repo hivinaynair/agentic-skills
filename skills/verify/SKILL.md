@@ -1,15 +1,17 @@
 ---
 name: verify
-description: "Checks a change in a real browser against its success criteria, fixes the product code and re-checks until every criterion passes (at most three rounds), explores around risky changes for unplanned bugs, then records a video walkthrough with a screenshot per criterion for the pull request. Use after building anything people can see, before opening its PR, or when asked to verify, QA, test in the browser, demo or prove that a feature works."
-compatibility: "Needs agent-browser 0.41.0 (npm i -g agent-browser@0.41.0), ffmpeg and a Chrome or Chromium."
+description: "Checks behavior and approved designs in a real browser: focused checks during build, one final state/device evidence pass before handover, and a walkthrough when requested. Fixes product code within three rounds and reports incomplete scope honestly. Use after building visible changes, before a PR, or when asked to verify, QA, demo or prove a feature works."
+compatibility: "Needs agent-browser 0.41.0, Chrome or Chromium, and Bun for design checks. Recording also needs ffmpeg."
 allowed-tools: Bash(agent-browser:*)
 ---
 
 # Verify
 
 You prove a change works before a person looks at it: you check every success
-criterion in a real browser, fix what fails, check again, and only then record
-the walkthrough. The person reviews a change that already works, with evidence.
+criterion in a real browser and compare approved designs, then fix what fails.
+Use focused passes during build and one final acceptance batch for the requested
+delivery. Capture once per screen/state/device and share it across criteria;
+record a walkthrough only when the user or project requests one.
 
 Use [agent-browser](https://github.com/vercel-labs/agent-browser) 0.41.0, installed
 once with `npm i -g agent-browser@0.41.0`; call `agent-browser` directly, which is
@@ -36,9 +38,12 @@ Chrome or Chromium. For the full command reference matching that version, read
    journeys the change touches (`J3.S2.c1: …`), including the not allowed, bad
    input, failure and repeat cases. Without one, take the ticket's acceptance
    criteria and write them as `When <condition>: <result>.` Done when each
-   criterion is one line you can check on screen. For a design handoff, read
+   criterion maps to a reproducible state and observation. Group checks that share
+   a state so setup, navigation and screenshots run once. A focused pass names its
+   subset; final acceptance covers the complete requested scope. For a design handoff, read
    [design coverage](references/design-coverage.md) and include each approved
-   design in the same browser pass. If the changed UI has a loading skeleton,
+   design in the same browser pass, with pinned source captures and a tested-code
+   fingerprint. If the changed UI has a loading skeleton,
    include its transition to the loaded layout.
 
 2. **Run the app.** If the team deploys a preview per branch, push the branch and
@@ -62,7 +67,7 @@ Chrome or Chromium. For the full command reference matching that version, read
    ab screenshot "$out/J3.S2.c2.png"
    ```
    Mark each criterion pass or fail against what the screen shows, with its
-   screenshot. On each changed screen, at each required device's viewport, run
+   shared state screenshot. On each changed screen, at each required device's viewport, run
    the read-only layout audit from this skill's directory and treat each issue
    as a failure (see [layout audit](references/layout-audit.md)):
    ```sh
@@ -75,12 +80,17 @@ Chrome or Chromium. For the full command reference matching that version, read
    content is pending and leaves when it arrives, and compare stable regions
    such as headers, controls, rows and cards for unintended shifts. Report any
    fallback you could not reach. For design
-   handoffs, record each approved design's result and run the coverage checker
+   handoffs, review saved design/browser pairs for layout, typography, spacing,
+   controls and content, then run the PNG coverage checker. A failed visual check
+   is `differs` even if the interactions work. Use `--focus` for a partial pass;
+   final acceptance uses the full scope manifest. Run the checker
    even if a state is blocked. Done when every criterion has a result.
 
 4. **Fix and check again.** For each failure, find the cause in the code, fix it,
-   run the project's tests, and check **every** criterion again, not only the one
-   that failed. Done when all pass, or after three rounds: then stop, skip the
+   run the affected tests, and recheck affected states and shared-component
+   dependents. Batch fixes before the complete final capture at the current code
+   fingerprint; do not relabel old evidence or rerun the full suite per small edit.
+   Done when the requested pass succeeds, or after three rounds: then stop, skip the
    recording, and report each failing criterion with its screenshot and what you
    tried.
 
@@ -90,26 +100,26 @@ Chrome or Chromium. For the full command reference matching that version, read
    to the changed area and the flows next to it, with output in `"$out/dogfood"`.
    Sort every finding:
    - **Caused by this change:** fix it within the same three rounds, then check
-     every criterion again.
+     affected states and shared-component dependents again.
    - **Behavior no criterion decides:** do not choose one; record it as an open
      question for the owner.
    - **There before this change:** do not fix it; list it as found, not fixed.
    Done when every finding is sorted.
 
-6. **Record the walkthrough.** Once every criterion passes and every finding is
-   sorted, record one clean take of the main path and at least one failure case,
-   with a screenshot after each state; wait for each state to show before the
-   screenshot.
+6. **Record if requested.** After final acceptance, record one clean take of the
+   main path and a failure case for the delivery. Reuse the state screenshots;
+   recording is not a second acceptance pass. Skip this step during focused checks.
    ```sh
    ab record start "$out/walkthrough.mp4" --cursor --contact-sheet
-   # …the same actions as step 3, screenshot after each state…
+   # …walk the approved main path and a failure case…
    ab record stop; ab close
    ```
    Rely on the screenshots, not the contact sheet (see Known issues). Keep the video
    under a minute.
 
-7. **Hand it over.** Fill the PR's **Walkthrough** section: the video, then one
-   line per criterion with its result and screenshot. For design handoffs, link
+7. **Hand it over.** Fill the PR's **Walkthrough** section with the requested video
+   and one row per distinct state/device, linking its criteria and reused evidence.
+   A focused pass reports its subset and remaining scope. For design handoffs, link
    the coverage report. For a risky change, fill
    **Exploratory check** with the dogfood report and the sorted findings. Attach the
    files where the team keeps PR media (see `AGENTS.md` or the team guide); if you

@@ -11,7 +11,8 @@ modes or CSS grid yet; the conventions below stand in for them.
   `get_tree_summary` before `get_jsx`. Call `get_font_family_info` before the
   first typography change.
 - Take exact values from `get_jsx`, `get_computed_styles` and `get_tokens`.
-  Screenshots are for visual review only.
+  Cache them per board at handoff; screenshots supply the pinned visual reference,
+  not guessed implementation values. Read unchanged cached exports on retries.
 - Paper plans meter MCP calls. Reuse nodes with `duplicate_nodes` or
   `<x-paper-clone>` and edit them with `update_styles` and `set_text_content`
   instead of rewriting HTML.
@@ -64,6 +65,10 @@ page's boards to the flow it ships. Put research,
 flow maps and captures of the built app on their own pages, named
 `Reference · <Feature>`, with boards named `Reference · <Feature> · <what>`.
 Paper Snapshot captures the running app as editable layers.
+
+Use a complete tree or paged reads to reconcile the source inventory even on an
+older large page. Board IDs survive renames; carry file/page/node IDs into the
+handoff, with explicit screen and state fields rather than parsing display names.
 
 ## Lint before review
 
